@@ -1,7 +1,5 @@
 # Sistema Académico Integral
 
-**Desarrollo de Aplicaciones Web** — Facultad de Ingeniería de Sistemas, UNCP.
-
 ## Tecnologias
 
 - **Frontend:** React + Vite
