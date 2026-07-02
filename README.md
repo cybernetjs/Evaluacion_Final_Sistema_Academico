@@ -63,7 +63,6 @@ pip install -r requirements.txt
 
 ```env
 DATABASE_URL=tu_cadena_de_conexion
-JWT_SECRET_KEY=tu_clave_secreta
 ```
 
 5. Si quieres levantar la base de datos desde cero y cargar datos de prueba, ejecuta:
