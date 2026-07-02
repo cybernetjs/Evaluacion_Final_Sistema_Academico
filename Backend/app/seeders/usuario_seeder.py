@@ -3,6 +3,10 @@ from app.modelos.usuario import Usuario
 
 
 def ejecutar():
+    if Usuario.query.first():
+        print("Usuarios ya existen")
+        return
+
     usuarios = [
         Usuario(username="estudiante_prueba", password="123456"),
         Usuario(username="docente_prueba", password="123456"),

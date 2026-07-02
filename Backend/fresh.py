@@ -1,5 +1,5 @@
 from app import crear_app, db
-from app.seeders import facultad_seeder, usuario_seeder
+from app.seeders import ejecutar_todos
 
 app = crear_app()
 
@@ -14,7 +14,6 @@ with app.app_context():
     db.create_all()
     print("Base de datos recreada")
 
-    facultad_seeder.ejecutar()
-    usuario_seeder.ejecutar()
+    ejecutar_todos()
 
     print("Listo: base de datos nueva con datos de prueba xd")

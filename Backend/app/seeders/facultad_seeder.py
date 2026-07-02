@@ -3,6 +3,10 @@ from app.modelos.facultad import Facultad
 
 
 def ejecutar():
+    if Facultad.query.first():
+        print("Facultades ya existen")
+        return
+
     facultades = [
         Facultad(nombre="Facultad de Ingeniería de Sistemas"),
         Facultad(nombre="Facultad de Ingeniería en Ciberseguridad"),
