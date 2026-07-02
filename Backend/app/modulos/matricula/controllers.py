@@ -41,7 +41,8 @@ def listar_matriculas():
             "estudiante_id": m.estudiante_id,
             "periodo_academico_id": m.periodo_academico_id,
             "semestre_id": m.semestre_id,
-            "estado_id": m.estado_id
+            "estado_id": m.estado_id,
+            "pagado": m.pagado
         }
         for m in matriculas
     ])
@@ -53,11 +54,11 @@ def crear_matricula():
         estudiante_id=data.get("estudiante_id"),
         periodo_academico_id=data.get("periodo_academico_id"),
         semestre_id=data.get("semestre_id"),
-        estado_id=data.get("estado_id")
+        estado_id=1  
     )
     db.session.add(nueva)
     db.session.commit()
-    return jsonify({"mensaje": "matrícula creada", "id": nueva.id}), 201
+    return jsonify({"mensaje": "Solicitud de matrícula registrada", "id": nueva.id}), 201
 
 
 def listar_estados_matricula():
@@ -66,13 +67,70 @@ def listar_estados_matricula():
         {"id": e.id, "nombre": e.nombre}
         for e in estados
     ])
+
+
 def validar_requisitos(matricula_id):
     matricula = Matricula.query.get(matricula_id)
 
     if not matricula:
         return jsonify({"error": "Matrícula no encontrada"}), 404
 
-    matricula.estado_id = 2  # ajustar según el id real de "REGISTRADO"/"VALIDADO" en tu tabla estados_matriculas
+    if matricula.estado_id != 1:
+        return jsonify({"error": "Solo se pueden validar matrículas pendientes"}), 400
+
+    matricula.estado_id = 2  
     db.session.commit()
 
     return jsonify({"mensaje": "Requisitos validados", "matricula_id": matricula.id})
+
+
+def registrar_pago(matricula_id):
+    matricula = Matricula.query.get(matricula_id)
+
+    if not matricula:
+        return jsonify({"error": "Matrícula no encontrada"}), 404
+
+    if matricula.estado_id != 2:
+        return jsonify({"error": "La matrícula debe estar validada antes de registrar el pago"}), 400
+
+    matricula.pagado = True
+    db.session.commit()
+
+    return jsonify({"mensaje": "Pago registrado", "matricula_id": matricula.id})
+
+
+def generar_ficha_oficial(matricula_id):
+    matricula = Matricula.query.get(matricula_id)
+
+    if not matricula:
+        return jsonify({"error": "Matrícula no encontrada"}), 404
+
+    if not matricula.pagado:
+        return jsonify({"error": "No se puede generar la ficha sin el pago registrado"}), 400
+
+    matricula.estado_id = 3  
+    db.session.commit()
+
+    return jsonify({
+        "mensaje": "Ficha oficial generada, matrícula confirmada",
+        "matricula": {
+            "id": matricula.id,
+            "estudiante_id": matricula.estudiante_id,
+            "estado_id": matricula.estado_id,
+            "pagado": matricula.pagado
+        }
+    })
+
+
+def estadisticas():
+    total = Matricula.query.count()
+    matriculados = Matricula.query.filter_by(estado_id=3).count()
+    pendientes = Matricula.query.filter_by(estado_id=1).count()
+    validados = Matricula.query.filter_by(estado_id=2).count()
+
+    return jsonify({
+        "total_solicitudes": total,
+        "matriculados": matriculados,
+        "pendientes": pendientes,
+        "validados": validados
+    })

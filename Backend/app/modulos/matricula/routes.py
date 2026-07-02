@@ -30,3 +30,26 @@ def listar_ofertas():
 @matricula_bp.route('/estados', methods=['GET'])
 def listar_estados_matricula():
     return controllers.listar_estados_matricula()
+
+
+@matricula_bp.route('/<int:matricula_id>/validar', methods=['PUT'])
+@rol_requerido("administrador")
+def validar_requisitos(matricula_id):
+    return controllers.validar_requisitos(matricula_id)
+
+
+@matricula_bp.route('/<int:matricula_id>/pago', methods=['POST'])
+@rol_requerido("administrador")
+def registrar_pago(matricula_id):
+    return controllers.registrar_pago(matricula_id)
+
+
+@matricula_bp.route('/<int:matricula_id>/ficha-oficial', methods=['POST'])
+@rol_requerido("administrador")
+def generar_ficha_oficial(matricula_id):
+    return controllers.generar_ficha_oficial(matricula_id)
+
+
+@matricula_bp.route('/estadisticas', methods=['GET'])
+@rol_requerido("direccion")
+def
