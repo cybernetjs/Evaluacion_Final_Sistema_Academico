@@ -8,12 +8,12 @@ def ejecutar():
         return
 
     estados = [
+        EstadoMatricula(nombre="Pendiente"),
+        EstadoMatricula(nombre="Validado"),
         EstadoMatricula(nombre="Matriculado"),
         EstadoMatricula(nombre="Retirado"),
         EstadoMatricula(nombre="Anulado"),
     ]
-
     db.session.add_all(estados)
     db.session.commit()
-
     print("Estados de matricula creados")

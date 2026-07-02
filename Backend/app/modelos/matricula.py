@@ -9,6 +9,7 @@ class Matricula(db.Model):
     periodo_academico_id = db.Column(db.Integer, db.ForeignKey("periodos_academicos.id"))
     semestre_id = db.Column(db.Integer, db.ForeignKey("semestres.id"))
     estado_id = db.Column(db.Integer, db.ForeignKey("estados_matriculas.id"))
+    pagado = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime)
     modified_at = db.Column(db.DateTime)
     deleted_at = db.Column(db.DateTime)
