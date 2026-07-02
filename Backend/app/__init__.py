@@ -2,20 +2,28 @@ from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
+from flask_bcrypt import Bcrypt
 
 from app.config import Config
 
 db = SQLAlchemy()
 migrate = Migrate()
+jwt = JWTManager()
+bcrypt = Bcrypt()
 
 
 def crear_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
     CORS(app)
     db.init_app(app)
     migrate.init_app(app, db)
-    
+    jwt.init_app(app)
+    bcrypt.init_app(app)
+
+    from app.modulos.auth.routes import auth_bp
     from app.modulos.matricula.routes import matricula_bp
     from app.modulos.notas.routes import notas_bp
     from app.modulos.cursos_docentes.routes import cursos_docentes_bp
@@ -23,6 +31,7 @@ def crear_app():
     from app.modulos.certificados.routes import certificados_bp
     from app.modulos.record_academico.routes import record_academico_bp
 
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(matricula_bp, url_prefix='/api/matriculas')
     app.register_blueprint(notas_bp, url_prefix='/api/notas')
     app.register_blueprint(cursos_docentes_bp, url_prefix='/api/cursos-docentes')
