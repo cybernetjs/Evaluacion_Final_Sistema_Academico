@@ -62,7 +62,7 @@ pip install -r requirements.txt
 4. Crea un archivo `.env` dentro de `Backend` con al menos estas variables:
 
 ```env
-DATABASE_URL=tu_cadena_de_conexion
+DATABASE_URL=mysql+pymysql://USUARIO:CONTRASEÑA@HOST/NOMBRE_BASE_DE_DATOS
 ```
 
 5. Si quieres levantar la base de datos desde cero y cargar datos de prueba, ejecuta:
