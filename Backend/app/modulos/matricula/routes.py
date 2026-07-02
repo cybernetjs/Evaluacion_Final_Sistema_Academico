@@ -52,4 +52,5 @@ def generar_ficha_oficial(matricula_id):
 
 @matricula_bp.route('/estadisticas', methods=['GET'])
 @rol_requerido("direccion")
-def
+def estadisticas():
+    return controllers.estadisticas()
