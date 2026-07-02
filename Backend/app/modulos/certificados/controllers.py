@@ -5,7 +5,10 @@ from app.modelos.facultad import Facultad
 
 
 def generar_certificado(estudiante_id):
-    estudiante = Estudiante.query.get_or_404(estudiante_id)
+    estudiante = Estudiante.query.get(estudiante_id)
+    if not estudiante:
+        return jsonify({"mensaje": "Estudiante no encontrado"}), 404
+
     especialidad = Especialidad.query.get(estudiante.especialidad_id)
     facultad = Facultad.query.get(especialidad.facultad_id) if especialidad else None
 

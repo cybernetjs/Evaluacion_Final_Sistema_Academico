@@ -1,7 +1,19 @@
 from flask import Blueprint
+from flask import jsonify
 from app.modulos.administracion import controllers
 
 administracion_bp = Blueprint('administracion', __name__)
+
+@administracion_bp.route('/', methods=['GET'])
+def index_administracion():
+    return jsonify({
+        "endpoints": [
+            "/facultades",
+            "/especialidades",
+            "/planes-estudio",
+            "/semestres"
+        ]
+    })
 
 @administracion_bp.route('/facultades', methods=['GET'])
 def listar_facultades():

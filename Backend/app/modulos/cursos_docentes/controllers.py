@@ -21,7 +21,10 @@ def listar_cursos():
 
 
 def obtener_curso(id):
-    c = Curso.query.get_or_404(id)
+    c = Curso.query.get(id)
+    if not c:
+        return jsonify({"mensaje": "Curso no encontrado"}), 404
+
     return jsonify({
         "id": c.id,
         "nombre": c.nombre,

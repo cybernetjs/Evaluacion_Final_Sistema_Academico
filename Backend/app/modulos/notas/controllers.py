@@ -34,7 +34,10 @@ def registrar_nota():
     detalle = MatriculaDetalle.query.filter_by(
         matricula_id=data.get("matricula_id"),
         oferta_academica_id=data.get("oferta_academica_id")
-    ).first_or_404()
+    ).first()
+
+    if not detalle:
+        return jsonify({"mensaje": "Detalle de matrícula no encontrado"}), 404
 
     detalle.nota_final = data.get("nota_final")
     detalle.estado_curso_id = data.get("estado_curso_id")

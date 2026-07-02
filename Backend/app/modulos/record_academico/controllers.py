@@ -21,7 +21,10 @@ def obtener_record(estudiante_id):
 
 
 def obtener_progreso(estudiante_id):
-    progreso = ProgresoEstudiante.query.get_or_404(estudiante_id)
+    progreso = ProgresoEstudiante.query.get(estudiante_id)
+    if not progreso:
+        return jsonify({"mensaje": "Progreso de estudiante no encontrado"}), 404
+
     return jsonify({
         "estudiante_id": progreso.estudiante_id,
         "estado_permanencia_id": progreso.estado_permanencia_id,
