@@ -66,3 +66,13 @@ def listar_estados_matricula():
         {"id": e.id, "nombre": e.nombre}
         for e in estados
     ])
+def validar_requisitos(matricula_id):
+    matricula = Matricula.query.get(matricula_id)
+
+    if not matricula:
+        return jsonify({"error": "Matrícula no encontrada"}), 404
+
+    matricula.estado_id = 2  # ajustar según el id real de "REGISTRADO"/"VALIDADO" en tu tabla estados_matriculas
+    db.session.commit()
+
+    return jsonify({"mensaje": "Requisitos validados", "matricula_id": matricula.id})
