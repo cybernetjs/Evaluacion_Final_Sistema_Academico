@@ -1,10 +1,12 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 from app.config import Config
 
 db = SQLAlchemy()
+migrate = Migrate()
 
 
 def crear_app():
@@ -13,6 +15,9 @@ def crear_app():
 
     CORS(app)
     db.init_app(app)
+    migrate.init_app(app, db)
+
+    from . import modelos
 
     @app.route("/")
     def inicio():
