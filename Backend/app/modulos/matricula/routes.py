@@ -10,3 +10,15 @@ def listar_matriculas():
 @matricula_bp.route('/', methods=['POST'])
 def crear_matricula():
     return controllers.crear_matricula()
+
+@matricula_bp.route('/periodos', methods=['GET'])
+def listar_periodos():
+    return controllers.listar_periodos()
+
+@matricula_bp.route('/ofertas', methods=['GET'])
+def listar_ofertas():
+    return controllers.listar_ofertas()
+
+@matricula_bp.route('/estados', methods=['GET'])
+def listar_estados_matricula():
+    return controllers.listar_estados_matricula()

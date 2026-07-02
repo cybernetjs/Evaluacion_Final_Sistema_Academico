@@ -11,6 +11,10 @@ migrate = Migrate()
 
 def crear_app():
     app = Flask(__name__)
+    app.config.from_object(Config)
+    CORS(app)
+    db.init_app(app)
+    migrate.init_app(app, db)
     
     from app.modulos.matricula.routes import matricula_bp
     from app.modulos.notas.routes import notas_bp

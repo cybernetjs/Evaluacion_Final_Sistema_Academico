@@ -14,3 +14,7 @@ def listar_especialidades():
 @administracion_bp.route('/planes-estudio', methods=['GET'])
 def listar_planes_estudio():
     return controllers.listar_planes_estudio()
+
+@administracion_bp.route('/semestres', methods=['GET'])
+def listar_semestres():
+    return controllers.listar_semestres()
