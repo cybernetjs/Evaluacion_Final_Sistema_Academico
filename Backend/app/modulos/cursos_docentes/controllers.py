@@ -1,8 +1,13 @@
-from flask import jsonify
+from flask import jsonify, request
+from flask_jwt_extended import get_jwt_identity
+from app import db
 from app.modelos.curso import Curso
 from app.modelos.pre_requisito import PreRequisito
 from app.modelos.docente import Docente
 from app.modelos.tipo_docente import TipoDocente
+from app.modelos.oferta_academica import OfertaAcademica
+from app.modelos.oferta_academica_docente import OfertaAcademicaDocente
+from app.modelos.oferta_academica_horario import OfertaAcademicaHorario
 
 
 def listar_cursos():
@@ -24,7 +29,6 @@ def obtener_curso(id):
     c = Curso.query.get(id)
     if not c:
         return jsonify({"mensaje": "Curso no encontrado"}), 404
-
     return jsonify({
         "id": c.id,
         "nombre": c.nombre,
@@ -66,3 +70,83 @@ def listar_tipos_docentes():
         {"id": t.id, "nombre": t.nombre}
         for t in tipos
     ])
+
+
+def mis_cursos_asignados():
+    usuario_id = get_jwt_identity()
+    docente = Docente.query.filter_by(usuario_id=usuario_id).first()
+
+    if not docente:
+        return jsonify({"error": "No se encontró un docente asociado a este usuario"}), 404
+
+    asignaciones = OfertaAcademicaDocente.query.filter_by(docente_id=docente.id).all()
+
+    resultado = []
+    for a in asignaciones:
+        oferta = a.oferta_academica
+        resultado.append({
+            "oferta_academica_id": oferta.id,
+            "curso_id": oferta.curso_id,
+            "curso_nombre": oferta.curso.nombre,
+            "semestre_id": oferta.semestre_id,
+            "periodo_academico_id": oferta.periodo_academico_id,
+            "cupos": oferta.cupos,
+            "tipo_docente_id": a.tipo_docente_id
+        })
+
+    return jsonify(resultado)
+
+
+def asignar_docente(oferta_academica_id):
+    data = request.get_json()
+    docente_id = data.get("docente_id")
+    tipo_docente_id = data.get("tipo_docente_id")
+
+    oferta = OfertaAcademica.query.get(oferta_academica_id)
+    if not oferta:
+        return jsonify({"error": "Oferta académica no encontrada"}), 404
+
+    asignacion = OfertaAcademicaDocente(
+        oferta_academica_id=oferta_academica_id,
+        docente_id=docente_id,
+        tipo_docente_id=tipo_docente_id
+    )
+    db.session.add(asignacion)
+    db.session.commit()
+
+    return jsonify({"mensaje": "Docente asignado correctamente", "id": asignacion.id}), 201
+
+
+def gestionar_horario(oferta_academica_id):
+    data = request.get_json()
+
+    oferta = OfertaAcademica.query.get(oferta_academica_id)
+    if not oferta:
+        return jsonify({"error": "Oferta académica no encontrada"}), 404
+
+    horario = OfertaAcademicaHorario(
+        oferta_academica_id=oferta_academica_id,
+        dia=data.get("dia"),
+        hora_inicio=data.get("hora_inicio"),
+        hora_fin=data.get("hora_fin")
+    )
+    db.session.add(horario)
+    db.session.commit()
+
+    return jsonify({"mensaje": "Horario registrado correctamente", "id": horario.id}), 201
+
+
+def carga_docente():
+    docentes = Docente.query.all()
+    resultado = []
+
+    for d in docentes:
+        cantidad_cursos = OfertaAcademicaDocente.query.filter_by(docente_id=d.id).count()
+        resultado.append({
+            "docente_id": d.id,
+            "nombres": d.nombres,
+            "apellido_paterno": d.apellido_paterno,
+            "cursos_asignados": cantidad_cursos
+        })
+
+    return jsonify(resultado)
