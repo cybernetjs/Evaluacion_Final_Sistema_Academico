@@ -1,5 +1,11 @@
 # Sistema Académico Integral
 
+## Equipo
+
+- Coca Huari Mario
+- Huaynate Achachau José Luis
+- Ricardo Alexander Llanos Lozano
+
 ## Tecnologías
 
 - **Frontend:** React + Vite
@@ -101,9 +107,3 @@ El frontend queda disponible en `http://localhost:5173`.
 4. Ejecutar `python run.py` para levantar Flask.
 5. Instalar dependencias del frontend con `npm install`.
 6. Ejecutar `npm run dev` en `Frontend`.
-
-## Equipo
-
-- Coca Huari Mario
-- Huaynate Achachau José Luis
-- Ricardo Alexander Llanos Lozano
