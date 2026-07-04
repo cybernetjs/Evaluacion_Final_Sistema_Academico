@@ -4,6 +4,9 @@ from app.modelos.periodo_academico import PeriodoAcademico
 from app.modelos.oferta_academica import OfertaAcademica
 from app.modelos.matricula import Matricula
 from app.modelos.estado_matricula import EstadoMatricula
+from flask import send_file
+from app.modulos.matricula.services import MatriculaService
+
 
 
 def listar_periodos():
@@ -134,3 +137,16 @@ def estadisticas():
         "pendientes": pendientes,
         "validados": validados
     })
+
+def descargar_ficha(matricula_id):
+    buffer, error = MatriculaService.generar_pdf_ficha(matricula_id)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"ficha_matricula_{matricula_id}.pdf",
+        mimetype="application/pdf"
+    )
