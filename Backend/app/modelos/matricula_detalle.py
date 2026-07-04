@@ -10,6 +10,7 @@ class MatriculaDetalle(db.Model):
     oferta_academica_id = db.Column(
         db.Integer, db.ForeignKey("ofertas_academicas.id"), primary_key=True
     )
+    nota_parcial = db.Column(db.Numeric(4, 2))
     nota_final = db.Column(db.Numeric(4, 2))
     estado_curso_id = db.Column(
         db.Integer, db.ForeignKey("estados_cursos.id"), nullable=False

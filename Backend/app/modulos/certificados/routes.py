@@ -32,3 +32,7 @@ def emitir_certificado(certificado_id):
 @certificados_bp.route('/verificar/<string:codigo>', methods=['GET'])
 def verificar_certificado(codigo):
     return controllers.verificar_certificado(codigo)
+
+@certificados_bp.route('/qr/<string:codigo>', methods=['GET'])
+def descargar_qr(codigo):
+    return controllers.descargar_qr(codigo)
