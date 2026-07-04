@@ -5,6 +5,8 @@ from app.modelos.estudiante import Estudiante
 from app.modelos.especialidad import Especialidad
 from app.modelos.facultad import Facultad
 from app.modelos.certificado import Certificado
+from flask import send_file
+from app.modulos.certificados.services import CertificadoService
 
 
 def solicitar_certificado():
@@ -104,3 +106,16 @@ def verificar_certificado(codigo):
         "estudiante_id": certificado.estudiante_id,
         "emitido": certificado.emitido
     })
+
+
+def descargar_qr(codigo):
+    buffer, error = CertificadoService.generar_qr(codigo)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return send_file(
+        buffer,
+        mimetype="image/png",
+        as_attachment=False
+    )
