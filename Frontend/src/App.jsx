@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "./componentes/Navbar.jsx";
 import RutaProtegida from "./rutas/RutaProtegida.jsx";
 import Login from "./sitios/Login.jsx";
+import SolicitarMatricula from "./sitios/SolicitarMatricula.jsx";
 
 function Inicio() {
   return <h1>Sistema Académico</h1>;
@@ -24,7 +25,7 @@ export default function App() {
           path="/matricula/solicitar"
           element={
             <RutaProtegida rolesPermitidos={["estudiante"]}>
-              <PlaceholderModulo nombre="Solicitar matrícula" />
+              <SolicitarMatricula />
             </RutaProtegida>
           }
         />
