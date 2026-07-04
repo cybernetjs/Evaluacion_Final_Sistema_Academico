@@ -62,3 +62,8 @@ def cargar_silabo(oferta_academica_id):
 @cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/silabo', methods=['GET'])
 def descargar_silabo(oferta_academica_id):
     return controllers.descargar_silabo(oferta_academica_id)
+
+@cursos_docentes_bp.route('/cumplimiento-plan-estudios', methods=['GET'])
+@rol_requerido("direccion")
+def evaluar_cumplimiento_plan():
+    return controllers.evaluar_cumplimiento_plan()

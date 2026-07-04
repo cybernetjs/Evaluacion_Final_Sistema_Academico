@@ -11,6 +11,7 @@ from app.modelos.oferta_academica_horario import OfertaAcademicaHorario
 from flask import send_file
 from flask_jwt_extended import get_jwt_identity
 from app.modulos.cursos_docentes.services import CursosDocentesService
+from app.modulos.cursos_docentes.services import cumplimiento_plan_estudios
 
 
 def listar_cursos():
@@ -183,3 +184,14 @@ def descargar_silabo(oferta_academica_id):
         return jsonify({"error": error}), 404
 
     return send_file(silabo.ruta_archivo, as_attachment=True, download_name=silabo.nombre_archivo)
+
+
+
+def evaluar_cumplimiento_plan():
+    periodo_academico_id = request.args.get("periodo_academico_id", type=int)
+
+    if not periodo_academico_id:
+        return jsonify({"error": "Debes indicar periodo_academico_id como parámetro"}), 400
+
+    resultado = cumplimiento_plan_estudios(periodo_academico_id)
+    return jsonify(resultado)

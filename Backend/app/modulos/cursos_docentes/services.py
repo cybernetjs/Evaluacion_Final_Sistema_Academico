@@ -4,6 +4,8 @@ from app import db
 from app.modelos.silabo import Silabo
 from app.modelos.docente import Docente
 from app.modelos.oferta_academica_docente import OfertaAcademicaDocente
+from app.modelos.plan_cursos_semestre import PlanCursosSemestre
+from app.modelos.oferta_academica import OfertaAcademica
 
 CARPETA_SILABOS = os.path.join(os.getcwd(), "uploads", "silabos")
 
@@ -57,3 +59,33 @@ class CursosDocentesService:
             return None, "No hay sílabo cargado para este curso"
 
         return silabo, None
+    
+def cumplimiento_plan_estudios(periodo_academico_id):
+    cursos_del_plan = PlanCursosSemestre.query.all()
+
+    resultado = []
+    for item in cursos_del_plan:
+        oferta = OfertaAcademica.query.filter_by(
+            periodo_academico_id=periodo_academico_id,
+            curso_id=item.curso_id,
+            semestre_id=item.semestre_id
+        ).first()
+
+        resultado.append({
+            "plan_estudios_id": item.plan_estudios_id,
+            "semestre_id": item.semestre_id,
+            "curso_id": item.curso_id,
+            "curso_nombre": item.curso.nombre,
+            "tiene_oferta_este_periodo": oferta is not None
+        })
+
+    total = len(resultado)
+    con_oferta = sum(1 for r in resultado if r["tiene_oferta_este_periodo"])
+
+    return {
+        "periodo_academico_id": periodo_academico_id,
+        "total_cursos_en_plan": total,
+        "cursos_ofertados": con_oferta,
+        "porcentaje_cumplimiento": round((con_oferta / total * 100), 2) if total > 0 else 0,
+        "detalle": resultado
+    }

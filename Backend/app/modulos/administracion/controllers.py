@@ -7,6 +7,11 @@ from app.modelos.plan_de_estudios import PlanDeEstudios
 from app.modelos.semestre import Semestre
 from app.modelos.usuario import Usuario
 from app.modelos.auditoria import Auditoria
+from app.modelos.matricula import Matricula
+from app.modelos.estudiante import Estudiante
+from app.modelos.docente import Docente
+from app.modelos.matricula_detalle import MatriculaDetalle
+from app.modelos.certificado import Certificado
 
 
 def listar_facultades():
@@ -97,3 +102,37 @@ def listar_auditorias():
         }
         for a in registros
     ])
+
+
+def reportes_estrategicos():
+    total_estudiantes = Estudiante.query.count()
+    total_docentes = Docente.query.count()
+    total_matriculas = Matricula.query.count()
+    matriculas_confirmadas = Matricula.query.filter_by(estado_id=3).count()
+
+    detalles_con_nota = MatriculaDetalle.query.filter(MatriculaDetalle.nota_final.isnot(None)).all()
+    promedio_institucional = None
+    if detalles_con_nota:
+        suma = sum(float(d.nota_final) for d in detalles_con_nota)
+        promedio_institucional = round(suma / len(detalles_con_nota), 2)
+
+    certificados_emitidos = Certificado.query.filter_by(emitido=True).count()
+    certificados_pendientes = Certificado.query.filter_by(emitido=False).count()
+
+    return jsonify({
+        "poblacion": {
+            "total_estudiantes": total_estudiantes,
+            "total_docentes": total_docentes
+        },
+        "matricula": {
+            "total_solicitudes": total_matriculas,
+            "confirmadas": matriculas_confirmadas
+        },
+        "academico": {
+            "promedio_institucional": promedio_institucional
+        },
+        "certificados": {
+            "emitidos": certificados_emitidos,
+            "pendientes": certificados_pendientes
+        }
+    })

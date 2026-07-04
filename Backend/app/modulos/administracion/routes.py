@@ -56,3 +56,8 @@ def cambiar_rol(usuario_id):
 @rol_requerido("direccion")
 def listar_auditorias():
     return controllers.listar_auditorias()
+
+@administracion_bp.route('/reportes-estrategicos', methods=['GET'])
+@rol_requerido("direccion")
+def reportes_estrategicos():
+    return controllers.reportes_estrategicos()
