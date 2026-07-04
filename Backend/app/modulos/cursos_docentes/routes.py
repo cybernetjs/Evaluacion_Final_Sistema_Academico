@@ -52,3 +52,13 @@ def gestionar_horario(oferta_academica_id):
 @rol_requerido("direccion")
 def carga_docente():
     return controllers.carga_docente()
+
+@cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/silabo', methods=['POST'])
+@rol_requerido("docente")
+def cargar_silabo(oferta_academica_id):
+    return controllers.cargar_silabo(oferta_academica_id)
+
+
+@cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/silabo', methods=['GET'])
+def descargar_silabo(oferta_academica_id):
+    return controllers.descargar_silabo(oferta_academica_id)

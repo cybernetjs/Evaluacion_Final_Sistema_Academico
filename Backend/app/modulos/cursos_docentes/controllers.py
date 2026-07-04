@@ -8,6 +8,9 @@ from app.modelos.tipo_docente import TipoDocente
 from app.modelos.oferta_academica import OfertaAcademica
 from app.modelos.oferta_academica_docente import OfertaAcademicaDocente
 from app.modelos.oferta_academica_horario import OfertaAcademicaHorario
+from flask import send_file
+from flask_jwt_extended import get_jwt_identity
+from app.modulos.cursos_docentes.services import CursosDocentesService
 
 
 def listar_cursos():
@@ -150,3 +153,33 @@ def carga_docente():
         })
 
     return jsonify(resultado)
+
+
+def cargar_silabo(oferta_academica_id):
+    usuario_id = get_jwt_identity()
+
+    if "archivo" not in request.files:
+        return jsonify({"error": "Debes adjuntar un archivo"}), 400
+
+    archivo = request.files["archivo"]
+
+    silabo, error = CursosDocentesService.cargar_silabo(
+        usuario_id=usuario_id,
+        oferta_academica_id=oferta_academica_id,
+        nombre_archivo=archivo.filename,
+        archivo_stream=archivo
+    )
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify({"mensaje": "Sílabo cargado correctamente", "nombre_archivo": silabo.nombre_archivo}), 201
+
+
+def descargar_silabo(oferta_academica_id):
+    silabo, error = CursosDocentesService.obtener_silabo(oferta_academica_id)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return send_file(silabo.ruta_archivo, as_attachment=True, download_name=silabo.nombre_archivo)
