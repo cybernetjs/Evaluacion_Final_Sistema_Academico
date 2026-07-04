@@ -3,8 +3,7 @@ from flask_jwt_extended import get_jwt_identity
 from app import db
 from app.modelos.matricula_detalle import MatriculaDetalle
 from app.modelos.estado_curso import EstadoCurso
-from app.modelos.matricula import Matricula
-from app.modelos.estudiante import Estudiante
+from app.modulos.notas.services import NotasService
 
 
 def listar_notas():
@@ -13,6 +12,7 @@ def listar_notas():
         {
             "matricula_id": d.matricula_id,
             "oferta_academica_id": d.oferta_academica_id,
+            "nota_parcial": float(d.nota_parcial) if d.nota_parcial is not None else None,
             "nota_final": float(d.nota_final) if d.nota_final is not None else None,
             "estado_curso_id": d.estado_curso_id
         }
@@ -25,6 +25,7 @@ def obtener_notas_matricula(matricula_id):
     return jsonify([
         {
             "oferta_academica_id": d.oferta_academica_id,
+            "nota_parcial": float(d.nota_parcial) if d.nota_parcial is not None else None,
             "nota_final": float(d.nota_final) if d.nota_final is not None else None,
             "estado_curso_id": d.estado_curso_id
         }
@@ -34,40 +35,35 @@ def obtener_notas_matricula(matricula_id):
 
 def mi_hoja_de_notas():
     usuario_id = get_jwt_identity()
-    estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
+    semestre_id = request.args.get("semestre_id", type=int)
 
-    if not estudiante:
-        return jsonify({"error": "No se encontró un estudiante asociado a este usuario"}), 404
+    resultado, error = NotasService.hoja_de_notas_por_ciclo(usuario_id, semestre_id)
 
-    matriculas = Matricula.query.filter_by(estudiante_id=estudiante.id).all()
-
-    resultado = []
-    for m in matriculas:
-        for d in m.detalle:
-            resultado.append({
-                "periodo_academico_id": m.periodo_academico_id,
-                "semestre_id": m.semestre_id,
-                "curso_id": d.oferta_academica.curso_id,
-                "curso_nombre": d.oferta_academica.curso.nombre,
-                "nota_final": float(d.nota_final) if d.nota_final is not None else None,
-                "estado_curso_id": d.estado_curso_id
-            })
+    if error:
+        return jsonify({"error": error}), 404
 
     return jsonify(resultado)
 
 
 def registrar_nota():
     data = request.get_json()
-    detalle = MatriculaDetalle.query.filter_by(
+
+    detalle, error = NotasService.registrar_nota(
         matricula_id=data.get("matricula_id"),
-        oferta_academica_id=data.get("oferta_academica_id")
-    ).first()
-    if not detalle:
-        return jsonify({"mensaje": "Detalle de matrícula no encontrado"}), 404
-    detalle.nota_final = data.get("nota_final")
-    detalle.estado_curso_id = data.get("estado_curso_id")
-    db.session.commit()
-    return jsonify({"mensaje": "nota registrada"})
+        oferta_academica_id=data.get("oferta_academica_id"),
+        nota_parcial=data.get("nota_parcial"),
+        nota_final=data.get("nota_final"),
+        estado_curso_id=data.get("estado_curso_id")
+    )
+
+    if error:
+        return jsonify({"mensaje": error}), 404
+
+    return jsonify({
+        "mensaje": "Nota registrada",
+        "nota_parcial": float(detalle.nota_parcial) if detalle.nota_parcial is not None else None,
+        "nota_final": float(detalle.nota_final) if detalle.nota_final is not None else None
+    })
 
 
 def listar_estados_curso():
