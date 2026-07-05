@@ -15,12 +15,14 @@ const ENLACES_POR_ROL = {
   administrador: [
     { to: "/matricula/listar", texto: "Matrículas" },
     { to: "/cursos-docentes/asignar", texto: "Cursos y docentes" },
+    { to: "/notas/gestionar", texto: "Notas" },
     { to: "/certificados/listar", texto: "Certificados" },
     { to: "/administracion/usuarios", texto: "Usuarios y roles" },
   ],
   direccion: [
     { to: "/matricula/estadisticas", texto: "Estadísticas matrícula" },
     { to: "/cursos-docentes/carga-docente", texto: "Carga docente" },
+    { to: "/notas/gestionar", texto: "Notas" },
     { to: "/record-academico/reportes", texto: "Reportes" },
     { to: "/administracion/auditorias", texto: "Auditorías" },
   ],
