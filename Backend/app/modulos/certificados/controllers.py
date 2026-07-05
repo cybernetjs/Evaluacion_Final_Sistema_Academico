@@ -39,6 +39,7 @@ def listar_solicitudes():
         {
             "id": c.id,
             "estudiante_id": c.estudiante_id,
+            "estudiante_nombre": f"{c.estudiante.nombres} {c.estudiante.apellido_paterno} {c.estudiante.apellido_materno}" if c.estudiante else None,
             "tipo": c.tipo,
             "autorizado": c.autorizado,
             "emitido": c.emitido,

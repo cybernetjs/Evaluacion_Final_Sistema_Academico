@@ -40,6 +40,11 @@ def listar_semestres():
     return controllers.listar_semestres()
 
 
+@administracion_bp.route('/periodos', methods=['GET'])
+def listar_periodos():
+    return controllers.listar_periodos()
+
+
 @administracion_bp.route('/usuarios', methods=['GET'])
 @rol_requerido("administrador")
 def listar_usuarios():
@@ -50,6 +55,12 @@ def listar_usuarios():
 @rol_requerido("administrador")
 def cambiar_rol(usuario_id):
     return controllers.cambiar_rol(usuario_id)
+
+
+@administracion_bp.route('/docentes', methods=['POST'])
+@rol_requerido("administrador")
+def registrar_docente():
+    return controllers.registrar_docente()
 
 
 @administracion_bp.route('/auditorias', methods=['GET'])

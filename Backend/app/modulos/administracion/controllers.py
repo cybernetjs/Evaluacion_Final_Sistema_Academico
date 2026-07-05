@@ -1,9 +1,11 @@
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity
+from app import bcrypt
 from app import db
 from app.modelos.facultad import Facultad
 from app.modelos.especialidad import Especialidad
 from app.modelos.plan_de_estudios import PlanDeEstudios
+from app.modelos.periodo_academico import PeriodoAcademico
 from app.modelos.semestre import Semestre
 from app.modelos.usuario import Usuario
 from app.modelos.auditoria import Auditoria
@@ -55,12 +57,63 @@ def listar_semestres():
     ])
 
 
+def listar_periodos():
+    periodos = PeriodoAcademico.query.order_by(PeriodoAcademico.fecha_inicio.desc()).all()
+    return jsonify([
+        {
+            "id": p.id,
+            "nombre": p.nombre,
+            "fecha_inicio": p.fecha_inicio.isoformat() if p.fecha_inicio else None,
+            "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None,
+        }
+        for p in periodos
+    ])
+
+
 def listar_usuarios():
     usuarios = Usuario.query.all()
     return jsonify([
         {"id": u.id, "username": u.username, "rol": u.rol}
         for u in usuarios
     ])
+
+
+def registrar_docente():
+    data = request.get_json()
+
+    campos_requeridos = ["username", "password", "nombres", "apellido_paterno", "apellido_materno", "correo_institucional"]
+    faltantes = [campo for campo in campos_requeridos if not data.get(campo)]
+
+    if faltantes:
+        return jsonify({"error": f"Faltan campos requeridos: {faltantes}"}), 400
+
+    username = data.get("username")
+    if Usuario.query.filter_by(username=username).first():
+        return jsonify({"error": "El nombre de usuario ya está en uso"}), 400
+
+    usuario = Usuario(
+        username=username,
+        password=bcrypt.generate_password_hash(data.get("password")).decode("utf-8"),
+        rol="docente",
+    )
+    db.session.add(usuario)
+    db.session.flush()
+
+    docente = Docente(
+        usuario_id=usuario.id,
+        nombres=data.get("nombres"),
+        apellido_paterno=data.get("apellido_paterno"),
+        apellido_materno=data.get("apellido_materno"),
+        correo_institucional=data.get("correo_institucional"),
+    )
+    db.session.add(docente)
+    db.session.commit()
+
+    return jsonify({
+        "mensaje": "Docente registrado correctamente",
+        "usuario_id": usuario.id,
+        "docente_id": docente.id,
+    }), 201
 
 
 def cambiar_rol(usuario_id):

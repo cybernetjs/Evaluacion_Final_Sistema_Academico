@@ -22,6 +22,11 @@ def listar_periodos():
     return controllers.listar_periodos()
 
 
+@matricula_bp.route('/periodo-actual', methods=['GET'])
+def listar_periodo_actual():
+    return controllers.listar_periodo_actual()
+
+
 @matricula_bp.route('/ofertas', methods=['GET'])
 def listar_ofertas():
     return controllers.listar_ofertas()
