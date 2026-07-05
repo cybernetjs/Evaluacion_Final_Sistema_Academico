@@ -22,7 +22,7 @@ h1 {
 
 h2 {
   font-size: 16px;
-  border-bottom: 1px solid #3f3f46;
+  border-bottom: 1px solid #5b4b9e;
   padding-bottom: 10px;
   margin-bottom: 16px;
 }
@@ -32,7 +32,7 @@ nav {
   align-items: center;
   gap: 18px;
   background-color: #252526;
-  border-bottom: 1px solid #3f3f46;
+  border-bottom: 1px solid #5b4b9e;
   padding: 10px 20px;
   font-size: 13px;
 }
@@ -56,10 +56,10 @@ main, .contenedor {
   max-width: 900px;
   margin: 28px auto;
   background-color: #252526;
-  border: 1px solid #3f3f46;
-  border-radius: 6px;
+  border: 1px solid #5b4b9e;
+  border-radius: 2px;
   padding: 22px 26px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 .pantalla-centrada {
@@ -71,11 +71,11 @@ main, .contenedor {
 
 .tarjeta-login {
   background-color: #252526;
-  border: 1px solid #3f3f46;
-  border-radius: 6px;
+  border: 1px solid #5b4b9e;
+  border-radius: 2px;
   padding: 32px 36px;
   width: 320px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .tarjeta-login h1 {
@@ -102,8 +102,8 @@ input, select {
   width: 100%;
   max-width: 320px;
   padding: 8px 10px;
-  border: 1px solid #3f3f46;
-  border-radius: 4px;
+  border: 1px solid #5b4b9e;
+  border-radius: 2px;
   font-size: 14px;
   background-color: #1e1e1e;
   color: #e6e6e6;
@@ -111,28 +111,30 @@ input, select {
 
 input:focus, select:focus {
   outline: none;
-  border-color: #8a63d2;
+  border-color: #7566b8;
   box-shadow: 0 0 0 2px rgba(138, 99, 210, 0.35);
 }
 
 button {
-  background-color: #8a63d2;
+  background-color: #453578;
   color: white;
-  border: none;
+  border: 1px solid #453578;
   padding: 8px 16px;
-  border-radius: 4px;
+  border-radius: 2px;
   font-size: 13px;
   cursor: pointer;
   margin-right: 6px;
 }
 
 button:hover {
-  background-color: #7550c4;
+  background-color: #382a63;
+  border-color: #382a63;
 }
 
 button:disabled {
   background-color: #3f3f46;
   color: #6f6f6f;
+  border-color: #3f3f46;
   cursor: not-allowed;
 }
 
@@ -150,7 +152,7 @@ table {
 }
 
 th, td {
-  border: 1px solid #3f3f46;
+  border: 1px solid #5b4b9e;
   padding: 10px 12px;
   text-align: left;
 }
