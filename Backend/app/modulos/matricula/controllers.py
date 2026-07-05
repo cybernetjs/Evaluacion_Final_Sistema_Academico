@@ -52,12 +52,21 @@ def listar_matriculas():
 
 
 def crear_matricula():
+    from flask_jwt_extended import get_jwt_identity
+    from app.modelos.estudiante import Estudiante
+
+    usuario_id = get_jwt_identity()
+    estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
+
+    if not estudiante:
+        return jsonify({"error": "No se encontró un estudiante asociado a este usuario"}), 404
+
     data = request.get_json()
     nueva = Matricula(
-        estudiante_id=data.get("estudiante_id"),
+        estudiante_id=estudiante.id,
         periodo_academico_id=data.get("periodo_academico_id"),
         semestre_id=data.get("semestre_id"),
-        estado_id=1  
+        estado_id=1
     )
     db.session.add(nueva)
     db.session.commit()

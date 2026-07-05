@@ -3,6 +3,8 @@ import Navbar from "./componentes/Navbar.jsx";
 import RutaProtegida from "./rutas/RutaProtegida.jsx";
 import Login from "./sitios/Login.jsx";
 import SolicitarMatricula from "./sitios/SolicitarMatricula.jsx";
+import ListarMatriculas from "./sitios/ListarMatriculas.jsx";
+import EstadisticasMatricula from "./sitios/EstadisticasMatricula.jsx";
 
 function Inicio() {
   return <h1>Sistema Académico</h1>;
@@ -20,7 +22,6 @@ export default function App() {
         <Route path="/" element={<Inicio />} />
         <Route path="/login" element={<Login />} />
 
-
         <Route
           path="/matricula/solicitar"
           element={
@@ -33,7 +34,7 @@ export default function App() {
           path="/matricula/listar"
           element={
             <RutaProtegida rolesPermitidos={["administrador", "direccion"]}>
-              <PlaceholderModulo nombre="Listar matrículas" />
+              <ListarMatriculas />
             </RutaProtegida>
           }
         />
@@ -41,7 +42,7 @@ export default function App() {
           path="/matricula/estadisticas"
           element={
             <RutaProtegida rolesPermitidos={["direccion"]}>
-              <PlaceholderModulo nombre="Estadísticas de matrícula" />
+              <EstadisticasMatricula />
             </RutaProtegida>
           }
         />

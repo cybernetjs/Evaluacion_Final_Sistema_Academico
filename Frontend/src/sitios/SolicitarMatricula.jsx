@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   solicitarMatricula,
   listarPeriodos,
+  urlDescargarFicha,
 } from "../servicios/matricula.servicio";
 
 export default function SolicitarMatricula() {
@@ -10,6 +11,7 @@ export default function SolicitarMatricula() {
   const [semestreId, setSemestreId] = useState("");
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
+  const [ultimaMatriculaId, setUltimaMatriculaId] = useState(null);
 
   useEffect(() => {
     cargarPeriodos();
@@ -38,6 +40,27 @@ export default function SolicitarMatricula() {
     }
 
     setMensaje(`Solicitud registrada correctamente. N° de matrícula: ${data.id}`);
+    setUltimaMatriculaId(data.id);
+  }
+
+  async function manejarDescargaFicha() {
+    const token = localStorage.getItem("token");
+    const respuesta = await fetch(urlDescargarFicha(ultimaMatriculaId), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!respuesta.ok) {
+      setError("No se pudo descargar la ficha");
+      return;
+    }
+
+    const blob = await respuesta.blob();
+    const url = window.URL.createObjectURL(blob);
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = `ficha_matricula_${ultimaMatriculaId}.pdf`;
+    enlace.click();
+    window.URL.revokeObjectURL(url);
   }
 
   return (
@@ -72,6 +95,9 @@ export default function SolicitarMatricula() {
       </form>
       {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
+      {ultimaMatriculaId && (
+        <button onClick={manejarDescargaFicha}>Descargar ficha (PDF)</button>
+      )}
     </div>
   );
 }

@@ -30,33 +30,35 @@ export default function Login() {
     navigate("/");
   }
 
-  return (
-    <div>
-      <h1>Iniciar sesión</h1>
-      <form onSubmit={manejarEnvio}>
-        <div>
-          <label>Usuario</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Contraseña</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit" disabled={cargando}>
-          {cargando ? "Ingresando..." : "Ingresar"}
-        </button>
-      </form>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+ return (
+    <div className="pantalla-centrada">
+      <div className="tarjeta-login">
+        <h1>Iniciar sesión</h1>
+        <form onSubmit={manejarEnvio}>
+          <div>
+            <label>Usuario</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label>Contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" disabled={cargando}>
+            {cargando ? "Ingresando..." : "Ingresar"}
+          </button>
+        </form>
+        {error && <p style={{ color: "#ff6b6b" }}>{error}</p>}
+      </div>
     </div>
   );
 }
