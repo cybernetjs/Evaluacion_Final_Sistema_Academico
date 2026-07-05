@@ -34,7 +34,7 @@ def obtener_notas_matricula(matricula_id):
 
 
 def mi_hoja_de_notas():
-    usuario_id = get_jwt_identity()
+    usuario_id = int(get_jwt_identity())
     semestre_id = request.args.get("semestre_id", type=int)
 
     resultado, error = NotasService.hoja_de_notas_por_ciclo(usuario_id, semestre_id)

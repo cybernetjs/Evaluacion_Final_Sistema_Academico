@@ -49,7 +49,7 @@ def listar_estados_permanencia():
 
 
 @record_academico_bp.route('/reportes', methods=['GET'])
-@rol_requerido("administrador")
+@rol_requerido("administrador", "direccion")
 def reportes_consolidados():
     return controllers.reportes_consolidados()
 

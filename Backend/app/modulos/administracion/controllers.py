@@ -78,7 +78,7 @@ def cambiar_rol(usuario_id):
     rol_anterior = usuario.rol
     usuario.rol = nuevo_rol
 
-    admin_id = get_jwt_identity()
+    admin_id = int(get_jwt_identity())
     registro = Auditoria(
         usuario_id=admin_id,
         accion="cambio_de_rol",

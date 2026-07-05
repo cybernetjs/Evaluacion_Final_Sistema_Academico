@@ -1,5 +1,6 @@
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity
+from datetime import time as hora_cls
 from app import db
 from app.modelos.curso import Curso
 from app.modelos.pre_requisito import PreRequisito
@@ -9,7 +10,6 @@ from app.modelos.oferta_academica import OfertaAcademica
 from app.modelos.oferta_academica_docente import OfertaAcademicaDocente
 from app.modelos.oferta_academica_horario import OfertaAcademicaHorario
 from flask import send_file
-from flask_jwt_extended import get_jwt_identity
 from app.modulos.cursos_docentes.services import CursosDocentesService
 from app.modulos.cursos_docentes.services import cumplimiento_plan_estudios
 
@@ -77,7 +77,7 @@ def listar_tipos_docentes():
 
 
 def mis_cursos_asignados():
-    usuario_id = get_jwt_identity()
+    usuario_id = int(get_jwt_identity())
     docente = Docente.query.filter_by(usuario_id=usuario_id).first()
 
     if not docente:
@@ -124,15 +124,46 @@ def asignar_docente(oferta_academica_id):
 def gestionar_horario(oferta_academica_id):
     data = request.get_json()
 
+    dia_ingresado = data.get("dia")
+    dias = {
+        "lunes": 1,
+        "martes": 2,
+        "miercoles": 3,
+        "miércoles": 3,
+        "jueves": 4,
+        "viernes": 5,
+        "sabado": 6,
+        "sábado": 6,
+        "domingo": 7,
+    }
+
+    if isinstance(dia_ingresado, int):
+        dia = dia_ingresado
+    else:
+        dia_normalizado = str(dia_ingresado).strip().lower()
+        if dia_normalizado.isdigit():
+            dia = int(dia_normalizado)
+        else:
+            dia = dias.get(dia_normalizado)
+
+    if dia is None:
+        return jsonify({"error": "Día inválido"}), 400
+
+    try:
+        hora_inicio = hora_cls.fromisoformat(str(data.get("hora_inicio")))
+        hora_fin = hora_cls.fromisoformat(str(data.get("hora_fin")))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Formato de hora inválido"}), 400
+
     oferta = OfertaAcademica.query.get(oferta_academica_id)
     if not oferta:
         return jsonify({"error": "Oferta académica no encontrada"}), 404
 
     horario = OfertaAcademicaHorario(
         oferta_academica_id=oferta_academica_id,
-        dia=data.get("dia"),
-        hora_inicio=data.get("hora_inicio"),
-        hora_fin=data.get("hora_fin")
+        dia=dia,
+        hora_inicio=hora_inicio,
+        hora_fin=hora_fin
     )
     db.session.add(horario)
     db.session.commit()
@@ -157,7 +188,7 @@ def carga_docente():
 
 
 def cargar_silabo(oferta_academica_id):
-    usuario_id = get_jwt_identity()
+    usuario_id = int(get_jwt_identity())
 
     if "archivo" not in request.files:
         return jsonify({"error": "Debes adjuntar un archivo"}), 400

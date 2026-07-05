@@ -23,7 +23,7 @@ def obtener_record(estudiante_id):
 
 
 def mi_historial():
-    usuario_id = get_jwt_identity()
+    usuario_id = int(get_jwt_identity())
     estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
 
     if not estudiante:
