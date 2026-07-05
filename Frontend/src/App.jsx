@@ -5,13 +5,21 @@ import Login from "./sitios/Login.jsx";
 import SolicitarMatricula from "./sitios/SolicitarMatricula.jsx";
 import ListarMatriculas from "./sitios/ListarMatriculas.jsx";
 import EstadisticasMatricula from "./sitios/EstadisticasMatricula.jsx";
+import CursosMisCursos from "./sitios/CursosMisCursos.jsx";
+import CursosAsignar from "./sitios/CursosAsignar.jsx";
+import CursosCargaDocente from "./sitios/CursosCargaDocente.jsx";
+import NotasMiHoja from "./sitios/NotasMiHoja.jsx";
+import NotasRegistrar from "./sitios/NotasRegistrar.jsx";
+import NotasGestion from "./sitios/NotasGestion.jsx";
+import RecordMiHistorial from "./sitios/RecordMiHistorial.jsx";
+import RecordReportes from "./sitios/RecordReportes.jsx";
+import CertificadosSolicitar from "./sitios/CertificadosSolicitar.jsx";
+import CertificadosListar from "./sitios/CertificadosListar.jsx";
+import AdministracionUsuarios from "./sitios/AdministracionUsuarios.jsx";
+import AdministracionAuditorias from "./sitios/AdministracionAuditorias.jsx";
 
 function Inicio() {
   return <h1>Sistema Académico</h1>;
-}
-
-function PlaceholderModulo({ nombre }) {
-  return <h2>Módulo: {nombre} (en construcción)</h2>;
 }
 
 export default function App() {
@@ -52,7 +60,7 @@ export default function App() {
           path="/cursos-docentes/mis-cursos"
           element={
             <RutaProtegida rolesPermitidos={["docente"]}>
-              <PlaceholderModulo nombre="Mis cursos" />
+              <CursosMisCursos />
             </RutaProtegida>
           }
         />
@@ -60,7 +68,7 @@ export default function App() {
           path="/cursos-docentes/asignar"
           element={
             <RutaProtegida rolesPermitidos={["administrador"]}>
-              <PlaceholderModulo nombre="Asignar docentes" />
+              <CursosAsignar />
             </RutaProtegida>
           }
         />
@@ -68,7 +76,7 @@ export default function App() {
           path="/cursos-docentes/carga-docente"
           element={
             <RutaProtegida rolesPermitidos={["direccion"]}>
-              <PlaceholderModulo nombre="Carga docente" />
+              <CursosCargaDocente />
             </RutaProtegida>
           }
         />
@@ -78,7 +86,7 @@ export default function App() {
           path="/notas/mi-hoja"
           element={
             <RutaProtegida rolesPermitidos={["estudiante"]}>
-              <PlaceholderModulo nombre="Mi hoja de notas" />
+              <NotasMiHoja />
             </RutaProtegida>
           }
         />
@@ -86,7 +94,15 @@ export default function App() {
           path="/notas/registrar"
           element={
             <RutaProtegida rolesPermitidos={["docente"]}>
-              <PlaceholderModulo nombre="Registrar notas" />
+              <NotasRegistrar />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/notas/gestionar"
+          element={
+            <RutaProtegida rolesPermitidos={["administrador", "direccion"]}>
+              <NotasGestion />
             </RutaProtegida>
           }
         />
@@ -96,7 +112,7 @@ export default function App() {
           path="/record-academico/mi-historial"
           element={
             <RutaProtegida rolesPermitidos={["estudiante"]}>
-              <PlaceholderModulo nombre="Mi historial académico" />
+              <RecordMiHistorial />
             </RutaProtegida>
           }
         />
@@ -104,7 +120,7 @@ export default function App() {
           path="/record-academico/reportes"
           element={
             <RutaProtegida rolesPermitidos={["administrador", "direccion"]}>
-              <PlaceholderModulo nombre="Reportes académicos" />
+              <RecordReportes />
             </RutaProtegida>
           }
         />
@@ -114,7 +130,7 @@ export default function App() {
           path="/certificados/solicitar"
           element={
             <RutaProtegida rolesPermitidos={["estudiante"]}>
-              <PlaceholderModulo nombre="Solicitar certificado" />
+              <CertificadosSolicitar />
             </RutaProtegida>
           }
         />
@@ -122,7 +138,7 @@ export default function App() {
           path="/certificados/listar"
           element={
             <RutaProtegida rolesPermitidos={["administrador", "direccion"]}>
-              <PlaceholderModulo nombre="Certificados" />
+              <CertificadosListar />
             </RutaProtegida>
           }
         />
@@ -132,7 +148,7 @@ export default function App() {
           path="/administracion/usuarios"
           element={
             <RutaProtegida rolesPermitidos={["administrador"]}>
-              <PlaceholderModulo nombre="Usuarios y roles" />
+              <AdministracionUsuarios />
             </RutaProtegida>
           }
         />
@@ -140,7 +156,7 @@ export default function App() {
           path="/administracion/auditorias"
           element={
             <RutaProtegida rolesPermitidos={["direccion"]}>
-              <PlaceholderModulo nombre="Auditorías" />
+              <AdministracionAuditorias />
             </RutaProtegida>
           }
         />
