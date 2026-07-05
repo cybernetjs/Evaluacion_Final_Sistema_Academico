@@ -11,6 +11,7 @@ def ejecutar():
         EstadoCurso(nombre="Aprobado"),
         EstadoCurso(nombre="Desaprobado"),
         EstadoCurso(nombre="Retirado"),
+        EstadoCurso(nombre="Cursando"),
     ]
 
     db.session.add_all(estados)

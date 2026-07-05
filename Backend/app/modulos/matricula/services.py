@@ -93,6 +93,22 @@ class MatriculaService:
         return aprobados, desaprobados
 
     @staticmethod
+    def _cursos_matriculados_activos(estudiante_id):
+        from app.modelos.matricula_detalle import MatriculaDetalle
+        from app.modelos.estado_curso import EstadoCurso
+
+        matriculas_ids = [m.id for m in Matricula.query.filter_by(estudiante_id=estudiante_id).all()]
+        detalles = MatriculaDetalle.query.filter(MatriculaDetalle.matricula_id.in_(matriculas_ids)).all()
+
+        activos = set()
+        for d in detalles:
+            estado = EstadoCurso.query.get(d.estado_curso_id)
+            if estado and estado.nombre.lower() == "cursando":
+                activos.add(d.oferta_academica.curso_id)
+
+        return activos
+
+    @staticmethod
     def _prerequisitos_faltantes(curso_id, aprobados):
         from app.modelos.pre_requisito import PreRequisito
 
@@ -119,6 +135,7 @@ class MatriculaService:
         ).all()
 
         aprobados, desaprobados = MatriculaService._cursos_aprobados_y_desaprobados(estudiante.id)
+        matriculados_activos = MatriculaService._cursos_matriculados_activos(estudiante.id)
 
         semestres_ordenados = sorted(set(item.semestre_id for item in cursos_del_plan))
         semestre_actual = semestres_ordenados[-1] if semestres_ordenados else 1
@@ -137,16 +154,19 @@ class MatriculaService:
 
         def agregar_curso(item, tipo):
             curso = item.curso
-            faltantes = MatriculaService._prerequisitos_faltantes(curso.id, aprobados)
+            ya_matriculado = curso.id in matriculados_activos
+            faltantes = [] if ya_matriculado else MatriculaService._prerequisitos_faltantes(curso.id, aprobados)
             oferta = OfertaAcademica.query.filter_by(
                 periodo_academico_id=periodo_academico_id,
                 curso_id=curso.id,
                 semestre_id=item.semestre_id
             ).first()
 
-            habilitado = len(faltantes) == 0 and oferta is not None
+            habilitado = len(faltantes) == 0 and oferta is not None and not ya_matriculado
             motivo = None
-            if faltantes:
+            if ya_matriculado:
+                motivo = "Ya te encuentras matriculado en este curso"
+            elif faltantes:
                 motivo = "Falta aprobar: " + ", ".join(f.nombre for f in faltantes)
             elif not oferta:
                 motivo = "No hay oferta académica para este curso en el periodo actual"
@@ -200,6 +220,17 @@ class MatriculaService:
         if error:
             return None, error
 
+        estudiante_actual = Estudiante.query.filter_by(usuario_id=usuario_id).first()
+        estados_activos = ["pendiente", "validado", "matriculado"]
+        matricula_activa = (
+            Matricula.query.filter_by(estudiante_id=estudiante_actual.id, periodo_academico_id=periodo.id)
+            .join(EstadoMatricula, Matricula.estado_id == EstadoMatricula.id)
+            .filter(db.func.lower(EstadoMatricula.nombre).in_(estados_activos))
+            .first()
+        )
+        if matricula_activa:
+            return None, "Ya tienes una solicitud de matrícula activa para este periodo, no puedes enviar otra"
+
         mapa_disponibles = {c["oferta_academica_id"]: c for c in disponibles["cursos"] if c["oferta_academica_id"]}
 
         total_creditos = 0
@@ -225,12 +256,11 @@ class MatriculaService:
         if total_creditos > disponibles["creditos_maximos_por_ciclo"]:
             return None, f"Excedes el máximo de {disponibles['creditos_maximos_por_ciclo']} créditos por ciclo"
 
-        estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
         estado_pendiente = EstadoMatricula.query.filter_by(nombre="Pendiente").first()
         estado_cursando = EstadoCurso.query.filter_by(nombre="Cursando").first()
 
         matricula = Matricula(
-            estudiante_id=estudiante.id,
+            estudiante_id=estudiante_actual.id,
             periodo_academico_id=periodo.id,
             semestre_id=disponibles["semestre_actual"],
             estado_id=estado_pendiente.id,
