@@ -51,7 +51,7 @@ export default function Navbar() {
           {enlace.texto}
         </Link>
       ))}
-      <span> — {usuario.username} ({usuario.rol})</span>
+      <span>{usuario.username} ({usuario.rol})</span>
       <button onClick={manejarCerrarSesion}>Cerrar sesión</button>
     </nav>
   );

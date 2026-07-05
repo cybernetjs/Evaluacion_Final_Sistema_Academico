@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { solicitarCertificado } from "../servicios/certificados.servicio";
 
+const TIPOS_CERTIFICADO = [
+  "Constancia de estudios",
+  "Constancia de matrícula",
+  "Certificado de notas",
+  "Récord académico",
+  "Constancia de egreso",
+];
+
 export default function CertificadosSolicitar() {
-  const [tipo, setTipo] = useState("");
+  const [tipo, setTipo] = useState(TIPOS_CERTIFICADO[0]);
   const [respuesta, setRespuesta] = useState(null);
   const [error, setError] = useState(null);
 
@@ -25,12 +33,18 @@ export default function CertificadosSolicitar() {
   return (
     <div className="contenedor">
       <h2>Solicitar certificado</h2>
-      <p>Elige el tipo de documento que necesitas registrar.</p>
+      <p>Selecciona el documento que necesitas. Estos son los tipos disponibles en el sistema.</p>
 
       <form onSubmit={manejarEnvio}>
         <div>
-          <label>Tipo de certificado</label>
-          <input value={tipo} onChange={(e) => setTipo(e.target.value)} required />
+          <label>Tipo de documento</label>
+          <select value={tipo} onChange={(e) => setTipo(e.target.value)} required>
+            {TIPOS_CERTIFICADO.map((opcion) => (
+              <option key={opcion} value={opcion}>
+                {opcion}
+              </option>
+            ))}
+          </select>
         </div>
         <button type="submit">Solicitar</button>
       </form>

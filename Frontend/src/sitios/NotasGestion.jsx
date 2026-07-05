@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import {
   indicadoresAcademicos,
   listarNotas,
@@ -7,6 +8,7 @@ import {
 } from "../servicios/notas.servicio";
 
 export default function NotasGestion() {
+  const { usuario } = useAuth();
   const [notas, setNotas] = useState([]);
   const [matriculaId, setMatriculaId] = useState("");
   const [consulta, setConsulta] = useState([]);
@@ -71,11 +73,15 @@ export default function NotasGestion() {
   return (
     <div className="contenedor">
       <h2>Gestión de notas</h2>
-      <p>Revisa el consolidado de notas, valida actas y consulta indicadores académicos.</p>
+      <p>Revisa el consolidado de notas, consulta indicadores y, si eres administrador, valida actas.</p>
 
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
-        <button onClick={manejarValidarActas}>Validar actas</button>
-        <button onClick={manejarIndicadores}>Ver indicadores</button>
+        {usuario?.rol === "administrador" && (
+          <button type="button" onClick={manejarValidarActas}>Validar actas</button>
+        )}
+        {(usuario?.rol === "administrador" || usuario?.rol === "direccion") && (
+          <button type="button" onClick={manejarIndicadores}>Ver indicadores</button>
+        )}
       </div>
 
       <form onSubmit={manejarConsulta}>
@@ -105,6 +111,7 @@ export default function NotasGestion() {
       )}
 
       <h3>Consolidado general</h3>
+      <p>Si todavía no se registran notas, esta tabla se mostrará vacía hasta que el docente ingrese calificaciones.</p>
       <table>
         <thead>
           <tr>
@@ -129,6 +136,7 @@ export default function NotasGestion() {
       </table>
 
       <h3>Consulta por matrícula</h3>
+      <p>Ingresa el número de matrícula para ver solo sus cursos y notas.</p>
       <table>
         <thead>
           <tr>

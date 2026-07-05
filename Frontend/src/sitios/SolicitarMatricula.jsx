@@ -12,15 +12,21 @@ export default function SolicitarMatricula() {
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
   const [ultimaMatriculaId, setUltimaMatriculaId] = useState(null);
+  const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
     cargarPeriodos();
   }, []);
 
   async function cargarPeriodos() {
+    setCargando(true);
     const { data, error } = await listarPeriodos();
+    setCargando(false);
     if (!error) {
       setPeriodos(data);
+      if (data?.length && !periodoAcademicoId) {
+        setPeriodoAcademicoId(String(data[0].id));
+      }
     }
   }
 
@@ -64,8 +70,9 @@ export default function SolicitarMatricula() {
   }
 
   return (
-    <div>
+    <div className="contenedor">
       <h2>Solicitar matrícula</h2>
+      <p>Completa el periodo y semestre para registrar tu solicitud. Después podrás descargar la ficha en PDF.</p>
       <form onSubmit={manejarEnvio}>
         <div>
           <label>Periodo académico</label>
@@ -93,10 +100,11 @@ export default function SolicitarMatricula() {
         </div>
         <button type="submit">Solicitar matrícula</button>
       </form>
+      {cargando && <p>Cargando periodos...</p>}
       {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
       {ultimaMatriculaId && (
-        <button onClick={manejarDescargaFicha}>Descargar ficha (PDF)</button>
+        <button type="button" onClick={manejarDescargaFicha}>Descargar ficha (PDF)</button>
       )}
     </div>
   );
