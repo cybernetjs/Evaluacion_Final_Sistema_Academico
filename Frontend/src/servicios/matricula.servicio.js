@@ -1,9 +1,9 @@
 import { peticion } from "./api";
 
-export async function solicitarMatricula(datos) {
+export async function solicitarMatricula(ofertasAcademicasIds) {
   return peticion("/matriculas/", {
     method: "POST",
-    body: JSON.stringify(datos),
+    body: JSON.stringify({ ofertas_academicas_ids: ofertasAcademicasIds }),
   });
 }
 
@@ -13,6 +13,14 @@ export async function listarMatriculas() {
 
 export async function listarPeriodos() {
   return peticion("/matriculas/periodos");
+}
+
+export async function obtenerPeriodoActual() {
+  return peticion("/matriculas/periodo-actual");
+}
+
+export async function obtenerCursosDisponibles() {
+  return peticion("/matriculas/cursos-disponibles");
 }
 
 export async function listarOfertas() {

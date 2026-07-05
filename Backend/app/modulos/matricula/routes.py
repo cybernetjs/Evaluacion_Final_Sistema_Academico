@@ -23,8 +23,8 @@ def listar_periodos():
 
 
 @matricula_bp.route('/periodo-actual', methods=['GET'])
-def listar_periodo_actual():
-    return controllers.listar_periodo_actual()
+def periodo_actual():
+    return controllers.periodo_actual()
 
 
 @matricula_bp.route('/ofertas', methods=['GET'])
@@ -60,7 +60,14 @@ def generar_ficha_oficial(matricula_id):
 def estadisticas():
     return controllers.estadisticas()
 
+
 @matricula_bp.route('/<int:matricula_id>/ficha', methods=['GET'])
 @rol_requerido("estudiante")
 def descargar_ficha(matricula_id):
     return controllers.descargar_ficha(matricula_id)
+
+
+@matricula_bp.route('/cursos-disponibles', methods=['GET'])
+@rol_requerido("estudiante")
+def cursos_disponibles():
+    return controllers.cursos_disponibles()
