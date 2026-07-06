@@ -62,8 +62,25 @@ export async function validarRequisitos(matriculaId) {
   return peticion(`/matriculas/${matriculaId}/validar`, { method: "PUT" });
 }
 
-export async function registrarPago(matriculaId) {
-  return peticion(`/matriculas/${matriculaId}/pago`, { method: "POST" });
+export async function registrarPago(matriculaId, datosPago) {
+  const formData = new FormData();
+  formData.append("numero_operacion", datosPago.numeroOperacion);
+  formData.append("fecha_pago", datosPago.fechaPago);
+  formData.append("monto", datosPago.monto);
+  formData.append("comprobante", datosPago.archivo);
+
+  const token = localStorage.getItem("token");
+  const respuesta = await fetch(`http://localhost:5000/api/matriculas/${matriculaId}/pago`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  const cuerpo = await respuesta.json().catch(() => null);
+  if (!respuesta.ok) {
+    return { data: null, error: cuerpo?.error || "No se pudo registrar el pago" };
+  }
+  return { data: cuerpo, error: null };
 }
 
 export async function generarFichaOficial(matriculaId) {

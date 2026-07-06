@@ -3,12 +3,12 @@ import {
   listarMatriculas,
   listarEstadosMatricula,
   validarRequisitos,
-  registrarPago,
   generarFichaOficial,
   cancelarMatricula,
 } from "../servicios/matricula.servicio";
 import { listarEspecialidades } from "../servicios/administracion.servicio";
 import { listarPeriodos } from "../servicios/matricula.servicio";
+import ModalRegistrarPago from "../componentes/ModalRegistrarPago";
 
 export default function ListarMatriculas() {
   const [matriculas, setMatriculas] = useState([]);
@@ -23,6 +23,7 @@ export default function ListarMatriculas() {
   const [pagina, setPagina] = useState(1);
   const porPagina = 10;
   const [matriculaACancelar, setMatriculaACancelar] = useState(null);
+  const [matriculaAPagar, setMatriculaAPagar] = useState(null);
 
   useEffect(() => {
     cargarCatalogos();
@@ -79,11 +80,7 @@ export default function ListarMatriculas() {
     cargarMatriculas();
   }
 
-  async function manejarPago(id) {
-    setMensaje(null);
-    setError(null);
-    const { data, error } = await registrarPago(id);
-    if (error) return setError(error);
+  function manejarExitoPago(data) {
     setMensaje(data.mensaje);
     cargarMatriculas();
   }
@@ -175,7 +172,7 @@ export default function ListarMatriculas() {
                       <button type="button" onClick={() => manejarValidar(m.id)} disabled={!puedeValidar(m)}>
                         Validar
                       </button>
-                      <button type="button" onClick={() => manejarPago(m.id)} disabled={!puedeRegistrarPago(m)}>
+                      <button type="button" onClick={() => setMatriculaAPagar(m)} disabled={!puedeRegistrarPago(m)}>
                         Registrar pago
                       </button>
                       <button type="button" onClick={() => manejarFicha(m.id)} disabled={!puedeGenerarFicha(m)}>
@@ -256,6 +253,14 @@ export default function ListarMatriculas() {
             </div>
           </div>
         </div>
+      )}
+
+      {matriculaAPagar && (
+        <ModalRegistrarPago
+          matricula={matriculaAPagar}
+          onCerrar={() => setMatriculaAPagar(null)}
+          onExito={manejarExitoPago}
+        />
       )}
     </div>
   );
