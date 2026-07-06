@@ -27,6 +27,7 @@ export default function SolicitarMatricula() {
   const [error, setError] = useState(null);
   const [ultimaMatriculaId, setUltimaMatriculaId] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [cursoInfo, setCursoInfo] = useState(null);
 
   useEffect(() => {
     cargarDatos();
@@ -151,9 +152,16 @@ export default function SolicitarMatricula() {
                 <tr
                   key={curso.oferta_academica_id ?? curso.curso_id}
                   title={bloqueado ? motivo : undefined}
-                  style={bloqueado ? { color: "#ff6b6b" } : undefined}
-                >
-                  <td>
+                  style={{
+                    color: bloqueado ? "#ff6b6b" : undefined,
+                    cursor: bloqueado ? "pointer" : undefined,
+                  }}
+                  onClick={() => {
+                    if (bloqueado && !seleccionado) {
+                      setCursoInfo({ nombre: curso.curso_nombre, motivo });
+                    }
+                  }}
+                >                  <td>
                     <input
                       type="checkbox"
                       checked={seleccionado}
@@ -221,6 +229,41 @@ export default function SolicitarMatricula() {
           <button type="button" onClick={manejarDescargaFicha}>
             Descargar ficha (PDF)
           </button>
+        </div>
+      )}
+
+      {cursoInfo && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setCursoInfo(null)}
+        >
+          <div
+            style={{
+              background: "#1e1e1e",
+              border: "1px solid #ff6b6b",
+              borderRadius: 8,
+              padding: 20,
+              maxWidth: 420,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 style={{ color: "#ff6b6b", marginTop: 0 }}>⚠ {cursoInfo.nombre}</h4>
+            <p>{cursoInfo.motivo}</p>
+            <button type="button" onClick={() => setCursoInfo(null)}>
+              Cerrar
+            </button>
+          </div>
         </div>
       )}
     </div>

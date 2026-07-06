@@ -167,7 +167,8 @@ class MatriculaService:
             if ya_matriculado:
                 motivo = "Ya te encuentras matriculado en este curso"
             elif faltantes:
-                motivo = "Falta aprobar: " + ", ".join(f.nombre for f in faltantes)
+                nombres_faltantes = ", ".join(f.nombre for f in faltantes)
+                motivo = f"Asignatura no elegible debido a la falta de los siguientes sub-requisitos: [{nombres_faltantes}]"
             elif not oferta:
                 motivo = "No hay oferta académica para este curso en el periodo actual"
 
