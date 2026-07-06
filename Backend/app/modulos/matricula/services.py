@@ -1,4 +1,6 @@
 import io
+import os
+import uuid
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -6,6 +8,10 @@ from app import db
 from app.modelos.matricula import Matricula
 from app.modelos.estudiante import Estudiante
 from app.modelos.estado_matricula import EstadoMatricula
+
+CARPETA_COMPROBANTES = os.path.join(os.getcwd(), "uploads", "comprobantes")
+EXTENSIONES_PERMITIDAS = {".pdf", ".jpg", ".jpeg", ".png"}
+TAMANO_MAXIMO_BYTES = 5 * 1024 * 1024
 
 
 class MatriculaService:
@@ -405,7 +411,79 @@ class MatriculaService:
         return {"id": matricula.id, "total_creditos": total_creditos}, None
 
     @staticmethod
-    def _plazo_vencido(matricula):
+    def registrar_pago(matricula_id, numero_operacion, fecha_pago, monto, archivo):
+        from app.modelos.pago import Pago
+
+        matricula = Matricula.query.get(matricula_id)
+        if not matricula:
+            return None, "Matrícula no encontrada", 404
+
+        if not matricula.estado or matricula.estado.nombre != "Validado":
+            return None, "La matrícula debe estar validada antes de registrar el pago", 400
+
+        if not numero_operacion or not numero_operacion.strip():
+            return None, "El número de operación es obligatorio", 400
+
+        try:
+            monto_decimal = float(monto)
+        except (TypeError, ValueError):
+            return None, "El monto pagado debe ser un valor numérico", 400
+
+        if monto_decimal <= 0:
+            return None, "El monto pagado debe ser mayor a cero", 400
+
+        try:
+            fecha_pago_convertida = datetime.strptime(fecha_pago, "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            return None, "La fecha de pago debe tener el formato AAAA-MM-DD", 400
+
+        if not archivo or not archivo.filename:
+            return None, "Debes adjuntar el comprobante de pago", 400
+
+        extension = os.path.splitext(archivo.filename)[1].lower()
+        if extension not in EXTENSIONES_PERMITIDAS:
+            return None, "El comprobante debe ser un archivo PDF, JPEG o PNG", 400
+
+        archivo.stream.seek(0, os.SEEK_END)
+        tamano = archivo.stream.tell()
+        archivo.stream.seek(0)
+        if tamano > TAMANO_MAXIMO_BYTES:
+            return None, "El comprobante no puede superar los 5 MB", 400
+
+        duplicado = (
+            Pago.query.join(Matricula, Pago.matricula_id == Matricula.id)
+            .filter(
+                Matricula.periodo_academico_id == matricula.periodo_academico_id,
+                Pago.numero_operacion == numero_operacion.strip(),
+            )
+            .first()
+        )
+        if duplicado:
+            return None, "El número de operación ya fue registrado en este periodo", 409
+
+        os.makedirs(CARPETA_COMPROBANTES, exist_ok=True)
+        nombre_unico = f"{uuid.uuid4()}{extension}"
+        ruta_completa = os.path.join(CARPETA_COMPROBANTES, nombre_unico)
+        archivo.save(ruta_completa)
+
+        pago = Pago(
+            matricula_id=matricula.id,
+            numero_operacion=numero_operacion.strip(),
+            fecha_pago=fecha_pago_convertida,
+            monto=monto_decimal,
+            comprobante_ruta=ruta_completa,
+            comprobante_nombre_original=archivo.filename,
+        )
+        db.session.add(pago)
+
+        matricula.pagado = True
+        db.session.commit()
+
+        return {
+            "mensaje": "Pago registrado y verificado correctamente",
+            "matricula_id": matricula.id,
+            "pago_id": pago.id,
+        }, None, 201
         if not matricula.created_at:
             return False
         dias_transcurridos = (datetime.now() - matricula.created_at).days
