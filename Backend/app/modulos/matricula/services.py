@@ -529,19 +529,13 @@ class MatriculaService:
             })
 
         return {"matriculas": filas, "total": total, "pagina": pagina, "por_pagina": por_pagina}, None
+    
     @staticmethod
     def _plazo_vencido(matricula):
         if not matricula.created_at:
             return False
-
         dias_transcurridos = (datetime.now() - matricula.created_at).days
-
-        limite = (
-            matricula.periodo_academico.dias_limite_pago
-            if matricula.periodo_academico and matricula.periodo_academico.dias_limite_pago
-            else 15
-        )
-
+        limite = matricula.periodo_academico.dias_limite_pago or 15
         return dias_transcurridos > limite
 
     @staticmethod
