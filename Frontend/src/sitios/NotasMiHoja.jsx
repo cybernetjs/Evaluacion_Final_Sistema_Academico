@@ -7,6 +7,7 @@ export default function NotasMiHoja() {
   const [progresoActual, setProgresoActual] = useState(null);
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const semestre = ["I","II","III","IV","V","VI","VII","VIII","IX","X"];
 
   useEffect(() => {
     cargarHoja();
@@ -45,12 +46,16 @@ export default function NotasMiHoja() {
       <form onSubmit={cargarHoja}>
         <div>
           <label>Filtrar por semestre</label>
-          <input
-            type="number"
-            placeholder="Opcional"
-            value={semestreId}
-            onChange={(e) => setSemestreId(e.target.value)}
-          />
+          <select value={semestreId} onChange={(e)=> setSemestreId(Number(e.target.value))}>
+            <option value="">Elige tu semestre</option>
+            {
+              semestre.map((semestre, index) => (
+                <option value={index+1} key={index+1}>
+                  {semestre}
+                </option>
+              ))
+            }
+          </select>
         </div>
         <button type="submit">Consultar</button>
       </form>
