@@ -23,6 +23,14 @@ export async function obtenerCursosDisponibles() {
   return peticion("/matriculas/cursos-disponibles");
 }
 
+export async function obtenerMiSolicitudActual() {
+  return peticion("/matriculas/mi-solicitud-actual");
+}
+
+export function urlDescargarFichaPreliminar() {
+  return "http://localhost:5000/api/matriculas/ficha-preliminar/descargar";
+}
+
 export async function listarOfertas() {
   return peticion("/matriculas/ofertas");
 }

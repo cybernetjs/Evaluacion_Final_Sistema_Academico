@@ -71,3 +71,15 @@ def descargar_ficha(matricula_id):
 @rol_requerido("estudiante")
 def cursos_disponibles():
     return controllers.cursos_disponibles()
+
+
+@matricula_bp.route('/mi-solicitud-actual', methods=['GET'])
+@rol_requerido("estudiante")
+def mi_solicitud_actual():
+    return controllers.mi_solicitud_actual()
+
+
+@matricula_bp.route('/ficha-preliminar/descargar', methods=['GET'])
+@rol_requerido("estudiante")
+def descargar_ficha_preliminar():
+    return controllers.descargar_ficha_preliminar()

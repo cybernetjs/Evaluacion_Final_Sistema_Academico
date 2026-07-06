@@ -181,3 +181,32 @@ def cursos_disponibles():
         return jsonify({"error": error}), 400
 
     return jsonify(resultado)
+
+
+def mi_solicitud_actual():
+    usuario_id = get_jwt_identity()
+    periodo = MatriculaService.periodo_actual()
+
+    resultado, error = MatriculaService.mi_solicitud_actual(usuario_id, periodo.id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
+def descargar_ficha_preliminar():
+    usuario_id = get_jwt_identity()
+    ip_solicitante = request.headers.get("X-Forwarded-For", request.remote_addr)
+
+    buffer, error = MatriculaService.generar_pdf_ficha_preliminar(usuario_id, ip_solicitante)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return send_file(
+        buffer,
+        as_attachment=False,
+        download_name="ficha_matricula_preliminar.pdf",
+        mimetype="application/pdf"
+    )

@@ -11,6 +11,129 @@ from app.modelos.estado_matricula import EstadoMatricula
 class MatriculaService:
 
     @staticmethod
+    def _dibujar_marca_de_agua(pdf, texto, ancho_pagina, alto_pagina):
+        pdf.saveState()
+        pdf.setFont("Helvetica-Bold", 40)
+        pdf.setFillColorRGB(0.85, 0.15, 0.15, alpha=0.25)
+        pdf.translate(ancho_pagina / 2, alto_pagina / 2)
+        pdf.rotate(45)
+        pdf.drawCentredString(0, 0, texto)
+        pdf.restoreState()
+
+    @staticmethod
+    def mi_solicitud_actual(usuario_id, periodo_id):
+        estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
+        if not estudiante:
+            return None, "Estudiante no encontrado"
+
+        matricula = (
+            Matricula.query.filter_by(estudiante_id=estudiante.id, periodo_academico_id=periodo_id)
+            .order_by(Matricula.id.desc())
+            .first()
+        )
+
+        if not matricula:
+            return {"matricula": None}, None
+
+        return {
+            "matricula": {
+                "id": matricula.id,
+                "estado": matricula.estado.nombre if matricula.estado else None,
+                "pagado": matricula.pagado,
+            }
+        }, None
+
+    @staticmethod
+    def generar_pdf_ficha_preliminar(usuario_id, ip_solicitante):
+        from reportlab.lib.pagesizes import letter as tamano_letter
+        from app.modelos.matricula_detalle import MatriculaDetalle
+        from app.modelos.usuario import Usuario
+        from app.modelos.auditoria import Auditoria
+
+        estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
+        if not estudiante:
+            return None, "Estudiante no encontrado"
+
+        periodo = MatriculaService.periodo_actual()
+
+        matricula = (
+            Matricula.query.filter_by(estudiante_id=estudiante.id, periodo_academico_id=periodo.id)
+            .join(EstadoMatricula, Matricula.estado_id == EstadoMatricula.id)
+            .filter(db.func.lower(EstadoMatricula.nombre) == "pendiente")
+            .order_by(Matricula.id.desc())
+            .first()
+        )
+
+        if not matricula:
+            return None, "No tienes una solicitud de matrícula pendiente de validación en este periodo"
+
+        detalles = MatriculaDetalle.query.filter_by(matricula_id=matricula.id).all()
+        usuario = Usuario.query.get(usuario_id)
+
+        ancho, alto = tamano_letter
+        buffer = io.BytesIO()
+        pdf = canvas.Canvas(buffer, pagesize=tamano_letter)
+
+        def encabezado():
+            MatriculaService._dibujar_marca_de_agua(
+                pdf, "DOCUMENTO PRELIMINAR - SIN VALOR OFICIAL", ancho, alto
+            )
+            pdf.setFont("Helvetica-Bold", 16)
+            pdf.drawString(80, alto - 60, "FICHA DE MATRÍCULA PRELIMINAR")
+            pdf.setFont("Helvetica", 11)
+            pdf.drawString(80, alto - 90, f"Código: {usuario.username}")
+            pdf.drawString(
+                80, alto - 108,
+                f"Estudiante: {estudiante.nombres} {estudiante.apellido_paterno} {estudiante.apellido_materno}"
+            )
+            pdf.drawString(80, alto - 126, f"Periodo académico: {periodo.nombre}")
+            pdf.drawString(80, alto - 144, f"N° de solicitud: {matricula.id}  —  Estado: Pendiente de Validación")
+
+        encabezado()
+
+        y = alto - 180
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(80, y, "Código")
+        pdf.drawString(150, y, "Curso")
+        pdf.drawString(360, y, "Créditos")
+        pdf.drawString(430, y, "Horario")
+        y -= 16
+        pdf.setFont("Helvetica", 9)
+
+        for d in detalles:
+            oferta = d.oferta_academica
+            curso = oferta.curso
+            horarios = ", ".join(
+                f"{h.dia}° día {h.hora_inicio.strftime('%H:%M')}-{h.hora_fin.strftime('%H:%M')}"
+                for h in oferta.horarios
+            ) or "Sin horario"
+
+            if y < 100:
+                pdf.showPage()
+                encabezado()
+                y = alto - 180
+
+            pdf.drawString(80, y, curso.codigo)
+            pdf.drawString(150, y, curso.nombre[:35])
+            pdf.drawString(370, y, str(curso.creditos))
+            pdf.drawString(430, y, horarios[:45])
+            y -= 16
+
+        pdf.showPage()
+        pdf.save()
+        buffer.seek(0)
+
+        auditoria = Auditoria(
+            usuario_id=usuario_id,
+            accion="Descarga de ficha preliminar",
+            detalle=f"matricula_id={matricula.id}, ip={ip_solicitante}",
+        )
+        db.session.add(auditoria)
+        db.session.commit()
+
+        return buffer, None
+
+    @staticmethod
     def generar_pdf_ficha(matricula_id):
         matricula = Matricula.query.get(matricula_id)
 

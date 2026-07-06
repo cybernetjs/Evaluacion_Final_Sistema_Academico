@@ -3,7 +3,8 @@ import {
   solicitarMatricula,
   obtenerPeriodoActual,
   obtenerCursosDisponibles,
-  urlDescargarFicha,
+  obtenerMiSolicitudActual,
+  urlDescargarFichaPreliminar,
 } from "../servicios/matricula.servicio";
 
 const NOMBRES_DIA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -28,6 +29,9 @@ export default function SolicitarMatricula() {
   const [ultimaMatriculaId, setUltimaMatriculaId] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [cursoInfo, setCursoInfo] = useState(null);
+  const [solicitudActual, setSolicitudActual] = useState(null);
+  const [descargandoFicha, setDescargandoFicha] = useState(false);
+  const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -35,14 +39,16 @@ export default function SolicitarMatricula() {
 
   async function cargarDatos() {
     setCargando(true);
-    const [resPeriodo, resCursos] = await Promise.all([
+    const [resPeriodo, resCursos, resSolicitud] = await Promise.all([
       obtenerPeriodoActual(),
       obtenerCursosDisponibles(),
+      obtenerMiSolicitudActual(),
     ]);
 
     if (!resPeriodo.error) setPeriodo(resPeriodo.data);
     if (!resCursos.error) setDatosCursos(resCursos.data);
     if (resCursos.error) setError(resCursos.error);
+    if (!resSolicitud.error) setSolicitudActual(resSolicitud.data.matricula);
 
     setCargando(false);
   }
@@ -78,7 +84,7 @@ export default function SolicitarMatricula() {
     setSeleccionados([...seleccionados, curso]);
   }
 
-  async function manejarEnvio() {
+  function abrirConfirmacionEnvio() {
     setMensaje(null);
     setError(null);
 
@@ -86,6 +92,12 @@ export default function SolicitarMatricula() {
       setError("Selecciona al menos un curso antes de enviar la solicitud");
       return;
     }
+
+    setMostrarConfirmacion(true);
+  }
+
+  async function confirmarEnvio() {
+    setMostrarConfirmacion(false);
 
     const ids = seleccionados.map((c) => c.oferta_academica_id);
     const { data, error } = await solicitarMatricula(ids);
@@ -101,24 +113,29 @@ export default function SolicitarMatricula() {
     cargarDatos();
   }
 
-  async function manejarDescargaFicha() {
-    const token = localStorage.getItem("token");
-    const respuesta = await fetch(urlDescargarFicha(ultimaMatriculaId), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async function manejarDescargaFichaPreliminar() {
+    if (descargandoFicha) return; 
+    setDescargandoFicha(true);
+    setError(null);
 
-    if (!respuesta.ok) {
-      setError("No se pudo descargar la ficha");
-      return;
+    try {
+      const token = localStorage.getItem("token");
+      const respuesta = await fetch(urlDescargarFichaPreliminar(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!respuesta.ok) {
+        const cuerpo = await respuesta.json().catch(() => null);
+        setError(cuerpo?.error || "No se pudo descargar la ficha preliminar");
+        return;
+      }
+
+      const blob = await respuesta.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank"); 
+    } finally {
+      setDescargandoFicha(false); 
     }
-
-    const blob = await respuesta.blob();
-    const url = window.URL.createObjectURL(blob);
-    const enlace = document.createElement("a");
-    enlace.href = url;
-    enlace.download = `ficha_matricula_${ultimaMatriculaId}.pdf`;
-    enlace.click();
-    window.URL.revokeObjectURL(url);
   }
 
   function renderizarGrupo(titulo, tipo) {
@@ -218,17 +235,61 @@ export default function SolicitarMatricula() {
           {renderizarGrupo("Cursos desaprobados (para repetir)", "repetir")}
           {renderizarGrupo("Cursos de adelanto (siguiente semestre)", "adelanto")}
 
-          <button type="button" onClick={manejarEnvio}>
+          <button type="button" onClick={abrirConfirmacionEnvio}>
             Enviar solicitud de matrícula
           </button>
         </>
       )}
 
-      {ultimaMatriculaId && (
+
+      {solicitudActual?.estado === "Pendiente" && (
         <div style={{ marginTop: 16 }}>
-          <button type="button" onClick={manejarDescargaFicha}>
-            Descargar ficha (PDF)
+          <button type="button" onClick={manejarDescargaFichaPreliminar} disabled={descargandoFicha}>
+            {descargandoFicha ? "Generando..." : "Descargar Ficha Preliminar"}
           </button>
+        </div>
+      )}
+
+      {mostrarConfirmacion && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setMostrarConfirmacion(false)}
+        >
+          <div
+            style={{
+              background: "#1e1e1e",
+              border: "1px solid #6b6bff",
+              borderRadius: 8,
+              padding: 20,
+              maxWidth: 420,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p>
+              ¿Está seguro de confirmar la matrícula? Esta acción cerrará el proceso de matrícula
+              y no se permitirán modificaciones en las asignaturas. (Aún estarán permitidos la
+              descarga de las fichas de matrícula preliminar y oficial)
+            </p>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button type="button" onClick={confirmarEnvio}>
+                Confirmar
+              </button>
+              <button type="button" onClick={() => setMostrarConfirmacion(false)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
