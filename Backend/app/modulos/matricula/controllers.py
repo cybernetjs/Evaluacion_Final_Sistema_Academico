@@ -133,19 +133,19 @@ def validar_requisitos(matricula_id):
 
 
 def registrar_pago(matricula_id):
-    matricula = Matricula.query.get(matricula_id)
+    numero_operacion = request.form.get("numero_operacion")
+    fecha_pago = request.form.get("fecha_pago")
+    monto = request.form.get("monto")
+    archivo = request.files.get("comprobante")
 
-    if not matricula:
-        return jsonify({"error": "Matrícula no encontrada"}), 404
+    resultado, error, codigo = MatriculaService.registrar_pago(
+        matricula_id, numero_operacion, fecha_pago, monto, archivo
+    )
 
-    if matricula.estado_id != 2:
-        return jsonify({"error": "La matrícula debe estar validada antes de registrar el pago"}), 400
+    if error:
+        return jsonify({"error": error}), codigo
 
-    matricula.pagado = True
-    from app import db
-    db.session.commit()
-
-    return jsonify({"mensaje": "Pago registrado", "matricula_id": matricula.id})
+    return jsonify(resultado), codigo
 
 
 def generar_ficha_oficial(matricula_id):
