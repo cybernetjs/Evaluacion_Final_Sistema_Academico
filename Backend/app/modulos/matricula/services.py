@@ -388,6 +388,7 @@ class MatriculaService:
             periodo_academico_id=periodo.id,
             semestre_id=disponibles["semestre_actual"],
             estado_id=estado_pendiente.id,
+            created_at=datetime.now(),
         )
         db.session.add(matricula)
         db.session.flush()
@@ -402,3 +403,88 @@ class MatriculaService:
 
         db.session.commit()
         return {"id": matricula.id, "total_creditos": total_creditos}, None
+
+    @staticmethod
+    def _plazo_vencido(matricula):
+        if not matricula.created_at:
+            return False
+        dias_transcurridos = (datetime.now() - matricula.created_at).days
+        limite = matricula.periodo_academico.dias_limite_pago or 15
+        return dias_transcurridos > limite
+
+    @staticmethod
+    def listar_bandeja_validacion(periodo_id=None, especialidad_id=None, estado_nombre=None, pagina=1, por_pagina=10):
+        consulta = Matricula.query.join(Estudiante, Matricula.estudiante_id == Estudiante.id).join(
+            EstadoMatricula, Matricula.estado_id == EstadoMatricula.id
+        )
+
+        if periodo_id:
+            consulta = consulta.filter(Matricula.periodo_academico_id == periodo_id)
+        if especialidad_id:
+            consulta = consulta.filter(Estudiante.especialidad_id == especialidad_id)
+        if estado_nombre:
+            consulta = consulta.filter(db.func.lower(EstadoMatricula.nombre) == estado_nombre.lower())
+
+        total = consulta.count()
+        matriculas = (
+            consulta.order_by(Matricula.id.desc())
+            .offset((pagina - 1) * por_pagina)
+            .limit(por_pagina)
+            .all()
+        )
+
+        filas = []
+        for m in matriculas:
+            estudiante = m.estudiante
+            filas.append({
+                "id": m.id,
+                "estudiante_nombre": f"{estudiante.nombres} {estudiante.apellido_paterno} {estudiante.apellido_materno}",
+                "especialidad_nombre": estudiante.especialidad.nombre if estudiante.especialidad else None,
+                "periodo_nombre": m.periodo_academico.nombre if m.periodo_academico else None,
+                "semestre_codigo": m.semestre.codigo if m.semestre else None,
+                "estado": m.estado.nombre if m.estado else None,
+                "pagado": m.pagado,
+                "plazo_vencido": MatriculaService._plazo_vencido(m),
+                "puede_cancelar": MatriculaService._plazo_vencido(m)
+                and not m.pagado
+                and m.estado.nombre.lower() not in ("matriculado", "observado", "anulado", "retirado"),
+            })
+
+        return {"matriculas": filas, "total": total, "pagina": pagina, "por_pagina": por_pagina}, None
+
+    @staticmethod
+    def validar_periodo(estudiante_id):
+        matricula = (
+            Matricula.query.filter_by(estudiante_id=estudiante_id)
+            .join(EstadoMatricula, Matricula.estado_id == EstadoMatricula.id)
+            .filter(db.func.lower(EstadoMatricula.nombre) == "pendiente")
+            .order_by(Matricula.id.desc())
+            .first()
+        )
+
+        if not matricula:
+            return None, "El estudiante no tiene una solicitud pendiente de validación"
+
+        return {"plazo_vencido": MatriculaService._plazo_vencido(matricula)}, None
+
+    @staticmethod
+    def cancelar_matricula(matricula_id):
+        matricula = Matricula.query.get(matricula_id)
+        if not matricula:
+            return None, "Matrícula no encontrada"
+
+        if matricula.pagado or matricula.estado.nombre.lower() == "matriculado":
+            return None, "No se puede cancelar una matrícula con pago verificado o ya matriculada"
+
+        if not MatriculaService._plazo_vencido(matricula):
+            return None, "El plazo de pago aún no ha vencido, no se puede cancelar la matrícula"
+
+        estado_observado = EstadoMatricula.query.filter_by(nombre="Observado").first()
+        matricula.estado_id = estado_observado.id
+        db.session.commit()
+
+        return {
+            "id": matricula.id,
+            "estado": estado_observado.nombre,
+            "motivo": "Cancelación por incumplimiento del periodo de pago establecido",
+        }, None
