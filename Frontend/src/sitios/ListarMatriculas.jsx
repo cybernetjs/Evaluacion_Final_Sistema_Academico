@@ -5,42 +5,65 @@ import {
   validarRequisitos,
   registrarPago,
   generarFichaOficial,
+  cancelarMatricula,
 } from "../servicios/matricula.servicio";
+import { listarEspecialidades } from "../servicios/administracion.servicio";
+import { listarPeriodos } from "../servicios/matricula.servicio";
 
 export default function ListarMatriculas() {
   const [matriculas, setMatriculas] = useState([]);
+  const [total, setTotal] = useState(0);
   const [estados, setEstados] = useState([]);
+  const [especialidades, setEspecialidades] = useState([]);
+  const [periodos, setPeriodos] = useState([]);
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const [filtros, setFiltros] = useState({ periodoId: "", especialidadId: "", estado: "" });
+  const [pagina, setPagina] = useState(1);
+  const porPagina = 10;
+  const [matriculaACancelar, setMatriculaACancelar] = useState(null);
 
   useEffect(() => {
-    cargarDatos();
+    cargarCatalogos();
   }, []);
 
-  async function cargarDatos() {
-    setCargando(true);
-    const [resMatriculas, resEstados] = await Promise.all([
-      listarMatriculas(),
-      listarEstadosMatricula(),
-    ]);
-    setCargando(false);
+  useEffect(() => {
+    cargarMatriculas();
+  }, [filtros, pagina]);
 
-    if (!resMatriculas.error) setMatriculas(resMatriculas.data);
+  async function cargarCatalogos() {
+    const [resEstados, resEspecialidades, resPeriodos] = await Promise.all([
+      listarEstadosMatricula(),
+      listarEspecialidades(),
+      listarPeriodos(),
+    ]);
     if (!resEstados.error) setEstados(resEstados.data);
+    if (!resEspecialidades.error) setEspecialidades(resEspecialidades.data);
+    if (!resPeriodos.error) setPeriodos(resPeriodos.data);
   }
 
-  function nombreEstado(estadoId) {
-    const estado = estados.find((e) => e.id === estadoId);
-    return estado ? estado.nombre : estadoId;
+  async function cargarMatriculas() {
+    setCargando(true);
+    const { data, error } = await listarMatriculas({ ...filtros, pagina, porPagina });
+    setCargando(false);
+
+    if (error) return setError(error);
+    setMatriculas(data.matriculas);
+    setTotal(data.total);
+  }
+
+  function actualizarFiltro(campo, valor) {
+    setPagina(1);
+    setFiltros((f) => ({ ...f, [campo]: valor }));
   }
 
   function puedeValidar(matricula) {
-    return matricula.estado_id === 1;
+    return matricula.estado === "Pendiente";
   }
 
   function puedeRegistrarPago(matricula) {
-    return matricula.estado_id === 2 && !matricula.pagado;
+    return matricula.estado === "Validado" && !matricula.pagado;
   }
 
   function puedeGenerarFicha(matricula) {
@@ -53,7 +76,7 @@ export default function ListarMatriculas() {
     const { data, error } = await validarRequisitos(id);
     if (error) return setError(error);
     setMensaje(data.mensaje);
-    cargarDatos();
+    cargarMatriculas();
   }
 
   async function manejarPago(id) {
@@ -62,7 +85,7 @@ export default function ListarMatriculas() {
     const { data, error } = await registrarPago(id);
     if (error) return setError(error);
     setMensaje(data.mensaje);
-    cargarDatos();
+    cargarMatriculas();
   }
 
   async function manejarFicha(id) {
@@ -71,60 +94,168 @@ export default function ListarMatriculas() {
     const { data, error } = await generarFichaOficial(id);
     if (error) return setError(error);
     setMensaje(data.mensaje);
-    cargarDatos();
+    cargarMatriculas();
   }
+
+  async function confirmarCancelacion() {
+    setMensaje(null);
+    setError(null);
+    const { data, error } = await cancelarMatricula(matriculaACancelar.id);
+    setMatriculaACancelar(null);
+    if (error) return setError(error);
+    setMensaje(`Matrícula ${data.id} cancelada correctamente`);
+    cargarMatriculas();
+  }
+
+  const totalPaginas = Math.max(1, Math.ceil(total / porPagina));
 
   return (
     <div className="contenedor">
-      <h2>Matrículas</h2>
-      <p>Revisa las solicitudes, valida requisitos, registra el pago y genera la ficha oficial.</p>
+      <h2>Bandeja de Validación de Matrículas</h2>
+
+      <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+        <select value={filtros.periodoId} onChange={(e) => actualizarFiltro("periodoId", e.target.value)}>
+          <option value="">Todos los ciclos</option>
+          {periodos.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre}
+            </option>
+          ))}
+        </select>
+
+        <select value={filtros.especialidadId} onChange={(e) => actualizarFiltro("especialidadId", e.target.value)}>
+          <option value="">Todas las especialidades</option>
+          {especialidades.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.nombre}
+            </option>
+          ))}
+        </select>
+
+        <select value={filtros.estado} onChange={(e) => actualizarFiltro("estado", e.target.value)}>
+          <option value="">Todos los estados</option>
+          {estados.map((e) => (
+            <option key={e.id} value={e.nombre}>
+              {e.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
+
       {cargando ? (
         <p>Cargando matrículas...</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Estudiante</th>
-              <th>Periodo</th>
-              <th>Semestre</th>
-              <th>Estado</th>
-              <th>Pagado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {matriculas.length > 0 ? (
-              matriculas.map((m) => (
-                <tr key={m.id}>
-                  <td>{m.id}</td>
-                  <td>{m.estudiante_id}</td>
-                  <td>{m.periodo_academico_id}</td>
-                  <td>{m.semestre_id}</td>
-                  <td>{nombreEstado(m.estado_id)}</td>
-                  <td>{m.pagado ? "Sí" : "No"}</td>
-                  <td>
-                    <button type="button" onClick={() => manejarValidar(m.id)} disabled={!puedeValidar(m)}>
-                      Validar
-                    </button>
-                    <button type="button" onClick={() => manejarPago(m.id)} disabled={!puedeRegistrarPago(m)}>
-                      Registrar pago
-                    </button>
-                    <button type="button" onClick={() => manejarFicha(m.id)} disabled={!puedeGenerarFicha(m)}>
-                      Generar ficha oficial
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
+        <>
+          <table>
+            <thead>
               <tr>
-                <td colSpan="7">No hay matrículas registradas.</td>
+                <th>ID</th>
+                <th>Estudiante</th>
+                <th>Especialidad</th>
+                <th>Ciclo</th>
+                <th>Estado</th>
+                <th>Pagado</th>
+                <th>Acciones</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {matriculas.length > 0 ? (
+                matriculas.map((m) => (
+                  <tr key={m.id}>
+                    <td>{m.id}</td>
+                    <td>{m.estudiante_nombre}</td>
+                    <td>{m.especialidad_nombre}</td>
+                    <td>{m.periodo_nombre}</td>
+                    <td>{m.estado}</td>
+                    <td>{m.pagado ? "Sí" : "No"}</td>
+                    <td>
+                      <button type="button" onClick={() => manejarValidar(m.id)} disabled={!puedeValidar(m)}>
+                        Validar
+                      </button>
+                      <button type="button" onClick={() => manejarPago(m.id)} disabled={!puedeRegistrarPago(m)}>
+                        Registrar pago
+                      </button>
+                      <button type="button" onClick={() => manejarFicha(m.id)} disabled={!puedeGenerarFicha(m)}>
+                        Generar ficha oficial
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMatriculaACancelar(m)}
+                        disabled={!m.puede_cancelar}
+                        title={!m.puede_cancelar ? "Solo disponible si el plazo de pago venció" : undefined}
+                      >
+                        Observar/Cancelar Matrícula
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7">No hay matrículas registradas.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
+            <button type="button" onClick={() => setPagina((p) => Math.max(1, p - 1))} disabled={pagina <= 1}>
+              Anterior
+            </button>
+            <span>
+              Página {pagina} de {totalPaginas}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              disabled={pagina >= totalPaginas}
+            >
+              Siguiente
+            </button>
+          </div>
+        </>
+      )}
+
+      {matriculaACancelar && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setMatriculaACancelar(null)}
+        >
+          <div
+            style={{ background: "#1e1e1e", border: "1px solid #ff6b6b", borderRadius: 8, padding: 20, maxWidth: 420 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 style={{ marginTop: 0 }}>Cancelar matrícula #{matriculaACancelar.id}</h4>
+            <label>Motivo de observación</label>
+            <input
+              type="text"
+              readOnly
+              value="Cancelación por incumplimiento del periodo de pago establecido"
+              style={{ width: "100%", marginTop: 4, marginBottom: 12 }}
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={confirmarCancelacion}>
+                Confirmar cancelación
+              </button>
+              <button type="button" onClick={() => setMatriculaACancelar(null)}>
+                Volver
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

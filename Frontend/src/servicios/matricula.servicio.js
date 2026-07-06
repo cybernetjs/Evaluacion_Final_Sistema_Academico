@@ -7,8 +7,27 @@ export async function solicitarMatricula(ofertasAcademicasIds) {
   });
 }
 
-export async function listarMatriculas() {
-  return peticion("/matriculas/");
+export async function listarMatriculas(filtros = {}) {
+  const parametros = new URLSearchParams();
+  if (filtros.periodoId) parametros.set("periodo_id", filtros.periodoId);
+  if (filtros.especialidadId) parametros.set("especialidad_id", filtros.especialidadId);
+  if (filtros.estado) parametros.set("estado", filtros.estado);
+  if (filtros.pagina) parametros.set("pagina", filtros.pagina);
+  if (filtros.porPagina) parametros.set("por_pagina", filtros.porPagina);
+
+  const query = parametros.toString();
+  return peticion(`/matriculas/${query ? `?${query}` : ""}`);
+}
+
+export async function validarPeriodo(estudianteId) {
+  return peticion(`/matriculas/validar-periodo/${estudianteId}`);
+}
+
+export async function cancelarMatricula(matriculaId) {
+  return peticion("/matriculas/cancelar", {
+    method: "POST",
+    body: JSON.stringify({ matricula_id: matriculaId }),
+  });
 }
 
 export async function listarPeriodos() {

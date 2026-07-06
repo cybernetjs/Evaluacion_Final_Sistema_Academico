@@ -53,18 +53,47 @@ def listar_ofertas():
 
 
 def listar_matriculas():
-    matriculas = Matricula.query.all()
-    return jsonify([
-        {
-            "id": m.id,
-            "estudiante_id": m.estudiante_id,
-            "periodo_academico_id": m.periodo_academico_id,
-            "semestre_id": m.semestre_id,
-            "estado_id": m.estado_id,
-            "pagado": m.pagado
-        }
-        for m in matriculas
-    ])
+    periodo_id = request.args.get("periodo_id", type=int)
+    especialidad_id = request.args.get("especialidad_id", type=int)
+    estado = request.args.get("estado")
+    pagina = request.args.get("pagina", default=1, type=int)
+    por_pagina = request.args.get("por_pagina", default=10, type=int)
+
+    resultado, error = MatriculaService.listar_bandeja_validacion(
+        periodo_id=periodo_id,
+        especialidad_id=especialidad_id,
+        estado_nombre=estado,
+        pagina=pagina,
+        por_pagina=por_pagina,
+    )
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
+def validar_periodo(estudiante_id):
+    resultado, error = MatriculaService.validar_periodo(estudiante_id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
+def cancelar_matricula():
+    matricula_id = request.get_json().get("matricula_id")
+
+    if not matricula_id:
+        return jsonify({"error": "Debes indicar el ID de la matrícula"}), 400
+
+    resultado, error = MatriculaService.cancelar_matricula(matricula_id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
 
 
 def crear_matricula():

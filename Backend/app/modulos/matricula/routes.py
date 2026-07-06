@@ -83,3 +83,15 @@ def mi_solicitud_actual():
 @rol_requerido("estudiante")
 def descargar_ficha_preliminar():
     return controllers.descargar_ficha_preliminar()
+
+
+@matricula_bp.route('/validar-periodo/<int:estudiante_id>', methods=['GET'])
+@rol_requerido("administrador")
+def validar_periodo(estudiante_id):
+    return controllers.validar_periodo(estudiante_id)
+
+
+@matricula_bp.route('/cancelar', methods=['POST'])
+@rol_requerido("administrador")
+def cancelar_matricula():
+    return controllers.cancelar_matricula()
