@@ -36,11 +36,34 @@ def obtener_notas_matricula(matricula_id):
 def mi_hoja_de_notas():
     usuario_id = int(get_jwt_identity())
     semestre_id = request.args.get("semestre_id", type=int)
+    periodo_academico_id = request.args.get("periodo_academico_id", type=int)
 
-    resultado, error = NotasService.hoja_de_notas_por_ciclo(usuario_id, semestre_id)
+    resultado, error = NotasService.hoja_de_notas_por_ciclo(usuario_id, periodo_academico_id, semestre_id)
 
     if error:
         return jsonify({"error": error}), 404
+
+    return jsonify(resultado)
+
+
+def ciclos_cursados():
+    usuario_id = int(get_jwt_identity())
+    resultado, error = NotasService.ciclos_cursados(usuario_id)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return jsonify(resultado)
+
+
+def publicar_notas():
+    usuario_id = int(get_jwt_identity())
+    data = request.get_json() or {}
+
+    resultado, error = NotasService.publicar_notas(usuario_id, data.get("oferta_academica_id"))
+
+    if error:
+        return jsonify({"error": error}), 403
 
     return jsonify(resultado)
 

@@ -32,6 +32,22 @@ export async function miHojaDeNotas(semestreId) {
   return peticion(`/notas/mi-hoja${query}`);
 }
 
+export async function obtenerCiclosCursados() {
+  return peticion("/notas/ciclos-cursados");
+}
+
+export async function obtenerHojaCiclo(periodoAcademicoId) {
+  const query = periodoAcademicoId ? `?periodo_academico_id=${periodoAcademicoId}` : "";
+  return peticion(`/notas/hoja-ciclo${query}`);
+}
+
+export async function publicarNotas(ofertaAcademicaId) {
+  return peticion("/notas/publicar", {
+    method: "POST",
+    body: JSON.stringify({ oferta_academica_id: ofertaAcademicaId }),
+  });
+}
+
 export async function registrarNota(datos) {
   return peticion("/notas/", {
     method: "PUT",

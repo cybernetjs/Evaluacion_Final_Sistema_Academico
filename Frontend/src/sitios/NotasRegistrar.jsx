@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { misCursosAsignados } from "../servicios/cursosDocentes.servicio";
-import { obtenerPlanilla, registrarNotasPlanilla } from "../servicios/notas.servicio";
+import { obtenerPlanilla, registrarNotasPlanilla, publicarNotas } from "../servicios/notas.servicio";
 
 const TIPOS_NOTA = [
   { valor: "parcial1", etiqueta: "Parcial 1" },
@@ -106,6 +106,17 @@ export default function NotasRegistrar() {
     cargarPlanilla();
   }
 
+  async function manejarPublicar() {
+    setMensaje(null);
+    setError(null);
+    const { data, error } = await publicarNotas(seccionId);
+    if (error) {
+      setError(error);
+      return;
+    }
+    setMensaje(data.mensaje);
+  }
+
   return (
     <div className="contenedor">
       <h2>Planilla de Calificaciones</h2>
@@ -209,6 +220,9 @@ export default function NotasRegistrar() {
             disabled={guardando || hayValoresInvalidos || !cronogramaVigente}
           >
             {guardando ? "Guardando..." : "Guardar Cambios"}
+          </button>
+          <button type="button" onClick={manejarPublicar} style={{ marginLeft: 8 }}>
+            Publicar notas a estudiantes
           </button>
         </>
       )}

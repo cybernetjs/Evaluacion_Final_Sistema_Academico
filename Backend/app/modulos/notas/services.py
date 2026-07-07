@@ -7,6 +7,7 @@ from app.modelos.docente import Docente
 from app.modelos.oferta_academica import OfertaAcademica
 from app.modelos.oferta_academica_docente import OfertaAcademicaDocente
 from app.modelos.hito_academico import HitoAcademico
+from app.modelos.acta import Acta
 
 CAMPOS_POR_TIPO = {
     "parcial1": "nota_parcial",
@@ -45,13 +46,22 @@ class NotasService:
         return detalle, None
 
     @staticmethod
-    def hoja_de_notas_por_ciclo(usuario_id, semestre_id=None):
+    def _notas_visibles_para_estudiante(oferta_academica_id):
+        acta = Acta.query.filter_by(oferta_academica_id=oferta_academica_id).first()
+        if not acta:
+            return False
+        return acta.notas_publicadas or acta.estado == "Cerrada"
+
+    @staticmethod
+    def hoja_de_notas_por_ciclo(usuario_id, periodo_academico_id=None, semestre_id=None):
         estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
 
         if not estudiante:
             return None, "No se encontró un estudiante asociado a este usuario"
 
         query = Matricula.query.filter_by(estudiante_id=estudiante.id)
+        if periodo_academico_id:
+            query = query.filter_by(periodo_academico_id=periodo_academico_id)
         if semestre_id:
             query = query.filter_by(semestre_id=semestre_id)
 
@@ -60,17 +70,57 @@ class NotasService:
         resultado = []
         for m in matriculas:
             for d in m.detalle:
+                visible = NotasService._notas_visibles_para_estudiante(d.oferta_academica_id)
+
                 resultado.append({
                     "periodo_academico_id": m.periodo_academico_id,
                     "semestre_id": m.semestre_id,
                     "curso_id": d.oferta_academica.curso_id,
                     "curso_nombre": d.oferta_academica.curso.nombre,
-                    "nota_parcial": float(d.nota_parcial) if d.nota_parcial is not None else None,
-                    "nota_final": float(d.nota_final) if d.nota_final is not None else None,
-                    "estado_curso_id": d.estado_curso_id
+                    "nota_parcial1": float(d.nota_parcial) if visible and d.nota_parcial is not None else None,
+                    "nota_parcial2": float(d.nota_parcial2) if visible and d.nota_parcial2 is not None else None,
+                    "nota_practica": float(d.nota_practica) if visible and d.nota_practica is not None else None,
+                    "nota_final": float(d.nota_final) if visible and d.nota_final is not None else None,
+                    "estado_curso_id": d.estado_curso_id,
+                    "publicado": visible,
                 })
 
         return resultado, None
+
+    @staticmethod
+    def ciclos_cursados(usuario_id):
+        estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
+        if not estudiante:
+            return None, "No se encontró un estudiante asociado a este usuario"
+
+        matriculas = Matricula.query.filter_by(estudiante_id=estudiante.id).all()
+
+        vistos = {}
+        for m in matriculas:
+            if m.periodo_academico_id not in vistos:
+                vistos[m.periodo_academico_id] = m.periodo_academico.nombre if m.periodo_academico else None
+
+        ciclos = [{"periodo_academico_id": pid, "nombre": nombre} for pid, nombre in vistos.items()]
+        return ciclos, None
+
+    @staticmethod
+    def publicar_notas(usuario_id_docente, oferta_academica_id):
+        docente = NotasService._docente_asignado(usuario_id_docente, oferta_academica_id)
+        if not docente:
+            return None, "No tienes asignada esta sección"
+
+        acta = Acta.query.filter_by(oferta_academica_id=oferta_academica_id).first()
+        if not acta:
+            acta = Acta(oferta_academica_id=oferta_academica_id)
+            db.session.add(acta)
+
+        if acta.estado == "Cerrada":
+            return None, "El acta ya está cerrada, las notas ya son oficiales"
+
+        acta.notas_publicadas = True
+        db.session.commit()
+
+        return {"mensaje": "Notas publicadas a los estudiantes", "oferta_academica_id": oferta_academica_id}, None
 
     @staticmethod
     def _docente_asignado(usuario_id, oferta_academica_id):

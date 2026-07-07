@@ -23,6 +23,24 @@ def mi_hoja_de_notas():
     return controllers.mi_hoja_de_notas()
 
 
+@notas_bp.route('/hoja-ciclo', methods=['GET'])
+@rol_requerido("estudiante")
+def hoja_ciclo():
+    return controllers.mi_hoja_de_notas()
+
+
+@notas_bp.route('/ciclos-cursados', methods=['GET'])
+@rol_requerido("estudiante")
+def ciclos_cursados():
+    return controllers.ciclos_cursados()
+
+
+@notas_bp.route('/publicar', methods=['POST'])
+@rol_requerido("docente")
+def publicar_notas():
+    return controllers.publicar_notas()
+
+
 @notas_bp.route('/', methods=['PUT'])
 @rol_requerido("docente")
 def registrar_nota():
