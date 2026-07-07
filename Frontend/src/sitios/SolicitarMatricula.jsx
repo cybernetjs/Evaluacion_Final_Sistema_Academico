@@ -5,6 +5,7 @@ import {
   obtenerCursosDisponibles,
   obtenerMiSolicitudActual,
   urlDescargarFichaPreliminar,
+  urlDescargarFichaOficialEstudiante,
 } from "../servicios/matricula.servicio";
 
 const NOMBRES_DIA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -113,28 +114,28 @@ export default function SolicitarMatricula() {
     cargarDatos();
   }
 
-  async function manejarDescargaFichaPreliminar() {
-    if (descargandoFicha) return; 
+  async function manejarDescargaFicha(url) {
+    if (descargandoFicha) return;
     setDescargandoFicha(true);
     setError(null);
 
     try {
       const token = localStorage.getItem("token");
-      const respuesta = await fetch(urlDescargarFichaPreliminar(), {
+      const respuesta = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!respuesta.ok) {
         const cuerpo = await respuesta.json().catch(() => null);
-        setError(cuerpo?.error || "No se pudo descargar la ficha preliminar");
+        setError(cuerpo?.error || "No se pudo descargar la ficha");
         return;
       }
 
       const blob = await respuesta.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank"); 
+      const objectUrl = window.URL.createObjectURL(blob);
+      window.open(objectUrl, "_blank");
     } finally {
-      setDescargandoFicha(false); 
+      setDescargandoFicha(false);
     }
   }
 
@@ -241,11 +242,27 @@ export default function SolicitarMatricula() {
         </>
       )}
 
-
       {solicitudActual?.estado === "Pendiente" && (
         <div style={{ marginTop: 16 }}>
-          <button type="button" onClick={manejarDescargaFichaPreliminar} disabled={descargandoFicha}>
+          <button
+            type="button"
+            onClick={() => manejarDescargaFicha(urlDescargarFichaPreliminar())}
+            disabled={descargandoFicha}
+          >
             {descargandoFicha ? "Generando..." : "Descargar Ficha Preliminar"}
+          </button>
+        </div>
+      )}
+
+      {solicitudActual?.estado === "Matriculado" && (
+        <div style={{ marginTop: 16 }}>
+          <p style={{ color: "#8fd18f" }}>Matrícula oficializada</p>
+          <button
+            type="button"
+            onClick={() => manejarDescargaFicha(urlDescargarFichaOficialEstudiante())}
+            disabled={descargandoFicha}
+          >
+            {descargandoFicha ? "Generando..." : "Descargar Ficha Oficial"}
           </button>
         </div>
       )}

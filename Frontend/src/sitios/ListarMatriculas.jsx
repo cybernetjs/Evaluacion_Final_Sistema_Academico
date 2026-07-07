@@ -68,7 +68,11 @@ export default function ListarMatriculas() {
   }
 
   function puedeGenerarFicha(matricula) {
-    return matricula.pagado === true;
+    return matricula.estado === "Validado" && matricula.pagado === true;
+  }
+
+  function puedeDescargarFichaOficial(matricula) {
+    return matricula.estado === "Matriculado";
   }
 
   async function manejarValidar(id) {
@@ -92,6 +96,24 @@ export default function ListarMatriculas() {
     if (error) return setError(error);
     setMensaje(data.mensaje);
     cargarMatriculas();
+  }
+
+  async function manejarDescargaFichaOficial(id) {
+    setError(null);
+    const token = localStorage.getItem("token");
+    const respuesta = await fetch(`http://localhost:5000/api/matriculas/${id}/ficha`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!respuesta.ok) {
+      const cuerpo = await respuesta.json().catch(() => null);
+      setError(cuerpo?.error || "No se pudo descargar la ficha oficial");
+      return;
+    }
+
+    const blob = await respuesta.blob();
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, "_blank");
   }
 
   async function confirmarCancelacion() {
@@ -177,6 +199,13 @@ export default function ListarMatriculas() {
                       </button>
                       <button type="button" onClick={() => manejarFicha(m.id)} disabled={!puedeGenerarFicha(m)}>
                         Generar ficha oficial
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => manejarDescargaFichaOficial(m.id)}
+                        disabled={!puedeDescargarFichaOficial(m)}
+                      >
+                        Descargar ficha oficial
                       </button>
                       <button
                         type="button"
