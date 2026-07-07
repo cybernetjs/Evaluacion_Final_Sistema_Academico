@@ -50,6 +50,10 @@ export function urlDescargarFichaPreliminar() {
   return "http://localhost:5000/api/matriculas/ficha-preliminar/descargar";
 }
 
+export function urlDescargarFichaOficialEstudiante() {
+  return "http://localhost:5000/api/matriculas/ficha-oficial/descargar";
+}
+
 export async function listarOfertas() {
   return peticion("/matriculas/ofertas");
 }
