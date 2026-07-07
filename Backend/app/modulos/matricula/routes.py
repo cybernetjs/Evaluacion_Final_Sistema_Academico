@@ -61,6 +61,12 @@ def estadisticas():
     return controllers.estadisticas()
 
 
+@matricula_bp.route('/dashboard/exportar', methods=['GET'])
+@rol_requerido("direccion")
+def exportar_reporte():
+    return controllers.exportar_reporte()
+
+
 @matricula_bp.route('/<int:matricula_id>/ficha', methods=['GET'])
 @rol_requerido("administrador")
 def descargar_ficha(matricula_id):

@@ -674,3 +674,146 @@ class MatriculaService:
             return None, "No tienes una matrícula oficializada"
 
         return MatriculaService.generar_pdf_ficha(matricula.id)
+
+    @staticmethod
+    def estadisticas_dashboard(periodo_id=None, especialidad_id=None):
+        from app.modelos.especialidad import Especialidad
+        from app.modelos.semestre import Semestre
+        from app.modelos.oferta_academica import OfertaAcademica
+        from app.modelos.curso import Curso
+        from app.modelos.matricula_detalle import MatriculaDetalle
+        from app.modelos.periodo_academico import PeriodoAcademico
+
+        base = Matricula.query.join(Estudiante, Matricula.estudiante_id == Estudiante.id).join(
+            EstadoMatricula, Matricula.estado_id == EstadoMatricula.id
+        )
+        if periodo_id:
+            base = base.filter(Matricula.periodo_academico_id == periodo_id)
+        if especialidad_id:
+            base = base.filter(Estudiante.especialidad_id == especialidad_id)
+
+        total_matriculados = base.filter(db.func.lower(EstadoMatricula.nombre) == "matriculado").count()
+        total_pendientes = base.filter(db.func.lower(EstadoMatricula.nombre) == "pendiente").count()
+
+        filas_ciclo = (
+            base.filter(db.func.lower(EstadoMatricula.nombre) == "matriculado")
+            .join(Semestre, Matricula.semestre_id == Semestre.id)
+            .join(Especialidad, Estudiante.especialidad_id == Especialidad.id)
+            .with_entities(
+                Semestre.codigo.label("ciclo"),
+                Especialidad.nombre.label("especialidad"),
+                db.func.count(Matricula.id).label("total"),
+            )
+            .group_by(Semestre.codigo, Especialidad.nombre)
+            .all()
+        )
+        matriculados_por_ciclo = [
+            {"ciclo": f.ciclo, "especialidad": f.especialidad, "total": f.total} for f in filas_ciclo
+        ]
+
+        consulta_cursos = (
+            MatriculaDetalle.query.join(OfertaAcademica, MatriculaDetalle.oferta_academica_id == OfertaAcademica.id)
+            .join(Curso, OfertaAcademica.curso_id == Curso.id)
+            .join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+        )
+        if periodo_id:
+            consulta_cursos = consulta_cursos.filter(Matricula.periodo_academico_id == periodo_id)
+
+        filas_cursos = (
+            consulta_cursos.with_entities(
+                Curso.id.label("curso_id"),
+                Curso.nombre.label("curso_nombre"),
+                db.func.count(MatriculaDetalle.matricula_id).label("total_matriculados"),
+            )
+            .group_by(Curso.id, Curso.nombre)
+            .order_by(db.func.count(MatriculaDetalle.matricula_id).desc())
+            .limit(5)
+            .all()
+        )
+
+        top_cursos = []
+        for f in filas_cursos:
+            ofertas_curso = OfertaAcademica.query.filter_by(curso_id=f.curso_id).all()
+            cupos_totales = sum(o.cupos for o in ofertas_curso) or 1
+            ocupacion = round((f.total_matriculados / cupos_totales) * 100, 1)
+            top_cursos.append({
+                "curso": f.curso_nombre,
+                "matriculados": f.total_matriculados,
+                "ocupacion_porcentaje": ocupacion,
+                "seccion_critica": ocupacion >= 80,
+            })
+
+        periodo_actual_obj = None
+        if periodo_id:
+            periodo_actual_obj = PeriodoAcademico.query.get(periodo_id)
+
+        ratio_avance = None
+        if periodo_actual_obj:
+            periodo_anterior = (
+                PeriodoAcademico.query.filter(PeriodoAcademico.id != periodo_actual_obj.id)
+                .filter(PeriodoAcademico.fecha_inicio < periodo_actual_obj.fecha_inicio)
+                .order_by(PeriodoAcademico.fecha_inicio.desc())
+                .first()
+            )
+            if periodo_anterior:
+                total_anterior = (
+                    Matricula.query.join(EstadoMatricula, Matricula.estado_id == EstadoMatricula.id)
+                    .filter(Matricula.periodo_academico_id == periodo_anterior.id)
+                    .filter(db.func.lower(EstadoMatricula.nombre) == "matriculado")
+                    .count()
+                )
+                if total_anterior > 0:
+                    ratio_avance = round(((total_matriculados - total_anterior) / total_anterior) * 100, 1)
+
+        return {
+            "total_matriculados": total_matriculados,
+            "total_pendientes": total_pendientes,
+            "matriculados_por_ciclo": matriculados_por_ciclo,
+            "top_cursos": top_cursos,
+            "ratio_avance_porcentaje": ratio_avance,
+        }, None
+
+    @staticmethod
+    def exportar_reporte(periodo_id=None, especialidad_id=None, formato="csv"):
+        consulta = Matricula.query.join(Estudiante, Matricula.estudiante_id == Estudiante.id).join(
+            EstadoMatricula, Matricula.estado_id == EstadoMatricula.id
+        )
+        if periodo_id:
+            consulta = consulta.filter(Matricula.periodo_academico_id == periodo_id)
+        if especialidad_id:
+            consulta = consulta.filter(Estudiante.especialidad_id == especialidad_id)
+
+        registros = consulta.all()
+        encabezados = ["id", "estudiante", "especialidad", "periodo", "estado", "pagado"]
+        filas = []
+        for m in registros:
+            filas.append([
+                m.id,
+                f"{m.estudiante.nombres} {m.estudiante.apellido_paterno} {m.estudiante.apellido_materno}",
+                m.estudiante.especialidad.nombre if m.estudiante.especialidad else "",
+                m.periodo_academico.nombre if m.periodo_academico else "",
+                m.estado.nombre if m.estado else "",
+                "Sí" if m.pagado else "No",
+            ])
+
+        if formato == "xlsx":
+            from openpyxl import Workbook
+
+            libro = Workbook()
+            hoja = libro.active
+            hoja.append(encabezados)
+            for fila in filas:
+                hoja.append(fila)
+            buffer = io.BytesIO()
+            libro.save(buffer)
+            buffer.seek(0)
+            return buffer, "reporte_matriculas.xlsx", None
+
+        import csv
+
+        buffer_texto = io.StringIO()
+        escritor = csv.writer(buffer_texto)
+        escritor.writerow(encabezados)
+        escritor.writerows(filas)
+        buffer = io.BytesIO(buffer_texto.getvalue().encode("utf-8-sig"))
+        return buffer, "reporte_matriculas.csv", None

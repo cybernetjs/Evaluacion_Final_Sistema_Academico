@@ -187,17 +187,37 @@ def descargar_ficha_oficial_estudiante():
 
 
 def estadisticas():
-    total = Matricula.query.count()
-    matriculados = Matricula.query.filter_by(estado_id=3).count()
-    pendientes = Matricula.query.filter_by(estado_id=1).count()
-    validados = Matricula.query.filter_by(estado_id=2).count()
+    periodo_id = request.args.get("periodo_id", type=int)
+    especialidad_id = request.args.get("especialidad_id", type=int)
 
-    return jsonify({
-        "total_solicitudes": total,
-        "matriculados": matriculados,
-        "pendientes": pendientes,
-        "validados": validados
-    })
+    resultado, error = MatriculaService.estadisticas_dashboard(periodo_id, especialidad_id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
+def exportar_reporte():
+    periodo_id = request.args.get("periodo_id", type=int)
+    especialidad_id = request.args.get("especialidad_id", type=int)
+    formato = request.args.get("formato", default="csv")
+
+    if formato not in ("csv", "xlsx"):
+        return jsonify({"error": "Formato no soportado, usa csv o xlsx"}), 400
+
+    buffer, nombre_archivo, error = MatriculaService.exportar_reporte(periodo_id, especialidad_id, formato)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    mimetype = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        if formato == "xlsx"
+        else "text/csv"
+    )
+
+    return send_file(buffer, as_attachment=True, download_name=nombre_archivo, mimetype=mimetype)
 
 
 def cursos_disponibles():

@@ -91,8 +91,20 @@ export async function generarFichaOficial(matriculaId) {
   return peticion(`/matriculas/${matriculaId}/ficha-oficial`, { method: "POST" });
 }
 
-export async function obtenerEstadisticas() {
-  return peticion("/matriculas/estadisticas");
+export async function obtenerEstadisticas(filtros = {}) {
+  const parametros = new URLSearchParams();
+  if (filtros.periodoId) parametros.set("periodo_id", filtros.periodoId);
+  if (filtros.especialidadId) parametros.set("especialidad_id", filtros.especialidadId);
+  const query = parametros.toString();
+  return peticion(`/matriculas/estadisticas${query ? `?${query}` : ""}`);
+}
+
+export function urlExportarReporte(filtros = {}) {
+  const parametros = new URLSearchParams();
+  if (filtros.periodoId) parametros.set("periodo_id", filtros.periodoId);
+  if (filtros.especialidadId) parametros.set("especialidad_id", filtros.especialidadId);
+  parametros.set("formato", filtros.formato || "csv");
+  return `http://localhost:5000/api/matriculas/dashboard/exportar?${parametros.toString()}`;
 }
 
 export function urlDescargarFicha(matriculaId) {
