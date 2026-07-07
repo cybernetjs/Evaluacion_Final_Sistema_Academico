@@ -149,27 +149,41 @@ def registrar_pago(matricula_id):
 
 
 def generar_ficha_oficial(matricula_id):
-    matricula = Matricula.query.get(matricula_id)
+    resultado, error = MatriculaService.oficializar_matricula(matricula_id)
 
-    if not matricula:
-        return jsonify({"error": "Matrícula no encontrada"}), 404
+    if error:
+        return jsonify({"error": error}), 400
 
-    if not matricula.pagado:
-        return jsonify({"error": "No se puede generar la ficha sin el pago registrado"}), 400
+    return jsonify(resultado)
 
-    matricula.estado_id = 3
-    from app import db
-    db.session.commit()
 
-    return jsonify({
-        "mensaje": "Ficha oficial generada, matrícula confirmada",
-        "matricula": {
-            "id": matricula.id,
-            "estudiante_id": matricula.estudiante_id,
-            "estado_id": matricula.estado_id,
-            "pagado": matricula.pagado
-        }
-    })
+def descargar_ficha_oficial_admin(matricula_id):
+    buffer, error = MatriculaService.generar_pdf_ficha(matricula_id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return send_file(
+        buffer,
+        as_attachment=False,
+        download_name=f"ficha_matricula_oficial_{matricula_id}.pdf",
+        mimetype="application/pdf"
+    )
+
+
+def descargar_ficha_oficial_estudiante():
+    usuario_id = get_jwt_identity()
+    buffer, error = MatriculaService.descargar_ficha_oficial_estudiante(usuario_id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return send_file(
+        buffer,
+        as_attachment=False,
+        download_name="ficha_matricula_oficial.pdf",
+        mimetype="application/pdf"
+    )
 
 
 def estadisticas():
@@ -184,20 +198,6 @@ def estadisticas():
         "pendientes": pendientes,
         "validados": validados
     })
-
-
-def descargar_ficha(matricula_id):
-    buffer, error = MatriculaService.generar_pdf_ficha(matricula_id)
-
-    if error:
-        return jsonify({"error": error}), 404
-
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=f"ficha_matricula_{matricula_id}.pdf",
-        mimetype="application/pdf"
-    )
 
 
 def cursos_disponibles():
