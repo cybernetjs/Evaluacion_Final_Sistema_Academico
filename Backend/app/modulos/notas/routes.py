@@ -29,6 +29,24 @@ def registrar_nota():
     return controllers.registrar_nota()
 
 
+@notas_bp.route('/planilla/<int:oferta_academica_id>', methods=['GET'])
+@rol_requerido("docente")
+def obtener_planilla(oferta_academica_id):
+    return controllers.obtener_planilla(oferta_academica_id)
+
+
+@notas_bp.route('/cronograma/<int:oferta_academica_id>', methods=['GET'])
+@rol_requerido("docente")
+def estado_cronograma(oferta_academica_id):
+    return controllers.estado_cronograma(oferta_academica_id)
+
+
+@notas_bp.route('/registro', methods=['PUT'])
+@rol_requerido("docente")
+def registrar_notas_planilla():
+    return controllers.registrar_notas_planilla()
+
+
 @notas_bp.route('/estados', methods=['GET'])
 def listar_estados_curso():
     return controllers.listar_estados_curso()

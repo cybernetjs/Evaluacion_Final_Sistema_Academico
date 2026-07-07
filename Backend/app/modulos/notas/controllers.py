@@ -66,6 +66,43 @@ def registrar_nota():
     })
 
 
+def obtener_planilla(oferta_academica_id):
+    usuario_id = int(get_jwt_identity())
+    resultado, error = NotasService.obtener_planilla(oferta_academica_id, usuario_id)
+
+    if error:
+        return jsonify({"error": error}), 403
+
+    return jsonify(resultado)
+
+
+def estado_cronograma(oferta_academica_id):
+    tipo_nota = request.args.get("tipo_nota", default="final")
+    resultado, error = NotasService.estado_cronograma(oferta_academica_id, tipo_nota)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
+def registrar_notas_planilla():
+    usuario_id = int(get_jwt_identity())
+    data = request.get_json() or {}
+
+    resultado, error, codigo = NotasService.registrar_notas_planilla(
+        usuario_id_docente=usuario_id,
+        oferta_academica_id=data.get("oferta_academica_id"),
+        tipo_nota=data.get("tipo_nota"),
+        calificaciones=data.get("calificaciones", []),
+    )
+
+    if error:
+        return jsonify({"error": error}), codigo
+
+    return jsonify(resultado), codigo
+
+
 def listar_estados_curso():
     estados = EstadoCurso.query.all()
     return jsonify([
