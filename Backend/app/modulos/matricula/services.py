@@ -140,33 +140,96 @@ class MatriculaService:
         return buffer, None
 
     @staticmethod
-    def generar_pdf_ficha(matricula_id):
-        matricula = Matricula.query.get(matricula_id)
+    def _generar_hash_matricula(matricula):
+        import hashlib
+        from app.modelos.matricula_detalle import MatriculaDetalle
 
+        detalles = MatriculaDetalle.query.filter_by(matricula_id=matricula.id).order_by(
+            MatriculaDetalle.oferta_academica_id
+        ).all()
+        ofertas_texto = "-".join(str(d.oferta_academica_id) for d in detalles)
+        base = f"{matricula.id}|{matricula.estudiante_id}|{matricula.periodo_academico_id}|{ofertas_texto}"
+        return hashlib.sha256(base.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _generar_imagen_qr(texto):
+        import qrcode
+        from reportlab.lib.utils import ImageReader
+
+        qr = qrcode.QRCode(box_size=4, border=2)
+        qr.add_data(texto)
+        qr.make(fit=True)
+        imagen = qr.make_image(fill_color="black", back_color="white")
+        buffer_qr = io.BytesIO()
+        imagen.save(buffer_qr, format="PNG")
+        buffer_qr.seek(0)
+        return ImageReader(buffer_qr)
+
+    @staticmethod
+    def generar_pdf_ficha(matricula_id):
+        from app.modelos.matricula_detalle import MatriculaDetalle
+        from app.modelos.usuario import Usuario
+
+        matricula = Matricula.query.get(matricula_id)
         if not matricula:
             return None, "Matrícula no encontrada"
 
         estudiante = Estudiante.query.get(matricula.estudiante_id)
+        usuario = Usuario.query.get(estudiante.usuario_id)
+        detalles = MatriculaDetalle.query.filter_by(matricula_id=matricula.id).all()
+        hash_verificacion = MatriculaService._generar_hash_matricula(matricula)
 
+        ancho, alto = letter
         buffer = io.BytesIO()
         pdf = canvas.Canvas(buffer, pagesize=letter)
 
         pdf.setFont("Helvetica-Bold", 16)
-        pdf.drawString(100, 750, "FICHA DE MATRÍCULA")
+        pdf.drawString(80, alto - 60, "FICHA DE MATRÍCULA OFICIAL")
 
-        pdf.setFont("Helvetica", 12)
-        pdf.drawString(100, 700, f"N° de Matrícula: {matricula.id}")
-        pdf.drawString(100, 680, f"Estudiante: {estudiante.nombres} {estudiante.apellido_paterno} {estudiante.apellido_materno}")
-        pdf.drawString(100, 660, f"Correo institucional: {estudiante.correo_institucional}")
-        pdf.drawString(100, 640, f"Periodo académico: {matricula.periodo_academico_id}")
-        pdf.drawString(100, 620, f"Semestre: {matricula.semestre_id}")
-        pdf.drawString(100, 600, f"Estado: {matricula.estado.nombre if matricula.estado else 'N/A'}")
-        pdf.drawString(100, 580, f"Pagado: {'Sí' if matricula.pagado else 'No'}")
+        pdf.setFont("Helvetica", 11)
+        pdf.drawString(80, alto - 90, f"Código: {usuario.username}")
+        pdf.drawString(
+            80, alto - 108,
+            f"Estudiante: {estudiante.nombres} {estudiante.apellido_paterno} {estudiante.apellido_materno}"
+        )
+        pdf.drawString(80, alto - 126, f"Periodo académico: {matricula.periodo_academico.nombre}")
+        pdf.drawString(80, alto - 144, f"N° de matrícula: {matricula.id}  —  Estado: Matriculado")
+
+        y = alto - 180
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(80, y, "Código")
+        pdf.drawString(150, y, "Curso")
+        pdf.drawString(340, y, "Créditos")
+        pdf.drawString(400, y, "Sección")
+        pdf.drawString(460, y, "Horario")
+        y -= 16
+        pdf.setFont("Helvetica", 9)
+
+        for d in detalles:
+            oferta = d.oferta_academica
+            curso = oferta.curso
+            horarios = ", ".join(
+                f"{h.dia}° día {h.hora_inicio.strftime('%H:%M')}-{h.hora_fin.strftime('%H:%M')}"
+                for h in oferta.horarios
+            ) or "Sin horario"
+
+            pdf.drawString(80, y, curso.codigo)
+            pdf.drawString(150, y, curso.nombre[:30])
+            pdf.drawString(350, y, str(curso.creditos))
+            pdf.drawString(400, y, str(oferta.id))
+            pdf.drawString(460, y, horarios[:40])
+            y -= 16
+
+        imagen_qr = MatriculaService._generar_imagen_qr(hash_verificacion)
+        pdf.drawImage(imagen_qr, 80, 60, width=80, height=80)
+        pdf.setFont("Helvetica", 7)
+        pdf.drawString(170, 100, "Código de verificación:")
+        pdf.drawString(170, 88, hash_verificacion)
 
         pdf.showPage()
         pdf.save()
-
         buffer.seek(0)
+
         return buffer, None
 
     @staticmethod
@@ -569,3 +632,45 @@ class MatriculaService:
             "estado": estado_observado.nombre,
             "motivo": "Cancelación por incumplimiento del periodo de pago establecido",
         }, None
+
+    @staticmethod
+    def oficializar_matricula(matricula_id):
+        matricula = Matricula.query.get(matricula_id)
+        if not matricula:
+            return None, "Matrícula no encontrada"
+
+        if not matricula.estado or matricula.estado.nombre != "Validado":
+            return None, "La matrícula debe estar validada antes de generar la ficha oficial"
+
+        if not matricula.pagado:
+            return None, "No se puede generar la ficha oficial sin el pago verificado"
+
+        estado_matriculado = EstadoMatricula.query.filter_by(nombre="Matriculado").first()
+        matricula.estado_id = estado_matriculado.id
+        db.session.commit()
+
+        return {
+            "mensaje": "Ficha oficial generada, matrícula confirmada",
+            "matricula_id": matricula.id,
+            "estado": estado_matriculado.nombre,
+            "hash_verificacion": MatriculaService._generar_hash_matricula(matricula),
+        }, None
+
+    @staticmethod
+    def descargar_ficha_oficial_estudiante(usuario_id):
+        estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
+        if not estudiante:
+            return None, "Estudiante no encontrado"
+
+        matricula = (
+            Matricula.query.filter_by(estudiante_id=estudiante.id)
+            .join(EstadoMatricula, Matricula.estado_id == EstadoMatricula.id)
+            .filter(db.func.lower(EstadoMatricula.nombre) == "matriculado")
+            .order_by(Matricula.id.desc())
+            .first()
+        )
+
+        if not matricula:
+            return None, "No tienes una matrícula oficializada"
+
+        return MatriculaService.generar_pdf_ficha(matricula.id)
