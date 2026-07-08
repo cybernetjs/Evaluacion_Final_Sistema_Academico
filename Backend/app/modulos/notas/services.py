@@ -9,6 +9,9 @@ from app.modelos.oferta_academica_docente import OfertaAcademicaDocente
 from app.modelos.hito_academico import HitoAcademico
 from app.modelos.acta import Acta
 from app.modelos.estado_curso import EstadoCurso
+from app.modelos.expediente_semestral import ExpedienteSemestral
+from app.modelos.progreso_estudiante import ProgresoEstudiante
+from app.modelos.estado_permanencia_estudiante import EstadoPermanenciaEstudiante
 
 UMBRAL_APROBACION = 10.5
 
@@ -364,3 +367,149 @@ class NotasService:
             "estado": acta.estado,
             "hash_auditoria": hash_auditoria,
         }, None, 200
+
+    @staticmethod
+    def estado_periodo_para_consolidar(periodo_academico_id):
+        ofertas_ids = (
+            db.session.query(MatriculaDetalle.oferta_academica_id)
+            .join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+            .filter(Matricula.periodo_academico_id == periodo_academico_id)
+            .distinct()
+            .all()
+        )
+        ofertas_ids = [o[0] for o in ofertas_ids]
+
+        total_actas = len(ofertas_ids)
+        secciones_pendientes = []
+        actas_cerradas = 0
+
+        for oferta_id in ofertas_ids:
+            oferta = OfertaAcademica.query.get(oferta_id)
+            acta = Acta.query.filter_by(oferta_academica_id=oferta_id).first()
+            if acta and acta.estado == "Cerrada":
+                actas_cerradas += 1
+            else:
+                secciones_pendientes.append({
+                    "oferta_academica_id": oferta_id,
+                    "curso_codigo": oferta.curso.codigo,
+                    "curso_nombre": oferta.curso.nombre,
+                })
+
+        return {
+            "total_actas": total_actas,
+            "actas_cerradas": actas_cerradas,
+            "todas_cerradas": len(secciones_pendientes) == 0 and total_actas > 0,
+            "secciones_pendientes": secciones_pendientes,
+        }, None
+
+    @staticmethod
+    def _calcular_promedio_ponderado(detalles):
+        suma_ponderada = 0
+        suma_creditos = 0
+        for d in detalles:
+            creditos = d.oferta_academica.curso.creditos
+            if not creditos or d.nota_final is None:
+                continue
+            suma_ponderada += float(d.nota_final) * creditos
+            suma_creditos += creditos
+
+        if suma_creditos == 0:
+            return None, 0
+        return round(suma_ponderada / suma_creditos, 2), suma_creditos
+
+    @staticmethod
+    def consolidar_semestre(periodo_academico_id):
+        estado, _ = NotasService.estado_periodo_para_consolidar(periodo_academico_id)
+
+        if not estado["todas_cerradas"]:
+            return None, "Existen actas abiertas, no se puede consolidar el periodo", 400, estado["secciones_pendientes"]
+
+        matriculas = Matricula.query.filter_by(periodo_academico_id=periodo_academico_id).all()
+        estudiantes_ids = list({m.estudiante_id for m in matriculas})
+
+        actualizados = 0
+        errores = []
+
+        for estudiante_id in estudiantes_ids:
+            try:
+                detalles_semestre = (
+                    MatriculaDetalle.query.join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+                    .filter(
+                        Matricula.estudiante_id == estudiante_id,
+                        Matricula.periodo_academico_id == periodo_academico_id,
+                    )
+                    .all()
+                )
+
+                pps, creditos_semestre = NotasService._calcular_promedio_ponderado(detalles_semestre)
+                if pps is None:
+                    errores.append({
+                        "estudiante_id": estudiante_id,
+                        "codigo_error": "SIN_CREDITOS_VALIDOS",
+                        "detalle": "Inconsistencia de créditos: no se pudo calcular el promedio del semestre",
+                    })
+                    continue
+
+                creditos_aprobados_semestre = sum(
+                    d.oferta_academica.curso.creditos
+                    for d in detalles_semestre
+                    if d.estado_curso and d.estado_curso.nombre == "Aprobado" and d.oferta_academica.curso.creditos
+                )
+
+                expediente = ExpedienteSemestral.query.filter_by(
+                    estudiante_id=estudiante_id, periodo_academico_id=periodo_academico_id
+                ).first()
+                if not expediente:
+                    expediente = ExpedienteSemestral(
+                        estudiante_id=estudiante_id, periodo_academico_id=periodo_academico_id
+                    )
+                    db.session.add(expediente)
+
+                expediente.promedio_ponderado_semestral = pps
+                expediente.creditos_aprobados_semestre = creditos_aprobados_semestre
+                expediente.estado = "Consolidado"
+                expediente.fecha_consolidacion = datetime.now()
+
+                detalles_historicos = (
+                    MatriculaDetalle.query.join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+                    .join(OfertaAcademica, MatriculaDetalle.oferta_academica_id == OfertaAcademica.id)
+                    .join(Acta, Acta.oferta_academica_id == OfertaAcademica.id)
+                    .filter(Matricula.estudiante_id == estudiante_id, Acta.estado == "Cerrada")
+                    .all()
+                )
+                ppa, _ = NotasService._calcular_promedio_ponderado(detalles_historicos)
+                creditos_acumulados = sum(
+                    d.oferta_academica.curso.creditos
+                    for d in detalles_historicos
+                    if d.estado_curso and d.estado_curso.nombre == "Aprobado" and d.oferta_academica.curso.creditos
+                )
+
+                progreso = ProgresoEstudiante.query.filter_by(estudiante_id=estudiante_id).first()
+                if not progreso:
+                    estado_regular = EstadoPermanenciaEstudiante.query.filter_by(nombre="Regular").first()
+                    progreso = ProgresoEstudiante(
+                        estudiante_id=estudiante_id,
+                        estado_permanencia_id=estado_regular.id if estado_regular else None,
+                        creditos_aprobados_acumulados=0,
+                        promedio_ponderado_acumulado=0,
+                    )
+                    db.session.add(progreso)
+
+                progreso.promedio_ponderado_acumulado = ppa if ppa is not None else 0
+                progreso.creditos_aprobados_acumulados = creditos_acumulados
+
+                actualizados += 1
+            except Exception as e:
+                errores.append({
+                    "estudiante_id": estudiante_id,
+                    "codigo_error": "ERROR_COMPUTO",
+                    "detalle": str(e),
+                })
+
+        db.session.commit()
+
+        return {
+            "mensaje": "Consolidación semestral finalizada",
+            "total_expedientes_actualizados": actualizados,
+            "errores": errores,
+        }, None, 200, None

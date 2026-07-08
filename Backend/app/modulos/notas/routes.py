@@ -59,6 +59,18 @@ def cerrar_acta():
     return controllers.cerrar_acta()
 
 
+@notas_bp.route('/periodo/<int:periodo_academico_id>/estado-consolidacion', methods=['GET'])
+@rol_requerido("administrador")
+def estado_periodo_para_consolidar(periodo_academico_id):
+    return controllers.estado_periodo_para_consolidar(periodo_academico_id)
+
+
+@notas_bp.route('/consolidar-semestre', methods=['POST'])
+@rol_requerido("administrador")
+def consolidar_semestre():
+    return controllers.consolidar_semestre()
+
+
 @notas_bp.route('/', methods=['PUT'])
 @rol_requerido("docente")
 def registrar_nota():

@@ -63,6 +63,17 @@ export async function panelActas() {
   return peticion("/notas/actas");
 }
 
+export async function estadoPeriodoConsolidacion(periodoAcademicoId) {
+  return peticion(`/notas/periodo/${periodoAcademicoId}/estado-consolidacion`);
+}
+
+export async function consolidarSemestre(periodoAcademicoId) {
+  return peticion("/notas/consolidar-semestre", {
+    method: "POST",
+    body: JSON.stringify({ periodo_academico_id: periodoAcademicoId }),
+  });
+}
+
 export async function alumnosOmisos(ofertaAcademicaId) {
   return peticion(`/notas/actas/${ofertaAcademicaId}/omisos`);
 }

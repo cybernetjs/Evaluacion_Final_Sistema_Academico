@@ -100,6 +100,27 @@ def cerrar_acta():
     return jsonify(resultado), codigo
 
 
+def estado_periodo_para_consolidar(periodo_academico_id):
+    resultado, error = NotasService.estado_periodo_para_consolidar(periodo_academico_id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
+def consolidar_semestre():
+    data = request.get_json() or {}
+    periodo_academico_id = data.get("periodo_academico_id")
+
+    resultado, error, codigo, secciones_pendientes = NotasService.consolidar_semestre(periodo_academico_id)
+
+    if error:
+        return jsonify({"error": error, "secciones_pendientes": secciones_pendientes}), codigo
+
+    return jsonify(resultado), codigo
+
+
 def registrar_nota():
     data = request.get_json()
 

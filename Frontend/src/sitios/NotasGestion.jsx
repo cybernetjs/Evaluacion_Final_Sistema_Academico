@@ -7,7 +7,10 @@ import {
   panelActas,
   alumnosOmisos,
   cerrarActa,
+  estadoPeriodoConsolidacion,
+  consolidarSemestre,
 } from "../servicios/notas.servicio";
+import { listarPeriodos } from "../servicios/matricula.servicio";
 
 export default function NotasGestion() {
   const { usuario } = useAuth();
@@ -17,14 +20,64 @@ export default function NotasGestion() {
   const [actas, setActas] = useState([]);
   const [omisosPorOferta, setOmisosPorOferta] = useState({});
   const [actaAConfirmar, setActaAConfirmar] = useState(null);
+  const [periodos, setPeriodos] = useState([]);
+  const [periodoSeleccionado, setPeriodoSeleccionado] = useState("");
+  const [estadoConsolidacion, setEstadoConsolidacion] = useState(null);
+  const [consolidando, setConsolidando] = useState(false);
+  const [resultadoConsolidacion, setResultadoConsolidacion] = useState(null);
   const [indicadores, setIndicadores] = useState(null);
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    function confirmarSalida(evento) {
+      if (consolidando) {
+        evento.preventDefault();
+        evento.returnValue = "";
+      }
+    }
+    window.addEventListener("beforeunload", confirmarSalida);
+    return () => window.removeEventListener("beforeunload", confirmarSalida);
+  }, [consolidando]);
+
+  useEffect(() => {
     cargarNotas();
-    if (usuario?.rol === "administrador") cargarActas();
+    if (usuario?.rol === "administrador") {
+      cargarActas();
+      cargarPeriodos();
+    }
   }, [usuario]);
+
+  useEffect(() => {
+    if (periodoSeleccionado) cargarEstadoConsolidacion();
+  }, [periodoSeleccionado]);
+
+  async function cargarPeriodos() {
+    const { data, error } = await listarPeriodos();
+    if (!error) setPeriodos(data);
+  }
+
+  async function cargarEstadoConsolidacion() {
+    const { data, error } = await estadoPeriodoConsolidacion(periodoSeleccionado);
+    if (!error) setEstadoConsolidacion(data);
+  }
+
+  async function manejarConsolidar() {
+    setConsolidando(true);
+    setResultadoConsolidacion(null);
+    setError(null);
+
+    const { data, error } = await consolidarSemestre(periodoSeleccionado);
+    setConsolidando(false);
+
+    if (error) {
+      setError(error);
+      return;
+    }
+
+    setResultadoConsolidacion(data);
+    cargarEstadoConsolidacion();
+  }
 
   async function cargarNotas() {
     const { data, error } = await listarNotas();
@@ -148,6 +201,85 @@ export default function NotasGestion() {
               </ul>
             </div>
           ))}
+
+          <h3 style={{ marginTop: 32 }}>Cierre y Consolidación Semestral</h3>
+          <select value={periodoSeleccionado} onChange={(e) => setPeriodoSeleccionado(e.target.value)}>
+            <option value="">Selecciona un periodo</option>
+            {periodos.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}
+              </option>
+            ))}
+          </select>
+
+          {estadoConsolidacion && (
+            <div style={{ marginTop: 12 }}>
+              <p>
+                Actas cerradas: {estadoConsolidacion.actas_cerradas} / {estadoConsolidacion.total_actas}
+              </p>
+
+              {!estadoConsolidacion.todas_cerradas && estadoConsolidacion.secciones_pendientes.length > 0 && (
+                <div>
+                  <p style={{ color: "#ff6b6b" }}>Secciones con actas abiertas (bloquean la consolidación):</p>
+                  <ul>
+                    {estadoConsolidacion.secciones_pendientes.map((s) => (
+                      <li key={s.oferta_academica_id}>
+                        {s.curso_codigo} — {s.curso_nombre}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={manejarConsolidar}
+                disabled={!estadoConsolidacion.todas_cerradas || consolidando}
+              >
+                Ejecutar Consolidación Semestral
+              </button>
+
+              {consolidando && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ width: "100%", background: "#333", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: "60%", background: "#6b6bff", height: 10 }} />
+                  </div>
+                  <p>Procesando expedientes, no cierres ni recargues esta página...</p>
+                </div>
+              )}
+
+              {resultadoConsolidacion && (
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ color: "green" }}>
+                    Expedientes actualizados con éxito: {resultadoConsolidacion.total_expedientes_actualizados}
+                  </p>
+                  {resultadoConsolidacion.errores.length > 0 && (
+                    <>
+                      <p style={{ color: "#ff6b6b" }}>Errores de cómputo:</p>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Estudiante</th>
+                            <th>Código de error</th>
+                            <th>Detalle</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {resultadoConsolidacion.errores.map((e, i) => (
+                            <tr key={i}>
+                              <td>{e.estudiante_id}</td>
+                              <td>{e.codigo_error}</td>
+                              <td>{e.detalle}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
