@@ -11,6 +11,7 @@ def index_record_academico():
         "endpoints": [
             "/<estudiante_id>",
             "/historial-completo",
+            "/historial-completo/pdf",
             "/progreso/<estudiante_id>",
             "/tipos-clasificacion",
             "/estados-permanencia",
@@ -23,11 +24,16 @@ def index_record_academico():
 def obtener_record(estudiante_id):
     return controllers.obtener_record(estudiante_id)
 
-
 @record_academico_bp.route('/historial-completo', methods=['GET'])
 @rol_requerido("estudiante")
 def historial_completo():
     return controllers.historial_completo()
+
+
+@record_academico_bp.route('/historial-completo/pdf', methods=['GET'])
+@rol_requerido("estudiante")
+def historial_completo_pdf():
+    return controllers.historial_completo_pdf()
 
 
 @record_academico_bp.route('/progreso/<int:estudiante_id>', methods=['GET'])
@@ -44,3 +50,4 @@ def listar_tipos_clasificacion():
 @record_academico_bp.route('/estados-permanencia', methods=['GET'])
 def listar_estados_permanencia():
     return controllers.listar_estados_permanencia()
+

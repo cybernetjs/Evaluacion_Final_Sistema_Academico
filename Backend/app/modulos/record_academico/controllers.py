@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import jsonify, send_file
 from flask_jwt_extended import get_jwt_identity
 from app.modelos.historial_merito import HistorialMerito
 from app.modelos.progreso_estudiante import ProgresoEstudiante
@@ -31,6 +31,21 @@ def historial_completo():
         return jsonify({"error": error}), 404
 
     return jsonify(resultado)
+
+
+def historial_completo_pdf():
+    usuario_id = int(get_jwt_identity())
+    buffer, error = RecordAcademicoService.generar_pdf_historial(usuario_id)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="reporte_informativo_historial.pdf",
+        mimetype="application/pdf",
+    )
 
 
 def obtener_progreso(estudiante_id):

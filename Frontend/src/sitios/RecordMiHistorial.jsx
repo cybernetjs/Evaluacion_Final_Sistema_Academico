@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { miHistorial } from "../servicios/recordAcademico.servicio";
+import { miHistorial, urlDescargarHistorialPdf } from "../servicios/recordAcademico.servicio";
 
 export default function RecordMiHistorial() {
-
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
+  const [descargando, setDescargando] = useState(false);
+  const [errorDescarga, setErrorDescarga] = useState(null);
 
   useEffect(() => {
     cargarHistorial();
@@ -19,16 +20,44 @@ export default function RecordMiHistorial() {
     setDatos(data);
   }
 
+  async function manejarDescargarPdf() {
+    setDescargando(true);
+    setErrorDescarga(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      const respuesta = await fetch(urlDescargarHistorialPdf(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!respuesta.ok) {
+        throw new Error("fallo");
+      }
+
+      const blob = await respuesta.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      enlace.href = objectUrl;
+      enlace.download = "reporte_informativo_historial.pdf";
+      enlace.click();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setErrorDescarga("No se pudo generar el documento en este momento. Por favor, intente nuevamente.");
+    } finally {
+      setDescargando(false);
+    }
+  }
+
   return (
     <div className="contenedor">
       <h2>Mi historial académico</h2>
       <p>Revisa tu historial completo, del semestre más reciente al más antiguo.</p>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
+      {errorDescarga && <p style={{ color: "red" }}>{errorDescarga}</p>}
 
       {datos && (
         <>
-
           <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
             <div style={{ border: "1px solid #444", borderRadius: 8, padding: 16, minWidth: 180 }}>
               <p style={{ margin: 0, opacity: 0.7 }}>Créditos matriculados</p>
@@ -50,7 +79,11 @@ export default function RecordMiHistorial() {
             </div>
           </div>
 
-          <table>
+          <button type="button" onClick={manejarDescargarPdf} disabled={descargando}>
+            {descargando ? "Generando..." : "Descargar Record Informativo"}
+          </button>
+
+          <table style={{ marginTop: 16 }}>
             <thead>
               <tr>
                 <th>Periodo</th>
@@ -64,7 +97,6 @@ export default function RecordMiHistorial() {
             </thead>
             <tbody>
               {datos.historial.map((fila, index) => {
-
                 const desaprobado = fila.estado && fila.estado.toLowerCase() === "desaprobado";
 
                 return (
