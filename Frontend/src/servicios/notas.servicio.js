@@ -59,8 +59,19 @@ export async function listarEstadosCurso() {
   return peticion("/notas/estados");
 }
 
-export async function validarActas() {
-  return peticion("/notas/validar-actas");
+export async function panelActas() {
+  return peticion("/notas/actas");
+}
+
+export async function alumnosOmisos(ofertaAcademicaId) {
+  return peticion(`/notas/actas/${ofertaAcademicaId}/omisos`);
+}
+
+export async function cerrarActa(ofertaAcademicaId) {
+  return peticion("/notas/actas/cerrar", {
+    method: "POST",
+    body: JSON.stringify({ oferta_academica_id: ofertaAcademicaId }),
+  });
 }
 
 export async function indicadoresAcademicos() {

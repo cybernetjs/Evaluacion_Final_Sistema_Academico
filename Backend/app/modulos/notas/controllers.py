@@ -68,6 +68,38 @@ def publicar_notas():
     return jsonify(resultado)
 
 
+def panel_actas():
+    resultado, error = NotasService.panel_actas()
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
+def alumnos_omisos(oferta_academica_id):
+    resultado, error = NotasService.alumnos_omisos(oferta_academica_id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
+def cerrar_acta():
+    data = request.get_json() or {}
+
+    resultado, error, codigo = NotasService.cerrar_acta(data.get("oferta_academica_id"))
+
+    if error:
+        cuerpo = {"error": error}
+        if isinstance(resultado, dict):
+            cuerpo.update(resultado)
+        return jsonify(cuerpo), codigo
+
+    return jsonify(resultado), codigo
+
+
 def registrar_nota():
     data = request.get_json()
 

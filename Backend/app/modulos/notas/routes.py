@@ -41,6 +41,24 @@ def publicar_notas():
     return controllers.publicar_notas()
 
 
+@notas_bp.route('/actas', methods=['GET'])
+@rol_requerido("administrador")
+def panel_actas():
+    return controllers.panel_actas()
+
+
+@notas_bp.route('/actas/<int:oferta_academica_id>/omisos', methods=['GET'])
+@rol_requerido("administrador")
+def alumnos_omisos(oferta_academica_id):
+    return controllers.alumnos_omisos(oferta_academica_id)
+
+
+@notas_bp.route('/actas/cerrar', methods=['POST'])
+@rol_requerido("administrador")
+def cerrar_acta():
+    return controllers.cerrar_acta()
+
+
 @notas_bp.route('/', methods=['PUT'])
 @rol_requerido("docente")
 def registrar_nota():

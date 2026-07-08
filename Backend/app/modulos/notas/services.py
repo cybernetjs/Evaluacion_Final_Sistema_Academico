@@ -8,6 +8,9 @@ from app.modelos.oferta_academica import OfertaAcademica
 from app.modelos.oferta_academica_docente import OfertaAcademicaDocente
 from app.modelos.hito_academico import HitoAcademico
 from app.modelos.acta import Acta
+from app.modelos.estado_curso import EstadoCurso
+
+UMBRAL_APROBACION = 10.5
 
 CAMPOS_POR_TIPO = {
     "parcial1": "nota_parcial",
@@ -249,3 +252,115 @@ class NotasService:
 
         db.session.commit()
         return {"mensaje": "Calificaciones registradas", "total_actualizados": actualizados}, None, 200
+
+    @staticmethod
+    def _porcentaje_notas_ingresadas(oferta_academica_id):
+        detalles = MatriculaDetalle.query.filter_by(oferta_academica_id=oferta_academica_id).all()
+        if not detalles:
+            return 0, 0, 0
+
+        total = len(detalles)
+        con_nota = sum(1 for d in detalles if d.nota_final is not None)
+        porcentaje = round((con_nota / total) * 100, 1)
+        return porcentaje, con_nota, total
+
+    @staticmethod
+    def panel_actas():
+        ofertas = OfertaAcademica.query.all()
+
+        filas = []
+        for oferta in ofertas:
+            detalles = MatriculaDetalle.query.filter_by(oferta_academica_id=oferta.id).count()
+            if detalles == 0:
+                continue
+
+            porcentaje, con_nota, total = NotasService._porcentaje_notas_ingresadas(oferta.id)
+            acta = Acta.query.filter_by(oferta_academica_id=oferta.id).first()
+            asignacion = OfertaAcademicaDocente.query.filter_by(oferta_academica_id=oferta.id).first()
+            docente_nombre = None
+            if asignacion and asignacion.docente:
+                d = asignacion.docente
+                docente_nombre = f"{d.nombres} {d.apellido_paterno} {d.apellido_materno}"
+
+            filas.append({
+                "oferta_academica_id": oferta.id,
+                "curso_codigo": oferta.curso.codigo,
+                "curso_nombre": oferta.curso.nombre,
+                "docente": docente_nombre,
+                "porcentaje_notas_ingresadas": porcentaje,
+                "estudiantes_con_nota": con_nota,
+                "estudiantes_total": total,
+                "estado_acta": acta.estado if acta else "Abierta",
+                "puede_cerrar": porcentaje == 100 and (not acta or acta.estado != "Cerrada"),
+            })
+
+        return filas, None
+
+    @staticmethod
+    def alumnos_omisos(oferta_academica_id):
+        detalles = (
+            MatriculaDetalle.query.filter_by(oferta_academica_id=oferta_academica_id)
+            .filter(MatriculaDetalle.nota_final.is_(None))
+            .all()
+        )
+
+        omisos = []
+        for d in detalles:
+            estudiante = d.matricula.estudiante
+            omisos.append({
+                "estudiante_id": estudiante.id,
+                "estudiante_nombre": f"{estudiante.nombres} {estudiante.apellido_paterno} {estudiante.apellido_materno}",
+            })
+
+        return omisos, None
+
+    @staticmethod
+    def cerrar_acta(oferta_academica_id):
+        import hashlib
+
+        oferta = OfertaAcademica.query.get(oferta_academica_id)
+        if not oferta:
+            return None, "Oferta académica no encontrada", 404
+
+        detalles = MatriculaDetalle.query.filter_by(oferta_academica_id=oferta_academica_id).all()
+        if not detalles:
+            return None, "No hay estudiantes matriculados en esta sección", 400
+
+        omisos, _ = NotasService.alumnos_omisos(oferta_academica_id)
+        if omisos:
+            return {"alumnos_omisos": omisos}, "Existen alumnos sin nota final registrada", 422
+
+        acta = Acta.query.filter_by(oferta_academica_id=oferta_academica_id).first()
+        if acta and acta.estado == "Cerrada":
+            return None, "El acta de esta sección ya se encuentra cerrada", 400
+
+        if not acta:
+            acta = Acta(oferta_academica_id=oferta_academica_id)
+            db.session.add(acta)
+
+        for d in detalles:
+            aprobado = float(d.nota_final) >= UMBRAL_APROBACION
+            nombre_estado = "Aprobado" if aprobado else "Desaprobado"
+            estado = EstadoCurso.query.filter_by(nombre=nombre_estado).first()
+            if estado:
+                d.estado_curso_id = estado.id
+
+        notas_ordenadas = sorted(
+            (d.matricula.estudiante_id, float(d.nota_final)) for d in detalles
+        )
+        base = f"{oferta_academica_id}|{notas_ordenadas}|{datetime.now().isoformat()}"
+        hash_auditoria = hashlib.sha256(base.encode("utf-8")).hexdigest()
+
+        acta.estado = "Cerrada"
+        acta.notas_publicadas = True
+        acta.hash_auditoria = hash_auditoria
+        acta.fecha_cierre = datetime.now()
+
+        db.session.commit()
+
+        return {
+            "mensaje": "Acta cerrada formalmente",
+            "oferta_academica_id": oferta_academica_id,
+            "estado": acta.estado,
+            "hash_auditoria": hash_auditoria,
+        }, None, 200
