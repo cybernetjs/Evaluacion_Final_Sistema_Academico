@@ -1,4 +1,4 @@
-from flask import jsonify, send_file
+from flask import jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity
 from app.modelos.historial_merito import HistorialMerito
 from app.modelos.progreso_estudiante import ProgresoEstudiante
@@ -74,3 +74,52 @@ def listar_estados_permanencia():
         {"id": e.id, "nombre": e.nombre, "descripcion": e.descripcion}
         for e in estados
     ])
+
+
+def anios_ingreso():
+    anios = RecordAcademicoService.anios_ingreso_disponibles()
+    return jsonify(anios)
+
+
+def reportes_consolidados():
+    anio_ingreso = request.args.get("anio_ingreso", type=int)
+    especialidad_id = request.args.get("especialidad_id", type=int)
+    estado = request.args.get("estado")
+
+    filas, error = RecordAcademicoService.reportes_consolidados(anio_ingreso, especialidad_id, estado)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(filas)
+
+
+def exportar_reportes():
+    anio_ingreso = request.args.get("anio_ingreso", type=int)
+    especialidad_id = request.args.get("especialidad_id", type=int)
+    estado = request.args.get("estado")
+
+    buffer, error = RecordAcademicoService.exportar_reportes_xlsx(anio_ingreso, especialidad_id, estado)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="sabana_de_notas.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+def analisis_cohorte():
+    especialidad_id = request.args.get("especialidad_id", type=int)
+    anios_texto = request.args.get("anios", "")
+    anios = [a for a in anios_texto.split(",") if a.strip()]
+
+    resultado, error = RecordAcademicoService.analisis_cohorte(especialidad_id, anios)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)

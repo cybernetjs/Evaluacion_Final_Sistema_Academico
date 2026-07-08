@@ -11,9 +11,9 @@ import CursosCargaDocente from "./sitios/CursosCargaDocente.jsx";
 import NotasMiHoja from "./sitios/NotasMiHoja.jsx";
 import NotasRegistrar from "./sitios/NotasRegistrar.jsx";
 import NotasGestion from "./sitios/NotasGestion.jsx";
-import IndicadoresAcademicos from "./sitios/IndicadoresAcademicos.jsx";
 import RecordMiHistorial from "./sitios/RecordMiHistorial.jsx";
 import RecordReportes from "./sitios/RecordReportes.jsx";
+import AnalisisCohorte from "./sitios/AnalisisCohorte.jsx";
 import CertificadosSolicitar from "./sitios/CertificadosSolicitar.jsx";
 import CertificadosListar from "./sitios/CertificadosListar.jsx";
 import AdministracionUsuarios from "./sitios/AdministracionUsuarios.jsx";
@@ -107,14 +107,6 @@ export default function App() {
             </RutaProtegida>
           }
         />
-        <Route
-          path="/notas/indicadores"
-          element={
-            <RutaProtegida rolesPermitidos={["direccion"]}>
-              <IndicadoresAcademicos />
-            </RutaProtegida>
-          }
-        />
 
      
         <Route
@@ -130,6 +122,14 @@ export default function App() {
           element={
             <RutaProtegida rolesPermitidos={["administrador", "direccion"]}>
               <RecordReportes />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/record-academico/analisis-cohorte"
+          element={
+            <RutaProtegida rolesPermitidos={["direccion"]}>
+              <AnalisisCohorte />
             </RutaProtegida>
           }
         />

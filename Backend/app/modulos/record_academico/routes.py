@@ -15,6 +15,10 @@ def index_record_academico():
             "/progreso/<estudiante_id>",
             "/tipos-clasificacion",
             "/estados-permanencia",
+            "/anios-ingreso",
+            "/reportes",
+            "/reportes/exportar",
+            "/analisis-cohorte",
         ]
     })
 
@@ -23,6 +27,7 @@ def index_record_academico():
 @rol_requerido("administrador", "direccion")
 def obtener_record(estudiante_id):
     return controllers.obtener_record(estudiante_id)
+
 
 @record_academico_bp.route('/historial-completo', methods=['GET'])
 @rol_requerido("estudiante")
@@ -51,3 +56,26 @@ def listar_tipos_clasificacion():
 def listar_estados_permanencia():
     return controllers.listar_estados_permanencia()
 
+
+@record_academico_bp.route('/anios-ingreso', methods=['GET'])
+@rol_requerido("administrador", "direccion")
+def anios_ingreso():
+    return controllers.anios_ingreso()
+
+
+@record_academico_bp.route('/reportes', methods=['GET'])
+@rol_requerido("administrador", "direccion")
+def reportes_consolidados():
+    return controllers.reportes_consolidados()
+
+
+@record_academico_bp.route('/reportes/exportar', methods=['GET'])
+@rol_requerido("administrador", "direccion")
+def exportar_reportes():
+    return controllers.exportar_reportes()
+
+
+@record_academico_bp.route('/analisis-cohorte', methods=['GET'])
+@rol_requerido("direccion")
+def analisis_cohorte():
+    return controllers.analisis_cohorte()

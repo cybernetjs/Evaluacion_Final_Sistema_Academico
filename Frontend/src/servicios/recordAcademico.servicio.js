@@ -25,3 +25,30 @@ export async function listarTiposClasificacion() {
 export async function listarEstadosPermanencia() {
   return peticion("/record-academico/estados-permanencia");
 }
+
+export async function listarAniosIngreso() {
+  return peticion("/record-academico/anios-ingreso");
+}
+
+export async function reportesConsolidados(filtros = {}) {
+  const parametros = new URLSearchParams();
+  if (filtros.anioIngreso) parametros.set("anio_ingreso", filtros.anioIngreso);
+  if (filtros.especialidadId) parametros.set("especialidad_id", filtros.especialidadId);
+  if (filtros.estado) parametros.set("estado", filtros.estado);
+  return peticion(`/record-academico/reportes?${parametros.toString()}`);
+}
+
+export function urlExportarReportesXlsx(filtros = {}) {
+  const parametros = new URLSearchParams();
+  if (filtros.anioIngreso) parametros.set("anio_ingreso", filtros.anioIngreso);
+  if (filtros.especialidadId) parametros.set("especialidad_id", filtros.especialidadId);
+  if (filtros.estado) parametros.set("estado", filtros.estado);
+  return `${URL_API}/reportes/exportar?${parametros.toString()}`;
+}
+
+export async function analisisCohorte(especialidadId, anios = []) {
+  const parametros = new URLSearchParams();
+  if (especialidadId) parametros.set("especialidad_id", especialidadId);
+  if (anios.length) parametros.set("anios", anios.join(","));
+  return peticion(`/record-academico/analisis-cohorte?${parametros.toString()}`);
+}
