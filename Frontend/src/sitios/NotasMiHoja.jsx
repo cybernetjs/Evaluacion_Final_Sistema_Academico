@@ -1,116 +1,96 @@
 import { useEffect, useState } from "react";
-import { miHojaDeNotas } from "../servicios/notas.servicio";
+import { obtenerCiclosCursados, obtenerHojaCiclo } from "../servicios/notas.servicio";
+
+function celda(valor) {
+  return valor === null || valor === undefined ? "Pendiente" : valor;
+}
 
 export default function NotasMiHoja() {
-  const [semestreId, setSemestreId] = useState("");
-  const [historial, setHistorial] = useState([]);
-  const [progresoActual, setProgresoActual] = useState(null);
+  const [ciclos, setCiclos] = useState([]);
+  const [periodoId, setPeriodoId] = useState("");
+  const [cursos, setCursos] = useState([]);
   const [error, setError] = useState(null);
-  const [cargando, setCargando] = useState(false);
-  const semestre = ["I","II","III","IV","V","VI","VII","VIII","IX","X"];
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    cargarCiclos();
+  }, []);
 
   useEffect(() => {
     cargarHoja();
-  }, []);
+  }, [periodoId]);
 
-  async function cargarHoja(evento) {
-    if (evento) {
-      evento.preventDefault();
-    }
+  async function cargarCiclos() {
+    const { data, error } = await obtenerCiclosCursados();
+    if (!error) setCiclos(data);
+  }
 
-    setError(null);
+  async function cargarHoja() {
     setCargando(true);
-    const { data, error } = await miHojaDeNotas(semestreId || null);
+    setError(null);
+    const { data, error } = await obtenerHojaCiclo(periodoId || null);
     setCargando(false);
 
     if (error) {
       setError(error);
       return;
     }
-
-    const historialNormalizado = Array.isArray(data)
-      ? data
-      : Array.isArray(data?.historial)
-        ? data.historial
-        : [];
-
-    setHistorial(historialNormalizado);
-    setProgresoActual(Array.isArray(data) ? null : data?.progreso_actual ?? null);
+    setCursos(data);
   }
+
+  const cicloSeleccionado = ciclos.find((c) => String(c.periodo_academico_id) === String(periodoId));
+  const esHistorico = periodoId && cicloSeleccionado;
 
   return (
     <div className="contenedor">
-      <h2>Mi hoja de notas</h2>
-      <p>Consulta tus cursos, notas y progreso académico. Si dejas el semestre vacío, verás todo tu historial.</p>
+      <h2>Hoja de Notas</h2>
 
-      <form onSubmit={cargarHoja}>
-        <div>
-          <label>Filtrar por semestre</label>
-          <select value={semestreId} onChange={(e)=> setSemestreId(Number(e.target.value))}>
-            <option value="">Elige tu semestre</option>
-            {
-              semestre.map((semestre, index) => (
-                <option value={index+1} key={index+1}>
-                  {semestre}
-                </option>
-              ))
-            }
-          </select>
-        </div>
-        <button type="submit">Consultar</button>
-      </form>
+      <div style={{ marginBottom: 16 }}>
+        <label>Ciclo académico</label>
+        <select value={periodoId} onChange={(e) => setPeriodoId(e.target.value)}>
+          <option value="">Ciclo activo</option>
+          {ciclos.map((c) => (
+            <option key={c.periodo_academico_id} value={c.periodo_academico_id}>
+              {c.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      {cargando && <p>Cargando notas...</p>}
+      {esHistorico && <p style={{ opacity: 0.7 }}>Consultando historial en modo de solo lectura</p>}
+
       {error && <p style={{ color: "red" }}>{error}</p>}
+      {cargando && <p>Cargando...</p>}
 
       {!cargando && !error && (
-        <>
-          <h3>Progreso actual</h3>
-          {progresoActual ? (
-            <ul>
-              <li>Créditos aprobados acumulados: {progresoActual.creditos_aprobados_acumulados}</li>
-              <li>Promedio ponderado acumulado: {progresoActual.promedio_ponderado_acumulado}</li>
-              <li>Estado de permanencia: {progresoActual.estado_permanencia_id}</li>
-            </ul>
-          ) : (
-            <p>No hay progreso registrado para este estudiante.</p>
-          )}
-
-          <table>
-            <thead>
-              <tr>
-                <th>Periodo</th>
-                <th>Semestre</th>
-                <th>Curso</th>
-                <th>Promedio</th>
-                <th>Créditos</th>
-                <th>Orden de mérito</th>
-              </tr>
-            </thead>
-            <tbody>
-              {historial.length > 0 ? (
-                historial.map((item, index) => (
-                  <tr key={`${item.periodo_academico_id}-${index}`}>
-                    <td>{item.periodo_academico_id}</td>
-                    <td>{item.semestre_id}</td>
-                    <td>{item.curso_nombre || "-"}</td>
-                    <td>{item.promedio_ponderado_periodo}</td>
-                    <td>{item.creditos_aprobados_periodo}</td>
-                    <td>{item.orden_merito}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6">No hay registros de notas para mostrar.</td>
+        <table>
+          <thead>
+            <tr>
+              <th>Curso</th>
+              <th>Parcial 1</th>
+              <th>Parcial 2</th>
+              <th>Práctica</th>
+              <th>Promedio Final</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cursos.length > 0 ? (
+              cursos.map((c, index) => (
+                <tr key={`${c.curso_id}-${index}`}>
+                  <td>{c.curso_nombre}</td>
+                  <td>{celda(c.nota_parcial1)}</td>
+                  <td>{celda(c.nota_parcial2)}</td>
+                  <td>{celda(c.nota_practica)}</td>
+                  <td style={{ fontWeight: "bold" }}>{celda(c.nota_final)}</td>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </>
-      )}
-
-      {!cargando && !error && historial.length === 0 && !progresoActual && (
-        <p>No se encontró información académica para este usuario. Si eres estudiante, revisa que tu cuenta tenga historial semilla cargado.</p>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5">No hay cursos matriculados en este ciclo.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       )}
     </div>
   );

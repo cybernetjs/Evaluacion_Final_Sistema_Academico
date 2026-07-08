@@ -11,6 +11,7 @@ import CursosCargaDocente from "./sitios/CursosCargaDocente.jsx";
 import NotasMiHoja from "./sitios/NotasMiHoja.jsx";
 import NotasRegistrar from "./sitios/NotasRegistrar.jsx";
 import NotasGestion from "./sitios/NotasGestion.jsx";
+import IndicadoresAcademicos from "./sitios/IndicadoresAcademicos.jsx";
 import RecordMiHistorial from "./sitios/RecordMiHistorial.jsx";
 import RecordReportes from "./sitios/RecordReportes.jsx";
 import CertificadosSolicitar from "./sitios/CertificadosSolicitar.jsx";
@@ -103,6 +104,14 @@ export default function App() {
           element={
             <RutaProtegida rolesPermitidos={["administrador", "direccion"]}>
               <NotasGestion />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/notas/indicadores"
+          element={
+            <RutaProtegida rolesPermitidos={["direccion"]}>
+              <IndicadoresAcademicos />
             </RutaProtegida>
           }
         />

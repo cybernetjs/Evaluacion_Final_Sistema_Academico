@@ -27,6 +27,17 @@ def ejecutar():
         ),
     ]
 
+    fecha_actual = datetime.now()
+    mitad = "I" if fecha_actual.month <= 6 else "II"
+    nombre_actual = f"{fecha_actual.year}-{mitad}"
+
+    if nombre_actual not in [p.nombre for p in periodos]:
+        if mitad == "I":
+            inicio, fin = datetime(fecha_actual.year, 1, 1), datetime(fecha_actual.year, 6, 30)
+        else:
+            inicio, fin = datetime(fecha_actual.year, 7, 1), datetime(fecha_actual.year, 12, 31)
+        periodos.append(PeriodoAcademico(nombre=nombre_actual, fecha_inicio=inicio, fecha_fin=fin))
+
     db.session.add_all(periodos)
     db.session.commit()
 
