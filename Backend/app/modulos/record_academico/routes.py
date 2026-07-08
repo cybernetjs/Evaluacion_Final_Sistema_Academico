@@ -10,12 +10,10 @@ def index_record_academico():
     return jsonify({
         "endpoints": [
             "/<estudiante_id>",
-            "/mi-historial",
+            "/historial-completo",
             "/progreso/<estudiante_id>",
             "/tipos-clasificacion",
             "/estados-permanencia",
-            "/reportes",
-            "/desempeno-cohorte"
         ]
     })
 
@@ -26,10 +24,10 @@ def obtener_record(estudiante_id):
     return controllers.obtener_record(estudiante_id)
 
 
-@record_academico_bp.route('/mi-historial', methods=['GET'])
+@record_academico_bp.route('/historial-completo', methods=['GET'])
 @rol_requerido("estudiante")
-def mi_historial():
-    return controllers.mi_historial()
+def historial_completo():
+    return controllers.historial_completo()
 
 
 @record_academico_bp.route('/progreso/<int:estudiante_id>', methods=['GET'])
@@ -46,15 +44,3 @@ def listar_tipos_clasificacion():
 @record_academico_bp.route('/estados-permanencia', methods=['GET'])
 def listar_estados_permanencia():
     return controllers.listar_estados_permanencia()
-
-
-@record_academico_bp.route('/reportes', methods=['GET'])
-@rol_requerido("administrador", "direccion")
-def reportes_consolidados():
-    return controllers.reportes_consolidados()
-
-
-@record_academico_bp.route('/desempeno-cohorte', methods=['GET'])
-@rol_requerido("direccion")
-def desempeno_por_cohorte():
-    return controllers.desempeno_por_cohorte()

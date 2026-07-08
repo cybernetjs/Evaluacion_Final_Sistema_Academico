@@ -5,7 +5,7 @@ export async function obtenerRecord(estudianteId) {
 }
 
 export async function miHistorial() {
-  return peticion("/record-academico/mi-historial");
+  return peticion("/record-academico/historial-completo");
 }
 
 export async function obtenerProgreso(estudianteId) {
@@ -18,12 +18,4 @@ export async function listarTiposClasificacion() {
 
 export async function listarEstadosPermanencia() {
   return peticion("/record-academico/estados-permanencia");
-}
-
-export async function reportesConsolidados() {
-  return peticion("/record-academico/reportes");
-}
-
-export async function desempenoPorCohorte() {
-  return peticion("/record-academico/desempeno-cohorte");
 }
