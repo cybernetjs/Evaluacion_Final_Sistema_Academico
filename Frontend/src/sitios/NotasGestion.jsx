@@ -353,7 +353,7 @@ export default function NotasGestion() {
               <td>{nota.oferta_academica_id}</td>
               <td>{nota.nota_parcial ?? "-"}</td>
               <td>{nota.nota_final ?? "-"}</td>
-              <td>{nota.estado_curso_id}</td>
+              <td>{nota.estado_curso}</td>
             </tr>
           ))}
         </tbody>
@@ -380,7 +380,7 @@ export default function NotasGestion() {
               <td>{nota.oferta_academica_id}</td>
               <td>{nota.nota_parcial ?? "-"}</td>
               <td>{nota.nota_final ?? "-"}</td>
-              <td>{nota.estado_curso_id}</td>
+              <td>{nota.estado_curso}</td>
             </tr>
           ))}
         </tbody>

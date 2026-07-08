@@ -14,7 +14,8 @@ def listar_notas():
             "oferta_academica_id": d.oferta_academica_id,
             "nota_parcial": float(d.nota_parcial) if d.nota_parcial is not None else None,
             "nota_final": float(d.nota_final) if d.nota_final is not None else None,
-            "estado_curso_id": d.estado_curso_id
+            "estado_curso_id": d.estado_curso_id,
+            "estado_curso": d.estado_curso.nombre if d.estado_curso else None
         }
         for d in detalles
     ])
@@ -27,7 +28,8 @@ def obtener_notas_matricula(matricula_id):
             "oferta_academica_id": d.oferta_academica_id,
             "nota_parcial": float(d.nota_parcial) if d.nota_parcial is not None else None,
             "nota_final": float(d.nota_final) if d.nota_final is not None else None,
-            "estado_curso_id": d.estado_curso_id
+            "estado_curso_id": d.estado_curso_id,
+            "estado_curso": d.estado_curso.nombre if d.estado_curso else None
         }
         for d in detalles
     ])
