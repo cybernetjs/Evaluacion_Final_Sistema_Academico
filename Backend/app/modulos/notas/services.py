@@ -513,3 +513,102 @@ class NotasService:
             "total_expedientes_actualizados": actualizados,
             "errores": errores,
         }, None, 200, None
+
+    @staticmethod
+    def indicadores_direccion(periodo_academico_id=None, especialidad_id=None, plan_estudios_id=None):
+        from app.modelos.especialidad import Especialidad
+        from app.modelos.plan_estudiante import PlanEstudiante
+
+        consulta = (
+            MatriculaDetalle.query.join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+            .join(OfertaAcademica, MatriculaDetalle.oferta_academica_id == OfertaAcademica.id)
+            .join(Acta, Acta.oferta_academica_id == OfertaAcademica.id)
+            .join(Estudiante, Matricula.estudiante_id == Estudiante.id)
+            .filter(Acta.estado == "Cerrada")
+        )
+        if periodo_academico_id:
+            consulta = consulta.filter(Matricula.periodo_academico_id == periodo_academico_id)
+        if especialidad_id:
+            consulta = consulta.filter(Estudiante.especialidad_id == especialidad_id)
+        if plan_estudios_id:
+            consulta = consulta.join(
+                PlanEstudiante, PlanEstudiante.estudiante_id == Estudiante.id
+            ).filter(PlanEstudiante.plan_estudios_id == plan_estudios_id)
+
+        detalles = consulta.all()
+
+        por_oferta = {}
+        for d in detalles:
+            oferta_id = d.oferta_academica_id
+            if oferta_id not in por_oferta:
+                por_oferta[oferta_id] = {
+                    "oferta_academica_id": oferta_id,
+                    "curso_codigo": d.oferta_academica.curso.codigo,
+                    "curso_nombre": d.oferta_academica.curso.nombre,
+                    "docente": None,
+                    "aprobados": 0,
+                    "desaprobados": 0,
+                    "total": 0,
+                }
+
+            asignacion = OfertaAcademicaDocente.query.filter_by(oferta_academica_id=oferta_id).first()
+            if asignacion and asignacion.docente:
+                doc = asignacion.docente
+                por_oferta[oferta_id]["docente"] = f"{doc.nombres} {doc.apellido_paterno} {doc.apellido_materno}"
+
+            por_oferta[oferta_id]["total"] += 1
+            if d.estado_curso and d.estado_curso.nombre == "Aprobado":
+                por_oferta[oferta_id]["aprobados"] += 1
+            elif d.estado_curso and d.estado_curso.nombre == "Desaprobado":
+                por_oferta[oferta_id]["desaprobados"] += 1
+
+        tasa_aprobacion_por_curso = []
+        secciones_criticas = []
+        for fila in por_oferta.values():
+            tasa_aprobacion = round((fila["aprobados"] / fila["total"]) * 100, 1) if fila["total"] else 0
+            tasa_desaprobacion = round((fila["desaprobados"] / fila["total"]) * 100, 1) if fila["total"] else 0
+
+            registro = {
+                "oferta_academica_id": fila["oferta_academica_id"],
+                "curso_codigo": fila["curso_codigo"],
+                "curso_nombre": fila["curso_nombre"],
+                "docente": fila["docente"],
+                "tasa_aprobacion_porcentaje": tasa_aprobacion,
+                "tasa_desaprobacion_porcentaje": tasa_desaprobacion,
+                "seccion_critica": tasa_desaprobacion > 40,
+            }
+            tasa_aprobacion_por_curso.append(registro)
+
+            if registro["seccion_critica"]:
+                secciones_criticas.append(registro)
+
+        especialidades = Especialidad.query.all()
+        desaprobacion_por_especialidad = []
+        for especialidad in especialidades:
+            detalles_especialidad = [d for d in detalles if d.matricula.estudiante.especialidad_id == especialidad.id]
+            total_especialidad = len(detalles_especialidad)
+            if total_especialidad == 0:
+                continue
+            desaprobados_especialidad = sum(
+                1 for d in detalles_especialidad if d.estado_curso and d.estado_curso.nombre == "Desaprobado"
+            )
+            desaprobacion_por_especialidad.append({
+                "especialidad": especialidad.nombre,
+                "tasa_desaprobacion_porcentaje": round((desaprobados_especialidad / total_especialidad) * 100, 1),
+            })
+
+        matriculas_periodo = Matricula.query
+        if periodo_academico_id:
+            matriculas_periodo = matriculas_periodo.filter_by(periodo_academico_id=periodo_academico_id)
+        matriculas_periodo = matriculas_periodo.all()
+
+        total_matriculas = len(matriculas_periodo)
+        retiradas = sum(1 for m in matriculas_periodo if m.estado and m.estado.nombre == "Retirado")
+        porcentaje_desercion = round((retiradas / total_matriculas) * 100, 1) if total_matriculas else 0
+
+        return {
+            "tasa_aprobacion_por_curso": tasa_aprobacion_por_curso,
+            "desaprobacion_por_especialidad": desaprobacion_por_especialidad,
+            "porcentaje_desercion": porcentaje_desercion,
+            "secciones_criticas": secciones_criticas,
+        }, None

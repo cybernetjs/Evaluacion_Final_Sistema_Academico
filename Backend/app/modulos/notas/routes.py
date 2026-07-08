@@ -71,6 +71,12 @@ def consolidar_semestre():
     return controllers.consolidar_semestre()
 
 
+@notas_bp.route('/dashboard/indicadores', methods=['GET'])
+@rol_requerido("direccion")
+def indicadores_direccion():
+    return controllers.indicadores_direccion()
+
+
 @notas_bp.route('/', methods=['PUT'])
 @rol_requerido("docente")
 def registrar_nota():

@@ -23,6 +23,7 @@ const ENLACES_POR_ROL = {
     { to: "/matricula/estadisticas", texto: "Estadísticas matrícula" },
     { to: "/cursos-docentes/carga-docente", texto: "Carga docente" },
     { to: "/notas/gestionar", texto: "Notas" },
+    { to: "/notas/indicadores", texto: "Indicadores académicos" },
     { to: "/record-academico/reportes", texto: "Reportes" },
     { to: "/administracion/auditorias", texto: "Auditorías" },
   ],

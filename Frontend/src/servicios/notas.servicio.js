@@ -85,6 +85,15 @@ export async function cerrarActa(ofertaAcademicaId) {
   });
 }
 
+export async function indicadoresDireccion(filtros = {}) {
+  const parametros = new URLSearchParams();
+  if (filtros.periodoAcademicoId) parametros.set("periodo_academico_id", filtros.periodoAcademicoId);
+  if (filtros.especialidadId) parametros.set("especialidad_id", filtros.especialidadId);
+  if (filtros.planEstudiosId) parametros.set("plan_estudios_id", filtros.planEstudiosId);
+  const query = parametros.toString();
+  return peticion(`/notas/dashboard/indicadores${query ? `?${query}` : ""}`);
+}
+
 export async function indicadoresAcademicos() {
   return peticion("/notas/indicadores");
 }

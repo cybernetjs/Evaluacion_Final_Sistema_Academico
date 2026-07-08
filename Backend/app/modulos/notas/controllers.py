@@ -123,6 +123,19 @@ def consolidar_semestre():
     return jsonify(resultado), codigo
 
 
+def indicadores_direccion():
+    periodo_academico_id = request.args.get("periodo_academico_id", type=int)
+    especialidad_id = request.args.get("especialidad_id", type=int)
+    plan_estudios_id = request.args.get("plan_estudios_id", type=int)
+
+    resultado, error = NotasService.indicadores_direccion(periodo_academico_id, especialidad_id, plan_estudios_id)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
 def registrar_nota():
     data = request.get_json()
 
