@@ -233,33 +233,9 @@ class MatriculaService:
         return buffer, None
 
     @staticmethod
-    def _nombre_periodo_actual(fecha=None):
-        fecha = fecha or datetime.now()
-        semestre = "I" if fecha.month <= 6 else "II"
-        return f"{fecha.year}-{semestre}"
-
-    @staticmethod
     def periodo_actual():
-        from app.modelos.periodo_academico import PeriodoAcademico
-
-        fecha = datetime.now()
-        nombre = MatriculaService._nombre_periodo_actual(fecha)
-        periodo = PeriodoAcademico.query.filter_by(nombre=nombre).first()
-
-        if periodo:
-            return periodo
-
-        if fecha.month <= 6:
-            fecha_inicio = datetime(fecha.year, 1, 1)
-            fecha_fin = datetime(fecha.year, 6, 30)
-        else:
-            fecha_inicio = datetime(fecha.year, 7, 1)
-            fecha_fin = datetime(fecha.year, 12, 31)
-
-        periodo = PeriodoAcademico(nombre=nombre, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin)
-        db.session.add(periodo)
-        db.session.commit()
-        return periodo
+        from app.utils.ciclo_academico import periodo_activo
+        return periodo_activo()
 
     @staticmethod
     def _cursos_aprobados_y_desaprobados(estudiante_id):

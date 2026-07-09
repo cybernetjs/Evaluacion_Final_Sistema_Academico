@@ -36,6 +36,19 @@ def obtener_configuracion_activa():
     return configuracion
 
 
+def periodo_activo():
+    from app.modelos.periodo_academico import PeriodoAcademico
+
+    configuracion = obtener_configuracion_activa()
+
+    if configuracion.periodo_academico_id:
+        periodo = PeriodoAcademico.query.get(configuracion.periodo_academico_id)
+        if periodo:
+            return periodo
+
+    return PeriodoAcademico.query.order_by(PeriodoAcademico.fecha_inicio.desc()).first()
+
+
 def ventana_permite(proceso):
     configuracion = obtener_configuracion_activa()
     definicion = VENTANAS_POR_PROCESO.get(proceso)
