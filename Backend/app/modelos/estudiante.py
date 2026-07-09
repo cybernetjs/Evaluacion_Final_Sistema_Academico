@@ -11,6 +11,8 @@ class Estudiante(db.Model):
     apellido_paterno = db.Column(db.String(150), nullable=False)
     apellido_materno = db.Column(db.String(150), nullable=False)
     correo_institucional = db.Column(db.String(100), nullable=False)
+    tiene_deuda_activa = db.Column(db.Boolean, nullable=False, default=False)
+    tiene_sancion_activa = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime)
     modified_at = db.Column(db.DateTime)
     deleted_at = db.Column(db.DateTime)

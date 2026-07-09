@@ -1,64 +1,82 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import {
-  autorizarCertificado,
-  emitirCertificado,
-  listarSolicitudes,
-  urlQrCertificado,
+  bandeja,
+  detalleExpediente,
+  urlComprobante,
+  aprobarTramite,
+  rechazarTramite,
   verificarCertificado,
 } from "../servicios/certificados.servicio";
 
 export default function CertificadosListar() {
-  const { usuario } = useAuth();
-  const [certificados, setCertificados] = useState([]);
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [filtroEstado, setFiltroEstado] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const porPagina = 10;
+
+  const [seleccionada, setSeleccionada] = useState(null);
+  const [expediente, setExpediente] = useState(null);
+  const [tramiteARechazar, setTramiteARechazar] = useState(null);
+  const [motivoRechazo, setMotivoRechazo] = useState("");
+
   const [codigo, setCodigo] = useState("");
   const [verificacion, setVerificacion] = useState(null);
+
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
-    cargarSolicitudes();
-  }, []);
+    cargarBandeja();
+  }, [filtroEstado, pagina]);
 
-  async function cargarSolicitudes() {
+  async function cargarBandeja() {
     setCargando(true);
-    const { data, error } = await listarSolicitudes();
+    const { data, error } = await bandeja({ estado: filtroEstado, pagina, porPagina });
     setCargando(false);
     if (error) {
       setError(error);
       return;
     }
-
-    setCertificados(data);
+    setSolicitudes(data.solicitudes);
+    setTotal(data.total);
   }
 
-  async function manejarAutorizar(id) {
+  async function abrirExpediente(sol) {
+    setSeleccionada(sol);
+    setExpediente(null);
+    const { data, error } = await detalleExpediente(sol.id);
+    if (!error) setExpediente(data);
+  }
+
+  async function manejarAprobar(id) {
     setMensaje(null);
     setError(null);
-    const { data, error } = await autorizarCertificado(id);
+    const { data, error } = await aprobarTramite(id);
+    if (error) {
+      setError(error);
+      return;
+    }
+    setMensaje(data.mensaje);
+    setSeleccionada(null);
+    cargarBandeja();
+  }
+
+  async function confirmarRechazo() {
+    setMensaje(null);
+    setError(null);
+    const { data, error } = await rechazarTramite(tramiteARechazar.id, motivoRechazo);
+    setTramiteARechazar(null);
+    setMotivoRechazo("");
 
     if (error) {
       setError(error);
       return;
     }
-
     setMensaje(data.mensaje);
-    cargarSolicitudes();
-  }
-
-  async function manejarEmitir(id) {
-    setMensaje(null);
-    setError(null);
-    const { data, error } = await emitirCertificado(id);
-
-    if (error) {
-      setError(error);
-      return;
-    }
-
-    setMensaje(data.mensaje);
-    cargarSolicitudes();
+    setSeleccionada(null);
+    cargarBandeja();
   }
 
   async function manejarVerificacion(evento) {
@@ -72,87 +90,223 @@ export default function CertificadosListar() {
       setVerificacion(null);
       return;
     }
-
     setVerificacion(data);
   }
 
+  const totalPaginas = Math.max(1, Math.ceil(total / porPagina));
+
   return (
     <div className="contenedor">
-      <h2>Certificados y documentos</h2>
-      <p>Autoriza, emite y verifica certificados. El código de verificación aparece cuando el documento ya fue emitido.</p>
+      <h2>Bandeja de Solicitudes Documentales</h2>
 
       {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
+      <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+        <select value={filtroEstado} onChange={(e) => { setFiltroEstado(e.target.value); setPagina(1); }}>
+          <option value="">Todos los estados</option>
+          <option value="Pendiente de Validación">Pendiente de Validación</option>
+          <option value="Apto para Firma">Apto para Firma</option>
+          <option value="Rechazado">Rechazado</option>
+          <option value="Emitido">Emitido</option>
+        </select>
+      </div>
+
+      {cargando ? (
+        <p>Cargando...</p>
+      ) : (
+        <>
+          <table>
+            <thead>
+              <tr>
+                <th>Ticket</th>
+                <th>Estudiante</th>
+                <th>Tipo</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {solicitudes.length > 0 ? (
+                solicitudes.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.ticket_codigo}</td>
+                    <td>{s.estudiante_nombre}</td>
+                    <td>{s.tipo}</td>
+                    <td>{new Date(s.fecha_creacion).toLocaleDateString()}</td>
+                    <td>{s.estado}</td>
+                    <td>
+                      <button type="button" onClick={() => abrirExpediente(s)}>
+                        Ver expediente
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6">No hay solicitudes en este estado.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
+            <button type="button" onClick={() => setPagina((p) => Math.max(1, p - 1))} disabled={pagina <= 1}>
+              Anterior
+            </button>
+            <span>Página {pagina} de {totalPaginas}</span>
+            <button type="button" onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))} disabled={pagina >= totalPaginas}>
+              Siguiente
+            </button>
+          </div>
+        </>
+      )}
+
+      <h3 style={{ marginTop: 32 }}>Verificar un certificado emitido</h3>
       <form onSubmit={manejarVerificacion}>
-        <div>
-          <label>Código de verificación</label>
-          <input
-            value={codigo}
-            onChange={(e) => setCodigo(e.target.value)}
-            placeholder="Pega aquí el código que aparece al emitir el certificado"
-          />
-        </div>
-        <button type="submit">Buscar certificado</button>
+        <input
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value)}
+          placeholder="Código de verificación"
+        />
+        <button type="submit">Buscar</button>
       </form>
-
-      <p>El código de verificación es un identificador único generado automáticamente. No se escribe manualmente al crear el certificado, se copia desde el documento emitido o desde la columna de la tabla.</p>
-
       {verificacion && (
         <ul>
           <li>Válido: {verificacion.valido ? "Sí" : "No"}</li>
           <li>Tipo: {verificacion.tipo}</li>
-          <li>Estudiante: {verificacion.estudiante_id}</li>
+          <li>Estado: {verificacion.estado}</li>
         </ul>
       )}
 
-      {cargando ? (
-        <p>Cargando certificados...</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Estudiante</th>
-              <th>Tipo</th>
-              <th>Código</th>
-              <th>Autorizado</th>
-              <th>Emitido</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {certificados.length > 0 ? (
-              certificados.map((certificado) => (
-                <tr key={certificado.id}>
-                  <td>{certificado.id}</td>
-                  <td>{certificado.estudiante_id}</td>
-                  <td>{certificado.tipo}</td>
-                  <td>{certificado.codigo_verificacion || "Pendiente"}</td>
-                  <td>{certificado.autorizado ? "Sí" : "No"}</td>
-                  <td>{certificado.emitido ? "Sí" : "No"}</td>
-                  <td>
-                    {usuario?.rol === "direccion" && !certificado.autorizado && !certificado.emitido && (
-                      <button type="button" onClick={() => manejarAutorizar(certificado.id)}>Autorizar</button>
-                    )}
-                    {usuario?.rol === "administrador" && certificado.autorizado && !certificado.emitido && (
-                      <button type="button" onClick={() => manejarEmitir(certificado.id)}>Emitir</button>
-                    )}
-                    {certificado.codigo_verificacion && (
-                      <a href={urlQrCertificado(certificado.codigo_verificacion)} target="_blank" rel="noreferrer">
-                        QR
-                      </a>
-                    )}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="7">No hay certificados registrados.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      {seleccionada && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setSeleccionada(null)}
+        >
+          <div
+            style={{
+              background: "#1e1e1e",
+              border: "1px solid #6b6bff",
+              borderRadius: 8,
+              padding: 20,
+              maxWidth: 700,
+              width: "100%",
+              display: "flex",
+              gap: 20,
+              maxHeight: "80vh",
+              overflow: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ flex: 1 }}>
+              <h4>Expediente — {seleccionada.ticket_codigo}</h4>
+              {expediente ? (
+                <>
+                  <p>
+                    {expediente.estudiante.nombres} {expediente.estudiante.apellido_paterno}{" "}
+                    {expediente.estudiante.apellido_materno}
+                  </p>
+                  <p>Especialidad: {expediente.estudiante.especialidad}</p>
+                  <p>Tipo de documento: {expediente.tipo}</p>
+                  <p>Estado actual: {expediente.estado}</p>
+                  <p>
+                    Deuda activa:{" "}
+                    <span style={{ color: expediente.estudiante.tiene_deuda_activa ? "#ff6b6b" : "#8fd18f" }}>
+                      {expediente.estudiante.tiene_deuda_activa ? "Sí" : "No"}
+                    </span>
+                  </p>
+                  <p>
+                    Sanción activa:{" "}
+                    <span style={{ color: expediente.estudiante.tiene_sancion_activa ? "#ff6b6b" : "#8fd18f" }}>
+                      {expediente.estudiante.tiene_sancion_activa ? "Sí" : "No"}
+                    </span>
+                  </p>
+                  <p>Créditos aprobados acumulados: {expediente.expediente_academico.creditos_aprobados_acumulados}</p>
+                  <p>Promedio ponderado acumulado: {expediente.expediente_academico.promedio_ponderado_acumulado ?? "Sin datos"}</p>
+
+                  {expediente.estado === "Pendiente de Validación" && (
+                    <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                      <button type="button" onClick={() => manejarAprobar(seleccionada.id)}>
+                        Aprobar y Derivar
+                      </button>
+                      <button type="button" onClick={() => setTramiteARechazar(seleccionada)}>
+                        Rechazar Trámite
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p>Cargando expediente...</p>
+              )}
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <h4>Sustento de pago</h4>
+              {expediente?.comprobante_disponible ? (
+                <iframe
+                  src={urlComprobante(seleccionada.id)}
+                  title="Comprobante de pago"
+                  style={{ width: "100%", height: 300, border: "1px solid #444" }}
+                />
+              ) : (
+                <p>No hay comprobante adjunto.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tramiteARechazar && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1100,
+          }}
+          onClick={() => setTramiteARechazar(null)}
+        >
+          <div
+            style={{ background: "#1e1e1e", border: "1px solid #ff6b6b", borderRadius: 8, padding: 20, maxWidth: 420 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 style={{ marginTop: 0 }}>Rechazar trámite {tramiteARechazar.ticket_codigo}</h4>
+            <label>Motivo del rechazo (obligatorio)</label>
+            <textarea
+              value={motivoRechazo}
+              onChange={(e) => setMotivoRechazo(e.target.value)}
+              rows={4}
+              style={{ width: "100%", marginTop: 4, marginBottom: 12 }}
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={confirmarRechazo} disabled={motivoRechazo.trim() === ""}>
+                Confirmar rechazo
+              </button>
+              <button type="button" onClick={() => setTramiteARechazar(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

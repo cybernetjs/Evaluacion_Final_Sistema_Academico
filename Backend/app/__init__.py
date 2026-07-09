@@ -36,7 +36,7 @@ def crear_app():
     app.register_blueprint(notas_bp, url_prefix='/api/notas')
     app.register_blueprint(cursos_docentes_bp, url_prefix='/api/cursos-docentes')
     app.register_blueprint(administracion_bp, url_prefix='/api/administracion')
-    app.register_blueprint(certificados_bp, url_prefix='/api/certificados')
+    app.register_blueprint(certificados_bp, url_prefix='/api/documentos')
     app.register_blueprint(record_academico_bp, url_prefix='/api/record-academico')
 
     return app

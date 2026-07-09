@@ -17,6 +17,12 @@ def solicitar_certificado():
     return controllers.solicitar_certificado()
 
 
+@certificados_bp.route('/mis-solicitudes', methods=['GET'])
+@rol_requerido("estudiante")
+def mis_solicitudes():
+    return controllers.mis_solicitudes()
+
+
 @certificados_bp.route('/<int:certificado_id>/autorizar', methods=['PUT'])
 @rol_requerido("direccion")
 def autorizar_certificado(certificado_id):
@@ -32,6 +38,7 @@ def emitir_certificado(certificado_id):
 @certificados_bp.route('/verificar/<string:codigo>', methods=['GET'])
 def verificar_certificado(codigo):
     return controllers.verificar_certificado(codigo)
+
 
 @certificados_bp.route('/qr/<string:codigo>', methods=['GET'])
 def descargar_qr(codigo):

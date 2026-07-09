@@ -1,36 +1,34 @@
-from flask import jsonify, request
+from flask import jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity
 from app import db
 from app.modelos.estudiante import Estudiante
 from app.modelos.especialidad import Especialidad
 from app.modelos.facultad import Facultad
 from app.modelos.certificado import Certificado
-from flask import send_file
 from app.modulos.certificados.services import CertificadoService
 
 
 def solicitar_certificado():
     usuario_id = int(get_jwt_identity())
-    estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
+    tipo = request.form.get("tipo")
+    archivo = request.files.get("comprobante")
 
-    if not estudiante:
-        return jsonify({"error": "No se encontró un estudiante asociado a este usuario"}), 404
+    resultado, error, codigo = CertificadoService.solicitar_documento(usuario_id, tipo, archivo)
 
-    data = request.get_json()
-    tipo = data.get("tipo")
+    if error:
+        return jsonify({"error": error}), codigo
 
-    if not tipo:
-        return jsonify({"error": "Debes indicar el tipo de certificado"}), 400
+    return jsonify(resultado), codigo
 
-    certificado = Certificado(estudiante_id=estudiante.id, tipo=tipo)
-    db.session.add(certificado)
-    db.session.commit()
 
-    return jsonify({
-        "mensaje": "Solicitud de certificado registrada",
-        "id": certificado.id,
-        "tipo": certificado.tipo
-    }), 201
+def mis_solicitudes():
+    usuario_id = int(get_jwt_identity())
+    resultado, error = CertificadoService.mis_solicitudes(usuario_id)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return jsonify(resultado)
 
 
 def listar_solicitudes():
@@ -38,11 +36,11 @@ def listar_solicitudes():
     return jsonify([
         {
             "id": c.id,
+            "ticket_codigo": c.ticket_codigo,
             "estudiante_id": c.estudiante_id,
             "estudiante_nombre": f"{c.estudiante.nombres} {c.estudiante.apellido_paterno} {c.estudiante.apellido_materno}" if c.estudiante else None,
             "tipo": c.tipo,
-            "autorizado": c.autorizado,
-            "emitido": c.emitido,
+            "estado": c.estado,
             "codigo_verificacion": c.codigo_verificacion
         }
         for c in certificados
@@ -55,7 +53,7 @@ def autorizar_certificado(certificado_id):
     if not certificado:
         return jsonify({"error": "Certificado no encontrado"}), 404
 
-    certificado.autorizado = True
+    certificado.estado = "Apto para Firma"
     db.session.commit()
 
     return jsonify({"mensaje": "Emisión de certificado autorizada", "id": certificado.id})
@@ -67,10 +65,10 @@ def emitir_certificado(certificado_id):
     if not certificado:
         return jsonify({"error": "Certificado no encontrado"}), 404
 
-    if not certificado.autorizado:
+    if certificado.estado != "Apto para Firma":
         return jsonify({"error": "El certificado debe ser autorizado por Dirección antes de emitirse"}), 400
 
-    certificado.emitido = True
+    certificado.estado = "Emitido"
     db.session.commit()
 
     estudiante = Estudiante.query.get(certificado.estudiante_id)
@@ -83,7 +81,7 @@ def emitir_certificado(certificado_id):
             "id": certificado.id,
             "tipo": certificado.tipo,
             "codigo_verificacion": certificado.codigo_verificacion,
-            "url_verificacion": f"/api/certificados/verificar/{certificado.codigo_verificacion}"
+            "url_verificacion": f"/api/documentos/publico/verificar/{certificado.codigo_verificacion}"
         },
         "estudiante": {
             "nombres": estudiante.nombres,
@@ -98,14 +96,14 @@ def emitir_certificado(certificado_id):
 def verificar_certificado(codigo):
     certificado = Certificado.query.filter_by(codigo_verificacion=codigo).first()
 
-    if not certificado or not certificado.emitido:
+    if not certificado or certificado.estado != "Emitido":
         return jsonify({"valido": False, "mensaje": "Certificado no encontrado o no emitido"}), 404
 
     return jsonify({
         "valido": True,
         "tipo": certificado.tipo,
         "estudiante_id": certificado.estudiante_id,
-        "emitido": certificado.emitido
+        "estado": certificado.estado
     })
 
 
