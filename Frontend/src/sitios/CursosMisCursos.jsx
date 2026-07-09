@@ -108,7 +108,7 @@ export default function CursosMisCursos() {
       const fin = horaANumero(h.hora_fin);
       if (inicio === null || fin === null) return;
       for (let hora = inicio; hora < fin; hora++) {
-        const clave = `${h.dia}-${hora}`;
+        const clave = `${h.dia_numero}-${hora}`;
         bloquesCalendario[clave] = `${curso.codigo_curso} (${h.aula || "sin aula"})`;
       }
     });

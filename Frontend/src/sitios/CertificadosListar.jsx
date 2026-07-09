@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   bandeja,
   detalleExpediente,
-  urlComprobante,
+  obtenerComprobanteBlobUrl,
   aprobarTramite,
   rechazarTramite,
   firmarCertificados,
@@ -21,6 +21,7 @@ export default function CertificadosListar() {
 
   const [seleccionada, setSeleccionada] = useState(null);
   const [expediente, setExpediente] = useState(null);
+  const [comprobanteUrl, setComprobanteUrl] = useState(null);
   const [tramiteARechazar, setTramiteARechazar] = useState(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
 
@@ -56,8 +57,28 @@ export default function CertificadosListar() {
   async function abrirExpediente(sol) {
     setSeleccionada(sol);
     setExpediente(null);
+    limpiarComprobante();
+
     const { data, error } = await detalleExpediente(sol.id);
-    if (!error) setExpediente(data);
+    if (error) return;
+    setExpediente(data);
+
+    if (data.comprobante_disponible) {
+      const resultado = await obtenerComprobanteBlobUrl(sol.id);
+      if (!resultado.error) setComprobanteUrl(resultado.data);
+    }
+  }
+
+  function limpiarComprobante() {
+    setComprobanteUrl((actual) => {
+      if (actual) URL.revokeObjectURL(actual);
+      return null;
+    });
+  }
+
+  function cerrarExpediente() {
+    setSeleccionada(null);
+    limpiarComprobante();
   }
 
   async function manejarAprobar(id) {
@@ -69,7 +90,7 @@ export default function CertificadosListar() {
       return;
     }
     setMensaje(data.mensaje);
-    setSeleccionada(null);
+    cerrarExpediente();
     cargarBandeja();
   }
 
@@ -85,7 +106,7 @@ export default function CertificadosListar() {
       return;
     }
     setMensaje(data.mensaje);
-    setSeleccionada(null);
+    cerrarExpediente();
     cargarBandeja();
   }
 
@@ -307,7 +328,7 @@ export default function CertificadosListar() {
             justifyContent: "center",
             zIndex: 1000,
           }}
-          onClick={() => setSeleccionada(null)}
+          onClick={cerrarExpediente}
         >
           <div
             style={{
@@ -369,11 +390,15 @@ export default function CertificadosListar() {
             <div style={{ flex: 1 }}>
               <h4>Sustento de pago</h4>
               {expediente?.comprobante_disponible ? (
-                <iframe
-                  src={urlComprobante(seleccionada.id)}
-                  title="Comprobante de pago"
-                  style={{ width: "100%", height: 300, border: "1px solid #444" }}
-                />
+                comprobanteUrl ? (
+                  <iframe
+                    src={comprobanteUrl}
+                    title="Comprobante de pago"
+                    style={{ width: "100%", height: 300, border: "1px solid #444" }}
+                  />
+                ) : (
+                  <p>Cargando comprobante...</p>
+                )
               ) : (
                 <p>No hay comprobante adjunto.</p>
               )}

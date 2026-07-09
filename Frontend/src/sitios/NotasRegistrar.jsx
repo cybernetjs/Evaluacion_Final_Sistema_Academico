@@ -126,7 +126,7 @@ export default function NotasRegistrar() {
           <option value="">Selecciona una sección</option>
           {secciones.map((s) => (
             <option key={s.oferta_academica_id} value={s.oferta_academica_id}>
-              {s.curso_nombre}
+              {s.nombre_curso}
             </option>
           ))}
         </select>

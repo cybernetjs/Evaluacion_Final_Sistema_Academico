@@ -42,6 +42,29 @@ export function urlComprobante(certificadoId) {
   return `${URL_BASE}/documentos/${certificadoId}/comprobante`;
 }
 
+// El comprobante está protegido por JWT, así que no se puede cargar
+// directamente en un <iframe src="..."> (el navegador no envía el
+// Authorization header en esa petición). Lo descargamos manualmente
+// con fetch (que sí incluye el token) y devolvemos un blob URL local
+// para usar como src del iframe.
+export async function obtenerComprobanteBlobUrl(certificadoId) {
+  const token = localStorage.getItem("token");
+  try {
+    const respuesta = await fetch(`${URL_BASE}/documentos/${certificadoId}/comprobante`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!respuesta.ok) {
+      return { data: null, error: "No se pudo cargar el comprobante" };
+    }
+
+    const blob = await respuesta.blob();
+    return { data: URL.createObjectURL(blob), error: null };
+  } catch {
+    return { data: null, error: "No se pudo conectar con el servidor" };
+  }
+}
+
 export async function aprobarTramite(certificadoId) {
   return peticion("/documentos/tramite/aprobar", {
     method: "PUT",
