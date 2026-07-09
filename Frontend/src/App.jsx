@@ -19,6 +19,7 @@ import CertificadosSolicitar from "./sitios/CertificadosSolicitar.jsx";
 import CertificadosListar from "./sitios/CertificadosListar.jsx";
 import AdministracionUsuarios from "./sitios/AdministracionUsuarios.jsx";
 import AdministracionAuditorias from "./sitios/AdministracionAuditorias.jsx";
+import ConfiguracionGlobal from "./sitios/ConfiguracionGlobal.jsx";
 
 function Inicio() {
   return <h1>Sistema Académico</h1>;
@@ -167,6 +168,14 @@ export default function App() {
           element={
             <RutaProtegida rolesPermitidos={["administrador"]}>
               <AdministracionUsuarios />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/administracion/configuracion-ciclo"
+          element={
+            <RutaProtegida rolesPermitidos={["administrador"]}>
+              <ConfiguracionGlobal />
             </RutaProtegida>
           }
         />

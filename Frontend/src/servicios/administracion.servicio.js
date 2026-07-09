@@ -34,3 +34,18 @@ export async function listarPlanesEstudio() {
 export async function listarSemestres() {
   return peticion("/administracion/semestres");
 }
+
+export async function listarPeriodos() {
+  return peticion("/administracion/periodos");
+}
+
+export async function obtenerConfiguracionCiclo() {
+  return peticion("/administracion/configuracion/ciclo-global");
+}
+
+export async function actualizarConfiguracionCiclo(datos) {
+  return peticion("/administracion/configuracion/ciclo-global", {
+    method: "PUT",
+    body: JSON.stringify(datos),
+  });
+}

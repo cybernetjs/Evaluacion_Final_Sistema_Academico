@@ -1,5 +1,6 @@
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity
+from datetime import datetime
 from app import bcrypt
 from app import db
 from app.modelos.facultad import Facultad
@@ -14,6 +15,8 @@ from app.modelos.estudiante import Estudiante
 from app.modelos.docente import Docente
 from app.modelos.matricula_detalle import MatriculaDetalle
 from app.modelos.certificado import Certificado
+from app.modelos.configuracion_ciclo_global import ConfiguracionCicloGlobal
+from app.utils.ciclo_academico import ESTADOS_CICLO, obtener_configuracion_activa
 
 
 def listar_facultades():
@@ -169,8 +172,8 @@ def reportes_estrategicos():
         suma = sum(float(d.nota_final) for d in detalles_con_nota)
         promedio_institucional = round(suma / len(detalles_con_nota), 2)
 
-    certificados_emitidos = Certificado.query.filter_by(emitido=True).count()
-    certificados_pendientes = Certificado.query.filter_by(emitido=False).count()
+    certificados_emitidos = Certificado.query.filter_by(estado="Emitido").count()
+    certificados_pendientes = Certificado.query.filter(Certificado.estado != "Emitido").count()
 
     return jsonify({
         "poblacion": {
@@ -189,3 +192,62 @@ def reportes_estrategicos():
             "pendientes": certificados_pendientes
         }
     })
+
+
+def obtener_configuracion_ciclo():
+    configuracion = obtener_configuracion_activa()
+
+    return jsonify({
+        "periodo_academico_id": configuracion.periodo_academico_id,
+        "periodo_academico_nombre": configuracion.periodo_academico.nombre if configuracion.periodo_academico else None,
+        "estado_ciclo": configuracion.estado_ciclo,
+        "estados_disponibles": ESTADOS_CICLO,
+        "fecha_cierre_matricula": configuracion.fecha_cierre_matricula.isoformat() if configuracion.fecha_cierre_matricula else None,
+        "fecha_limite_notas": configuracion.fecha_limite_notas.isoformat() if configuracion.fecha_limite_notas else None,
+        "fecha_cierre_actas": configuracion.fecha_cierre_actas.isoformat() if configuracion.fecha_cierre_actas else None,
+        "actualizado_en": configuracion.actualizado_en.isoformat() if configuracion.actualizado_en else None,
+    })
+
+
+def actualizar_configuracion_ciclo():
+    datos = request.get_json()
+    configuracion = obtener_configuracion_activa()
+
+    periodo_academico_id = datos.get("periodo_academico_id")
+    estado_ciclo = datos.get("estado_ciclo")
+
+    if periodo_academico_id is not None:
+        periodo = PeriodoAcademico.query.get(periodo_academico_id)
+        if not periodo:
+            return jsonify({"error": "El periodo académico indicado no existe"}), 404
+        configuracion.periodo_academico_id = periodo_academico_id
+
+    if estado_ciclo is not None:
+        if estado_ciclo not in ESTADOS_CICLO:
+            return jsonify({"error": "El estado del ciclo indicado no es válido"}), 400
+        configuracion.estado_ciclo = estado_ciclo
+
+    for campo in ("fecha_cierre_matricula", "fecha_limite_notas", "fecha_cierre_actas"):
+        if campo in datos and datos[campo]:
+            try:
+                setattr(configuracion, campo, datetime.fromisoformat(datos[campo]))
+            except ValueError:
+                return jsonify({"error": f"El formato de {campo} no es válido"}), 400
+
+    if (
+        configuracion.fecha_cierre_matricula
+        and configuracion.fecha_limite_notas
+        and configuracion.fecha_limite_notas < configuracion.fecha_cierre_matricula
+    ):
+        return jsonify({"error": "La fecha límite de notas no puede ser anterior al cierre de matrícula"}), 400
+
+    if (
+        configuracion.fecha_limite_notas
+        and configuracion.fecha_cierre_actas
+        and configuracion.fecha_cierre_actas < configuracion.fecha_limite_notas
+    ):
+        return jsonify({"error": "La fecha de cierre de actas no puede ser anterior a la fecha límite de notas"}), 400
+
+    db.session.commit()
+
+    return jsonify({"mensaje": "Configuración del ciclo actualizada correctamente"})
