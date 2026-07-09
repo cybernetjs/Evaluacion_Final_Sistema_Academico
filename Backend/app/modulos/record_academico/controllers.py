@@ -1,199 +1,125 @@
 from flask import jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity
-from datetime import time as hora_cls
-from app.modelos.curso import Curso
-from app.modelos.pre_requisito import PreRequisito
-from app.modelos.docente import Docente
-from app.modelos.tipo_docente import TipoDocente
-from app.modulos.cursos_docentes.services import CursosDocentesService
-
-DIAS_TEXTO = {
-    "lunes": 1, "martes": 2, "miercoles": 3, "miércoles": 3,
-    "jueves": 4, "viernes": 5, "sabado": 6, "sábado": 6, "domingo": 7,
-}
+from app.modelos.historial_merito import HistorialMerito
+from app.modelos.progreso_estudiante import ProgresoEstudiante
+from app.modelos.tipo_clasificacion_merito import TipoClasificacionMerito
+from app.modelos.estado_permanencia_estudiante import EstadoPermanenciaEstudiante
+from app.modelos.estudiante import Estudiante
+from app.modulos.record_academico.services import RecordAcademicoService
 
 
-def listar_cursos():
-    cursos = Curso.query.all()
+def obtener_record(estudiante_id):
+    historial = HistorialMerito.query.filter_by(estudiante_id=estudiante_id).all()
     return jsonify([
         {
-            "id": c.id,
-            "nombre": c.nombre,
-            "codigo": c.codigo,
-            "creditos": c.creditos,
-            "horas_lectivas": c.horas_lectivas,
-            "horas_practicas": c.horas_practicas
+            "periodo_academico_id": h.periodo_academico_id,
+            "semestre_id": h.semestre_id,
+            "promedio_ponderado_periodo": float(h.promedio_ponderado_periodo),
+            "creditos_aprobados_periodo": h.creditos_aprobados_periodo,
+            "orden_merito": h.orden_merito,
+            "tipo_clasificacion_id": h.tipo_clasificacion_id
         }
-        for c in cursos
+        for h in historial
     ])
 
 
-def obtener_curso(id):
-    c = Curso.query.get(id)
-    if not c:
-        return jsonify({"mensaje": "Curso no encontrado"}), 404
+def historial_completo():
+    usuario_id = int(get_jwt_identity())
+    resultado, error = RecordAcademicoService.historial_completo(usuario_id)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return jsonify(resultado)
+
+
+def historial_completo_pdf():
+    usuario_id = int(get_jwt_identity())
+    buffer, error = RecordAcademicoService.generar_pdf_historial(usuario_id)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="reporte_informativo_historial.pdf",
+        mimetype="application/pdf",
+    )
+
+
+def obtener_progreso(estudiante_id):
+    progreso = ProgresoEstudiante.query.get(estudiante_id)
+    if not progreso:
+        return jsonify({"mensaje": "Progreso de estudiante no encontrado"}), 404
     return jsonify({
-        "id": c.id,
-        "nombre": c.nombre,
-        "codigo": c.codigo,
-        "creditos": c.creditos,
-        "horas_lectivas": c.horas_lectivas,
-        "horas_practicas": c.horas_practicas
+        "estudiante_id": progreso.estudiante_id,
+        "estado_permanencia_id": progreso.estado_permanencia_id,
+        "creditos_aprobados_acumulados": progreso.creditos_aprobados_acumulados,
+        "promedio_ponderado_acumulado": float(progreso.promedio_ponderado_acumulado)
     })
 
 
-def listar_prerequisitos():
-    prerequisitos = PreRequisito.query.all()
+def listar_tipos_clasificacion():
+    tipos = TipoClasificacionMerito.query.all()
     return jsonify([
-        {
-            "curso_dependiente_id": p.curso_dependiente_id,
-            "curso_requisito_id": p.curso_requisito_id
-        }
-        for p in prerequisitos
-    ])
-
-
-def listar_docentes():
-    docentes = Docente.query.all()
-    return jsonify([
-        {
-            "id": d.id,
-            "nombres": d.nombres,
-            "apellido_paterno": d.apellido_paterno,
-            "apellido_materno": d.apellido_materno,
-            "correo_institucional": d.correo_institucional
-        }
-        for d in docentes
-    ])
-
-
-def listar_tipos_docentes():
-    tipos = TipoDocente.query.all()
-    return jsonify([
-        {"id": t.id, "nombre": t.nombre}
+        {"id": t.id, "nombre": t.nombre, "porcentaje_limite": float(t.porcentaje_limite)}
         for t in tipos
     ])
 
 
-def mis_cursos_asignados():
-    usuario_id = int(get_jwt_identity())
-    periodo_academico_id = request.args.get("periodo_academico_id", type=int)
-
-    resultado, error = CursosDocentesService.mis_cursos(usuario_id, periodo_academico_id)
-
-    if error:
-        return jsonify({"error": error}), 404
-
-    return jsonify(resultado)
+def listar_estados_permanencia():
+    estados = EstadoPermanenciaEstudiante.query.all()
+    return jsonify([
+        {"id": e.id, "nombre": e.nombre, "descripcion": e.descripcion}
+        for e in estados
+    ])
 
 
-def periodos_historicos_docente():
-    usuario_id = int(get_jwt_identity())
-    periodos, error = CursosDocentesService.periodos_historicos_docente(usuario_id)
-
-    if error:
-        return jsonify({"error": error}), 404
-
-    return jsonify(periodos)
+def anios_ingreso():
+    anios = RecordAcademicoService.anios_ingreso_disponibles()
+    return jsonify(anios)
 
 
-def asignar_docente(oferta_academica_id):
-    data = request.get_json()
-    docente_id = data.get("docente_id")
-    tipo_docente_id = data.get("tipo_docente_id")
-    funcion_curso = data.get("funcion_curso")
-    horas_asignadas = data.get("horas_asignadas")
-
-    resultado, error, codigo = CursosDocentesService.asignar_docente(
-        oferta_academica_id=oferta_academica_id,
-        docente_id=docente_id,
-        funcion_curso=funcion_curso,
-        horas_asignadas=horas_asignadas,
-        tipo_docente_id=tipo_docente_id,
-    )
-
-    if error:
-        return jsonify({"error": error}), codigo
-
-    return jsonify(resultado), codigo
-
-
-def gestionar_horario(oferta_academica_id):
-    data = request.get_json()
-
-    dia_ingresado = data.get("dia")
-    if isinstance(dia_ingresado, int):
-        dia = dia_ingresado
-    else:
-        dia_normalizado = str(dia_ingresado).strip().lower()
-        dia = int(dia_normalizado) if dia_normalizado.isdigit() else DIAS_TEXTO.get(dia_normalizado)
-
-    if dia is None:
-        return jsonify({"error": "Día inválido"}), 400
-
-    try:
-        hora_inicio = hora_cls.fromisoformat(str(data.get("hora_inicio")))
-        hora_fin = hora_cls.fromisoformat(str(data.get("hora_fin")))
-    except (TypeError, ValueError):
-        return jsonify({"error": "Formato de hora inválido"}), 400
-
-    aula = data.get("aula")
-    if not aula:
-        return jsonify({"error": "Debes indicar el aula o el enlace virtual"}), 400
-
-    resultado, error, codigo = CursosDocentesService.gestionar_horario(
-        oferta_academica_id=oferta_academica_id,
-        dia=dia,
-        hora_inicio=hora_inicio,
-        hora_fin=hora_fin,
-        aula=aula,
-    )
-
-    if error:
-        return jsonify({"error": error}), codigo
-
-    return jsonify(resultado), codigo
-
-
-def carga_docente():
+def reportes_consolidados():
+    anio_ingreso = request.args.get("anio_ingreso", type=int)
     especialidad_id = request.args.get("especialidad_id", type=int)
-    periodo_academico_id = request.args.get("periodo_academico_id", type=int)
+    estado = request.args.get("estado")
 
-    resultado = CursosDocentesService.carga_docente(especialidad_id, periodo_academico_id)
-    return jsonify(resultado)
+    filas, error = RecordAcademicoService.reportes_consolidados(anio_ingreso, especialidad_id, estado)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(filas)
 
 
-def cargar_silabo(oferta_academica_id):
-    usuario_id = int(get_jwt_identity())
+def exportar_reportes():
+    anio_ingreso = request.args.get("anio_ingreso", type=int)
+    especialidad_id = request.args.get("especialidad_id", type=int)
+    estado = request.args.get("estado")
 
-    if "archivo" not in request.files:
-        return jsonify({"error": "Debes adjuntar un archivo"}), 400
+    buffer, error = RecordAcademicoService.exportar_reportes_xlsx(anio_ingreso, especialidad_id, estado)
 
-    archivo = request.files["archivo"]
+    if error:
+        return jsonify({"error": error}), 400
 
-    silabo, error, codigo = CursosDocentesService.cargar_silabo(
-        usuario_id=usuario_id,
-        oferta_academica_id=oferta_academica_id,
-        nombre_archivo=archivo.filename,
-        archivo_stream=archivo
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="sabana_de_notas.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
+
+def analisis_cohorte():
+    especialidad_id = request.args.get("especialidad_id", type=int)
+    anios_texto = request.args.get("anios", "")
+    anios = [a for a in anios_texto.split(",") if a.strip()]
+
+    resultado, error = RecordAcademicoService.analisis_cohorte(especialidad_id, anios)
+
     if error:
-        return jsonify({"error": error}), codigo
+        return jsonify({"error": error}), 400
 
-    return jsonify({"mensaje": "Sílabo cargado correctamente", "nombre_archivo": silabo.nombre_archivo}), codigo
-
-
-def descargar_silabo(oferta_academica_id):
-    silabo, error = CursosDocentesService.obtener_silabo(oferta_academica_id)
-
-    if error:
-        return jsonify({"error": error}), 404
-
-    return send_file(silabo.ruta_archivo, as_attachment=True, download_name=silabo.nombre_archivo)
-
-
-def cumplimiento_silabos():
-    periodo_academico_id = request.args.get("periodo_academico_id", type=int)
-    resultado = CursosDocentesService.cumplimiento_silabos(periodo_academico_id)
     return jsonify(resultado)

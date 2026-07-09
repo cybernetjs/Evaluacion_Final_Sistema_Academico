@@ -1,433 +1,341 @@
-import os
-import uuid
-from datetime import datetime
+import io
+from collections import defaultdict
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from openpyxl import Workbook
 from app import db
-from app.modelos.silabo import Silabo
-from app.modelos.docente import Docente
-from app.modelos.curso import Curso
+from app.modelos.estudiante import Estudiante
+from app.modelos.matricula import Matricula
+from app.modelos.matricula_detalle import MatriculaDetalle
 from app.modelos.oferta_academica import OfertaAcademica
-from app.modelos.oferta_academica_docente import OfertaAcademicaDocente
-from app.modelos.oferta_academica_horario import OfertaAcademicaHorario
+from app.modelos.curso import Curso
 from app.modelos.periodo_academico import PeriodoAcademico
-from app.modelos.plan_cursos_semestre import PlanCursosSemestre
-from app.modelos.plan_de_estudios import PlanDeEstudios
+from app.modelos.progreso_estudiante import ProgresoEstudiante
+from app.modelos.historial_merito import HistorialMerito
 from app.modelos.especialidad import Especialidad
+from app.modelos.semestre import Semestre
 
-CARPETA_SILABOS = os.path.join(os.getcwd(), "uploads", "silabos")
-TAMANO_MAXIMO_SILABO_BYTES = 10 * 1024 * 1024
-CARGA_MINIMA_SEMANAL = 8
-CARGA_MAXIMA_SEMANAL = 20
-FUNCIONES_VALIDAS = ("Teorico", "Practico")
+PROMEDIO_MINIMO_APROBATORIO = 10.5
+UMBRAL_ALERTA_DESERCION = 25
 
-DIAS_SEMANA = {
-    1: "Lunes", 2: "Martes", 3: "Miercoles", 4: "Jueves",
-    5: "Viernes", 6: "Sabado", 7: "Domingo",
+TEXTO_MARCA_AGUA = "REPORTE INFORMATIVO - NO OFICIAL"
+
+ROMANOS_POR_SEMESTRE = {
+    "01": "I", "02": "II", "03": "III", "04": "IV", "05": "V",
+    "06": "VI", "07": "VII", "08": "VIII", "09": "IX", "10": "X",
 }
 
 
-class CursosDocentesService:
+class RecordAcademicoService:
 
     @staticmethod
-    def periodo_activo():
-        hoy = datetime.utcnow()
-        periodo = (
-            PeriodoAcademico.query
-            .filter(PeriodoAcademico.fecha_inicio <= hoy, PeriodoAcademico.fecha_fin >= hoy)
-            .first()
-        )
-        if periodo:
-            return periodo
-        return PeriodoAcademico.query.order_by(PeriodoAcademico.fecha_inicio.desc()).first()
+    def _estudiante_por_usuario(usuario_id):
+        return Estudiante.query.filter_by(usuario_id=usuario_id).first()
 
     @staticmethod
-    def periodos_historicos_docente(usuario_id):
-        docente = Docente.query.filter_by(usuario_id=usuario_id).first()
-        if not docente:
-            return [], "No se encontró un docente asociado a este usuario"
-
-        periodos_ids = (
-            db.session.query(OfertaAcademica.periodo_academico_id)
-            .join(OfertaAcademicaDocente, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id)
-            .filter(OfertaAcademicaDocente.docente_id == docente.id)
-            .distinct()
-            .all()
-        )
-        ids = [p[0] for p in periodos_ids]
-
-        periodos = (
-            PeriodoAcademico.query.filter(PeriodoAcademico.id.in_(ids))
+    def _filas_historial(estudiante_id):
+        matriculas = (
+            Matricula.query.filter_by(estudiante_id=estudiante_id)
+            .join(PeriodoAcademico, Matricula.periodo_academico_id == PeriodoAcademico.id)
             .order_by(PeriodoAcademico.fecha_inicio.desc())
             .all()
         )
 
-        return [{"id": p.id, "nombre": p.nombre} for p in periodos], None
+        filas = []
+        for m in matriculas:
+            for d in m.detalle:
+                curso = d.oferta_academica.curso
+                filas.append({
+                    "periodo_academico": m.periodo_academico.nombre,
+                    "semestre": ROMANOS_POR_SEMESTRE.get(m.semestre.codigo, m.semestre.codigo),
+                    "codigo_curso": curso.codigo,
+                    "nombre_curso": curso.nombre,
+                    "creditos": curso.creditos,
+                    "nota_final": float(d.nota_final) if d.nota_final is not None else None,
+                    "estado": d.estado_curso.nombre if d.estado_curso else None,
+                })
+        return filas
 
     @staticmethod
-    def mis_cursos(usuario_id, periodo_academico_id=None):
-        docente = Docente.query.filter_by(usuario_id=usuario_id).first()
-        if not docente:
-            return None, "No se encontró un docente asociado a este usuario"
-
-        if not periodo_academico_id:
-            periodo = CursosDocentesService.periodo_activo()
-            periodo_academico_id = periodo.id if periodo else None
-
-        asignaciones = (
-            OfertaAcademicaDocente.query.filter_by(docente_id=docente.id)
-            .join(OfertaAcademica, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id)
-            .filter(OfertaAcademica.periodo_academico_id == periodo_academico_id)
-            .all()
-        )
-
-        resultado = []
-        for a in asignaciones:
-            oferta = a.oferta_academica
-            curso = oferta.curso
-            horarios = OfertaAcademicaHorario.query.filter_by(oferta_academica_id=oferta.id).all()
-            silabo = Silabo.query.filter_by(oferta_academica_id=oferta.id).first()
-
-            resultado.append({
-                "oferta_academica_id": oferta.id,
-                "codigo_curso": curso.codigo,
-                "nombre_curso": curso.nombre,
-                "creditos": curso.creditos,
-                "seccion": f"S-{oferta.id}",
-                "funcion_curso": a.funcion_curso,
-                "horas_semanales": a.horas_asignadas,
-                "estado_silabo": "Silabo Cargado" if silabo else "Silabo Pendiente",
-                "horario": [
-                    {
-                        "dia": DIAS_SEMANA.get(h.dia, h.dia),
-                        "dia_numero": h.dia,
-                        "hora_inicio": h.hora_inicio.strftime("%H:%M") if h.hora_inicio else None,
-                        "hora_fin": h.hora_fin.strftime("%H:%M") if h.hora_fin else None,
-                        "aula": h.aula,
-                    }
-                    for h in horarios
-                ],
-            })
-
-        return resultado, None
-
-    @staticmethod
-    def cargar_silabo(usuario_id, oferta_academica_id, nombre_archivo, archivo_stream):
-        docente = Docente.query.filter_by(usuario_id=usuario_id).first()
-        if not docente:
-            return None, "No se encontró un docente asociado a este usuario", 404
-
-        asignado = OfertaAcademicaDocente.query.filter_by(
-            oferta_academica_id=oferta_academica_id,
-            docente_id=docente.id
-        ).first()
-        if not asignado:
-            return None, "No tienes asignado este curso, no puedes cargar el sílabo", 403
-
-        extension = os.path.splitext(nombre_archivo)[1].lower()
-        if extension != ".pdf":
-            return None, "Formato no válido. Solo se permiten documentos en formato PDF", 400
-
-        archivo_stream.seek(0, os.SEEK_END)
-        tamano = archivo_stream.tell()
-        archivo_stream.seek(0)
-        if tamano > TAMANO_MAXIMO_SILABO_BYTES:
-            return None, "El archivo supera el tamaño máximo permitido de 10 MB", 413
-
-        os.makedirs(CARPETA_SILABOS, exist_ok=True)
-        nombre_unico = f"silabo_{oferta_academica_id}_{uuid.uuid4()}{extension}"
-        ruta_completa = os.path.join(CARPETA_SILABOS, nombre_unico)
-        archivo_stream.save(ruta_completa)
-
-        silabo = Silabo.query.filter_by(oferta_academica_id=oferta_academica_id).first()
-        if silabo:
-            silabo.nombre_archivo = nombre_archivo
-            silabo.ruta_archivo = ruta_completa
-            silabo.subido_en = datetime.utcnow()
-        else:
-            silabo = Silabo(
-                oferta_academica_id=oferta_academica_id,
-                nombre_archivo=nombre_archivo,
-                ruta_archivo=ruta_completa
-            )
-            db.session.add(silabo)
-
-        db.session.commit()
-        return silabo, None, 201
-
-    @staticmethod
-    def obtener_silabo(oferta_academica_id):
-        silabo = Silabo.query.filter_by(oferta_academica_id=oferta_academica_id).first()
-        if not silabo:
-            return None, "No hay sílabo cargado para este curso"
-        return silabo, None
-
-    @staticmethod
-    def asignar_docente(oferta_academica_id, docente_id, funcion_curso, horas_asignadas, tipo_docente_id=None):
-        oferta = OfertaAcademica.query.get(oferta_academica_id)
-        if not oferta:
-            return None, "Oferta académica no encontrada", 404
-
-        if funcion_curso not in FUNCIONES_VALIDAS:
-            return None, "El tipo de docente debe ser Teorico o Practico", 422
-
-        if not isinstance(horas_asignadas, int) or horas_asignadas <= 0:
-            return None, "Las horas asignadas deben ser un número entero positivo", 422
-
-        asignaciones_actuales = OfertaAcademicaDocente.query.filter_by(
-            oferta_academica_id=oferta_academica_id
-        ).all()
-
-        if any(a.funcion_curso == funcion_curso for a in asignaciones_actuales):
-            return None, (
-                f"La sección ya cuenta con un docente de tipo {funcion_curso} asignado. "
-                f"Debe registrar un docente de tipo distinto para completar la carga horaria"
-            ), 409
-
-        curso = oferta.curso
-        horas_requeridas_curso = curso.horas_lectivas + curso.horas_practicas
-        suma_horas_actual = sum(a.horas_asignadas or 0 for a in asignaciones_actuales)
-        suma_horas_nueva = suma_horas_actual + horas_asignadas
-
-        funciones_despues = {a.funcion_curso for a in asignaciones_actuales} | {funcion_curso}
-        plana_completa_por_funciones = set(FUNCIONES_VALIDAS).issubset(funciones_despues)
-
-        if plana_completa_por_funciones and suma_horas_nueva != horas_requeridas_curso:
-            return None, (
-                f"Error en la asignación: La suma de horas de los docentes asignados "
-                f"({suma_horas_nueva}) no coincide con las horas requeridas por el plan de estudios "
-                f"({horas_requeridas_curso})"
-            ), 422
-
-        if not plana_completa_por_funciones and suma_horas_nueva > horas_requeridas_curso:
-            return None, (
-                f"Error en la asignación: La suma de horas de los docentes asignados "
-                f"({suma_horas_nueva}) no coincide con las horas requeridas por el plan de estudios "
-                f"({horas_requeridas_curso})"
-            ), 422
-
-        asignacion = OfertaAcademicaDocente(
-            oferta_academica_id=oferta_academica_id,
-            docente_id=docente_id,
-            tipo_docente_id=tipo_docente_id,
-            funcion_curso=funcion_curso,
-            horas_asignadas=horas_asignadas,
-        )
-        db.session.add(asignacion)
-        db.session.commit()
-
-        estado_seccion = (
-            "Plana Docente Completa"
-            if plana_completa_por_funciones and suma_horas_nueva == horas_requeridas_curso
-            else "Plana Docente Incompleta"
-        )
+    def _cabecera_metricas(estudiante_id, filas):
+        progreso = ProgresoEstudiante.query.get(estudiante_id)
+        total_matriculados = sum(f["creditos"] for f in filas)
 
         return {
-            "id": asignacion.id,
-            "suma_horas_asignadas": suma_horas_nueva,
-            "horas_requeridas_curso": horas_requeridas_curso,
-            "estado_seccion": estado_seccion,
-        }, None, 201
+            "total_creditos_matriculados": total_matriculados,
+            "total_creditos_aprobados": progreso.creditos_aprobados_acumulados if progreso else 0,
+            "promedio_ponderado_acumulado": float(progreso.promedio_ponderado_acumulado) if progreso else None,
+        }
 
     @staticmethod
-    def gestionar_horario(oferta_academica_id, dia, hora_inicio, hora_fin, aula):
-        oferta = OfertaAcademica.query.get(oferta_academica_id)
-        if not oferta:
-            return None, "Oferta académica no encontrada", 404
+    def historial_completo(usuario_id):
+        estudiante = RecordAcademicoService._estudiante_por_usuario(usuario_id)
+        if not estudiante:
+            return None, "No se encontró un estudiante asociado a este usuario"
 
-        if hora_fin <= hora_inicio:
-            return None, "La hora de fin debe ser posterior a la hora de inicio", 400
+        filas = RecordAcademicoService._filas_historial(estudiante.id)
+        cabecera = RecordAcademicoService._cabecera_metricas(estudiante.id, filas)
 
-        colision_aula = (
-            OfertaAcademicaHorario.query
-            .filter(
-                OfertaAcademicaHorario.aula == aula,
-                OfertaAcademicaHorario.dia == dia,
-                OfertaAcademicaHorario.hora_inicio < hora_fin,
-                OfertaAcademicaHorario.hora_fin > hora_inicio,
-            )
-            .join(OfertaAcademica, OfertaAcademicaHorario.oferta_academica_id == OfertaAcademica.id)
-            .first()
-        )
-        if colision_aula:
-            nombre_curso_existente = colision_aula.oferta_academica.curso.nombre
-            return None, (
-                f"El aula seleccionada ya se encuentra asignada al curso {nombre_curso_existente} en ese horario"
-            ), 409
-
-        colision_seccion = (
-            OfertaAcademicaHorario.query
-            .join(OfertaAcademica, OfertaAcademicaHorario.oferta_academica_id == OfertaAcademica.id)
-            .filter(
-                OfertaAcademica.semestre_id == oferta.semestre_id,
-                OfertaAcademica.periodo_academico_id == oferta.periodo_academico_id,
-                OfertaAcademicaHorario.dia == dia,
-                OfertaAcademicaHorario.hora_inicio < hora_fin,
-                OfertaAcademicaHorario.hora_fin > hora_inicio,
-            )
-            .first()
-        )
-        if colision_seccion:
-            return None, "El grupo de estudiantes ya tiene una clase asignada en ese bloque horario", 409
-
-        horario = OfertaAcademicaHorario(
-            oferta_academica_id=oferta_academica_id,
-            dia=dia,
-            hora_inicio=hora_inicio,
-            hora_fin=hora_fin,
-            aula=aula,
-            estado="Activo",
-        )
-        db.session.add(horario)
-        db.session.commit()
-
-        return {"id": horario.id, "estado": horario.estado}, None, 201
+        return {
+            "estudiante": {
+                "nombres": estudiante.nombres,
+                "apellido_paterno": estudiante.apellido_paterno,
+                "apellido_materno": estudiante.apellido_materno,
+                "especialidad": estudiante.especialidad.nombre if estudiante.especialidad else None,
+            },
+            "cabecera": cabecera,
+            "historial": filas,
+        }, None
 
     @staticmethod
-    def _especialidad_por_docente(docente_id):
-        curso_ids = (
-            db.session.query(OfertaAcademica.curso_id)
-            .join(OfertaAcademicaDocente, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id)
-            .filter(OfertaAcademicaDocente.docente_id == docente_id)
-            .distinct()
+    def _dibujar_marca_de_agua(pdf, ancho, alto):
+        pdf.saveState()
+        pdf.setFont("Helvetica-Bold", 40)
+        pdf.setFillColorRGB(0.5, 0.5, 0.5, alpha=0.25)
+        pdf.translate(ancho / 2, alto / 2)
+        pdf.rotate(45)
+        pdf.drawCentredString(0, 0, TEXTO_MARCA_AGUA)
+        pdf.restoreState()
+
+    @staticmethod
+    def generar_pdf_historial(usuario_id):
+        estudiante = RecordAcademicoService._estudiante_por_usuario(usuario_id)
+        if not estudiante:
+            return None, "No se encontró un estudiante asociado a este usuario"
+
+        filas = RecordAcademicoService._filas_historial(estudiante.id)
+        cabecera = RecordAcademicoService._cabecera_metricas(estudiante.id, filas)
+
+        ancho, alto = letter
+        buffer = io.BytesIO()
+        pdf = canvas.Canvas(buffer, pagesize=letter)
+
+        def encabezado_pagina():
+            RecordAcademicoService._dibujar_marca_de_agua(pdf, ancho, alto)
+            pdf.setFont("Helvetica-Bold", 16)
+            pdf.drawString(50, alto - 50, "REPORTE INFORMATIVO DE RECORD ACADEMICO")
+            pdf.setFont("Helvetica", 10)
+            pdf.drawString(
+                50, alto - 70,
+                f"Estudiante: {estudiante.nombres} {estudiante.apellido_paterno} {estudiante.apellido_materno}"
+            )
+            pdf.drawString(50, alto - 85, f"Codigo: {estudiante.id}")
+            pdf.drawString(
+                50, alto - 100,
+                f"Especialidad: {estudiante.especialidad.nombre if estudiante.especialidad else '-'}"
+            )
+            pdf.setFont("Helvetica-Bold", 10)
+            pdf.drawString(320, alto - 70, f"Creditos aprobados: {cabecera['total_creditos_aprobados']}")
+            pdf.drawString(320, alto - 85, f"PPA: {cabecera['promedio_ponderado_acumulado']}")
+
+            y = alto - 130
+            pdf.setFont("Helvetica-Bold", 8)
+            columnas = [
+                ("Periodo", 50), ("Sem.", 110), ("Codigo", 140), ("Curso", 190),
+                ("Cred.", 400), ("Nota", 440), ("Estado", 480)
+            ]
+            for texto, x in columnas:
+                pdf.drawString(x, y, texto)
+            pdf.line(50, y - 4, 545, y - 4)
+            return y - 18, columnas
+
+        y, columnas = encabezado_pagina()
+        pdf.setFont("Helvetica", 8)
+
+        for fila in filas:
+            if y < 60:
+                pdf.showPage()
+                y, columnas = encabezado_pagina()
+                pdf.setFont("Helvetica", 8)
+
+            if fila["estado"] and fila["estado"].lower() == "desaprobado":
+                pdf.setFillColorRGB(0.7, 0, 0)
+            else:
+                pdf.setFillColorRGB(0, 0, 0)
+
+            valores = [
+                fila["periodo_academico"], fila["semestre"], fila["codigo_curso"],
+                (fila["nombre_curso"] or "")[:28],
+                str(fila["creditos"]),
+                str(fila["nota_final"] if fila["nota_final"] is not None else "-"),
+                fila["estado"] or "-",
+            ]
+            for (_, x), valor in zip(columnas, valores):
+                pdf.drawString(x, y, valor)
+
+            y -= 14
+
+        pdf.setFillColorRGB(0, 0, 0)
+        pdf.save()
+        buffer.seek(0)
+        return buffer, None
+
+    @staticmethod
+    def _anio_ingreso_por_estudiante():
+        filas = (
+            db.session.query(
+                Matricula.estudiante_id,
+                db.func.min(PeriodoAcademico.fecha_inicio).label("primera_fecha"),
+            )
+            .join(PeriodoAcademico, Matricula.periodo_academico_id == PeriodoAcademico.id)
+            .group_by(Matricula.estudiante_id)
             .all()
         )
-        curso_ids = [c[0] for c in curso_ids]
-
-        especialidad_ids = (
-            db.session.query(PlanDeEstudios.especialidad_id)
-            .join(PlanCursosSemestre, PlanCursosSemestre.plan_estudios_id == PlanDeEstudios.id)
-            .filter(PlanCursosSemestre.curso_id.in_(curso_ids))
-            .distinct()
-            .all()
-        )
-        ids = [e[0] for e in especialidad_ids if e[0]]
-        if not ids:
-            return None
-
-        especialidad = Especialidad.query.get(ids[0])
-        return especialidad.nombre if especialidad else None
+        return {f.estudiante_id: f.primera_fecha.year for f in filas if f.primera_fecha}
 
     @staticmethod
-    def carga_docente(especialidad_id=None, periodo_academico_id=None):
-        docentes = Docente.query.all()
-        resultado = []
+    def anios_ingreso_disponibles():
+        anios = sorted(set(RecordAcademicoService._anio_ingreso_por_estudiante().values()), reverse=True)
+        return anios
 
-        for d in docentes:
-            consulta = OfertaAcademicaDocente.query.filter_by(docente_id=d.id).join(
-                OfertaAcademica, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id
-            )
-            if periodo_academico_id:
-                consulta = consulta.filter(OfertaAcademica.periodo_academico_id == periodo_academico_id)
+    @staticmethod
+    def reportes_consolidados(anio_ingreso, especialidad_id, estado_nombre=None):
+        if not anio_ingreso or not especialidad_id:
+            return None, "Debes indicar Año de Ingreso y Especialidad"
 
-            asignaciones = consulta.all()
-            if not asignaciones:
+        anios_por_estudiante = RecordAcademicoService._anio_ingreso_por_estudiante()
+        estudiantes = Estudiante.query.filter_by(especialidad_id=especialidad_id).all()
+
+        filas = []
+        for est in estudiantes:
+            if anios_por_estudiante.get(est.id) != int(anio_ingreso):
                 continue
 
-            especialidad_nombre = CursosDocentesService._especialidad_por_docente(d.id)
-            if especialidad_id:
-                especialidades_docente = (
-                    db.session.query(PlanDeEstudios.especialidad_id)
-                    .join(PlanCursosSemestre, PlanCursosSemestre.plan_estudios_id == PlanDeEstudios.id)
-                    .join(Curso, Curso.id == PlanCursosSemestre.curso_id)
-                    .join(OfertaAcademica, OfertaAcademica.curso_id == Curso.id)
-                    .join(OfertaAcademicaDocente, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id)
-                    .filter(OfertaAcademicaDocente.docente_id == d.id)
-                    .distinct()
-                    .all()
-                )
-                ids_especialidad_docente = {e[0] for e in especialidades_docente}
-                if int(especialidad_id) not in ids_especialidad_docente:
-                    continue
+            progreso = ProgresoEstudiante.query.get(est.id)
+            if estado_nombre and (
+                not progreso or not progreso.estado_permanencia
+                or progreso.estado_permanencia.nombre.lower() != estado_nombre.lower()
+            ):
+                continue
 
-            total_horas = sum(a.horas_asignadas or 0 for a in asignaciones)
+            ultimo_merito = (
+                HistorialMerito.query.filter_by(estudiante_id=est.id)
+                .join(PeriodoAcademico, HistorialMerito.periodo_academico_id == PeriodoAcademico.id)
+                .order_by(PeriodoAcademico.fecha_inicio.desc())
+                .first()
+            )
 
-            if total_horas < CARGA_MINIMA_SEMANAL:
-                categoria = "Carga Incompleta"
-            elif total_horas > CARGA_MAXIMA_SEMANAL:
-                categoria = "Sobrecarga Laboral"
-            else:
-                categoria = "Carga Regular"
+            creditos_matriculados = (
+                db.session.query(db.func.coalesce(db.func.sum(Curso.creditos), 0))
+                .select_from(MatriculaDetalle)
+                .join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+                .join(OfertaAcademica, MatriculaDetalle.oferta_academica_id == OfertaAcademica.id)
+                .join(Curso, OfertaAcademica.curso_id == Curso.id)
+                .filter(Matricula.estudiante_id == est.id)
+                .scalar()
+            )
 
-            resultado.append({
-                "docente_id": d.id,
-                "nombres": d.nombres,
-                "apellido_paterno": d.apellido_paterno,
-                "apellido_materno": d.apellido_materno,
-                "especialidad": especialidad_nombre,
-                "total_horas_semanales": total_horas,
-                "categoria": categoria,
-                "detalle_cursos": [
-                    {
-                        "curso_nombre": a.oferta_academica.curso.nombre,
-                        "funcion_curso": a.funcion_curso,
-                        "horas_asignadas": a.horas_asignadas,
-                    }
-                    for a in asignaciones
-                ],
+            filas.append({
+                "estudiante_id": est.id,
+                "codigo": est.id,
+                "nombres_completos": f"{est.nombres} {est.apellido_paterno} {est.apellido_materno}",
+                "creditos_matriculados": int(creditos_matriculados or 0),
+                "creditos_aprobados": progreso.creditos_aprobados_acumulados if progreso else 0,
+                "pps_ultimo_ciclo": float(ultimo_merito.promedio_ponderado_periodo) if ultimo_merito else None,
+                "ppa": float(progreso.promedio_ponderado_acumulado) if progreso else None,
+                "estado_permanencia": progreso.estado_permanencia.nombre if progreso and progreso.estado_permanencia else None,
             })
 
-        return resultado
+        return filas, None
 
     @staticmethod
-    def cumplimiento_silabos(periodo_academico_id=None):
-        if not periodo_academico_id:
-            periodo = CursosDocentesService.periodo_activo()
-            periodo_academico_id = periodo.id if periodo else None
+    def exportar_reportes_xlsx(anio_ingreso, especialidad_id, estado_nombre=None):
+        filas, error = RecordAcademicoService.reportes_consolidados(anio_ingreso, especialidad_id, estado_nombre)
+        if error:
+            return None, error
 
-        ofertas = OfertaAcademica.query.filter_by(periodo_academico_id=periodo_academico_id).all()
+        libro = Workbook()
+        hoja = libro.active
+        hoja.title = "Sabana de notas"
 
-        total_cursos = len(ofertas)
-        total_cargados = 0
-        pendientes = []
-        por_especialidad = {}
+        encabezados = ["Codigo", "Nombres completos", "Creditos matriculados",
+                       "Creditos aprobados", "PPS ultimo ciclo", "PPA"]
+        hoja.append(encabezados)
 
-        for oferta in ofertas:
-            silabo = Silabo.query.filter_by(oferta_academica_id=oferta.id).first()
+        for fila in filas:
+            hoja.append([
+                fila["codigo"], fila["nombres_completos"], fila["creditos_matriculados"],
+                fila["creditos_aprobados"], fila["pps_ultimo_ciclo"], fila["ppa"],
+            ])
 
-            especialidad_ids = (
-                db.session.query(PlanDeEstudios.especialidad_id)
-                .join(PlanCursosSemestre, PlanCursosSemestre.plan_estudios_id == PlanDeEstudios.id)
-                .filter(PlanCursosSemestre.curso_id == oferta.curso_id)
-                .distinct()
+        for columna in hoja.columns:
+            valores = [c.value for c in columna if c.value is not None]
+            longitud = max((len(str(v)) for v in valores), default=10)
+            hoja.column_dimensions[columna[0].column_letter].width = max(12, longitud + 2)
+
+        buffer = io.BytesIO()
+        libro.save(buffer)
+        buffer.seek(0)
+        return buffer, None
+
+    @staticmethod
+    def analisis_cohorte(especialidad_id, anios_ingreso):
+        if not especialidad_id or not anios_ingreso:
+            return None, "Debes indicar el programa de estudios y al menos un año de ingreso"
+
+        anios_ingreso = anios_ingreso[:3]
+        anios_por_estudiante = RecordAcademicoService._anio_ingreso_por_estudiante()
+        estudiantes = Estudiante.query.filter_by(especialidad_id=especialidad_id).all()
+
+        cohortes = {}
+        for anio in anios_ingreso:
+            ids_estudiantes = [e.id for e in estudiantes if anios_por_estudiante.get(e.id) == int(anio)]
+            cohortes[anio] = {"ids": ids_estudiantes, "total": len(ids_estudiantes)}
+
+        curvas = defaultdict(dict)
+        for anio, datos in cohortes.items():
+            if not datos["ids"]:
+                continue
+
+            registros = (
+                HistorialMerito.query.filter(HistorialMerito.estudiante_id.in_(datos["ids"]))
+                .join(Semestre, HistorialMerito.semestre_id == Semestre.id)
                 .all()
             )
-            especialidad = Especialidad.query.get(especialidad_ids[0][0]) if especialidad_ids else None
-            nombre_especialidad = especialidad.nombre if especialidad else "Sin especialidad"
 
-            por_especialidad.setdefault(nombre_especialidad, {"total": 0, "cargados": 0})
-            por_especialidad[nombre_especialidad]["total"] += 1
+            acumulado_por_semestre = defaultdict(list)
+            for r in registros:
+                codigo = ROMANOS_POR_SEMESTRE.get(r.semestre.codigo, r.semestre.codigo)
+                acumulado_por_semestre[codigo].append(float(r.promedio_ponderado_periodo))
 
-            if silabo:
-                total_cargados += 1
-                por_especialidad[nombre_especialidad]["cargados"] += 1
-            else:
-                docente_asignado = OfertaAcademicaDocente.query.filter_by(oferta_academica_id=oferta.id).first()
-                docente = docente_asignado.docente if docente_asignado else None
-                pendientes.append({
-                    "oferta_academica_id": oferta.id,
-                    "curso_nombre": oferta.curso.nombre,
-                    "especialidad": nombre_especialidad,
-                    "docente_nombre": (
-                        f"{docente.nombres} {docente.apellido_paterno}" if docente else "Sin docente asignado"
-                    ),
-                    "docente_correo": docente.correo_institucional if docente else None,
-                })
+            for codigo, valores in acumulado_por_semestre.items():
+                curvas[codigo][f"cohorte_{anio}"] = round(sum(valores) / len(valores), 2)
 
-        porcentaje_general = round((total_cargados / total_cursos) * 100, 1) if total_cursos else 0
+        orden_semestres = list(ROMANOS_POR_SEMESTRE.values())
+        serie_grafico = []
+        for codigo in orden_semestres:
+            if codigo in curvas:
+                punto = {"semestre": codigo}
+                punto.update(curvas[codigo])
+                serie_grafico.append(punto)
 
-        resumen_por_especialidad = [
-            {
-                "especialidad": nombre,
-                "total_cursos": datos["total"],
-                "cursos_cargados": datos["cargados"],
-                "porcentaje": round((datos["cargados"] / datos["total"]) * 100, 1) if datos["total"] else 0,
-            }
-            for nombre, datos in por_especialidad.items()
-        ]
+        alertas = []
+        for anio, datos in cohortes.items():
+            if not datos["total"]:
+                continue
 
-        return {
-            "porcentaje_general": porcentaje_general,
-            "total_cursos": total_cursos,
-            "total_cargados": total_cargados,
-            "resumen_por_especialidad": resumen_por_especialidad,
-            "pendientes": pendientes,
-        }
+            progresos = ProgresoEstudiante.query.filter(ProgresoEstudiante.estudiante_id.in_(datos["ids"])).all()
+
+            en_riesgo = sum(
+                1 for p in progresos
+                if p.estado_permanencia and p.estado_permanencia.nombre.lower() not in ("regular", "egresado")
+            )
+            sin_progreso = datos["total"] - len(progresos)
+            tasa_desercion = round(((en_riesgo + sin_progreso) / datos["total"]) * 100, 1)
+
+            promedios = [float(p.promedio_ponderado_acumulado) for p in progresos]
+            promedio_cohorte = round(sum(promedios) / len(promedios), 2) if promedios else None
+
+            alerta = tasa_desercion > UMBRAL_ALERTA_DESERCION or (
+                promedio_cohorte is not None and promedio_cohorte < PROMEDIO_MINIMO_APROBATORIO
+            )
+
+            alertas.append({
+                "anio_ingreso": anio,
+                "total_estudiantes": datos["total"],
+                "tasa_desercion_porcentaje": tasa_desercion,
+                "promedio_general": promedio_cohorte,
+                "en_alerta": alerta,
+            })
+
+        return {"serie_grafico": serie_grafico, "cohortes": alertas}, None
