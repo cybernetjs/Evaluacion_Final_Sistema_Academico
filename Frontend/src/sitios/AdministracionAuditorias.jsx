@@ -25,7 +25,7 @@ export default function AdministracionAuditorias() {
       setReportes(resReportes.data);
     }
 
-    setAuditorias(resAuditorias.data);
+    setAuditorias(resAuditorias.data.registros ?? []);
   }
 
   return (
@@ -68,7 +68,7 @@ export default function AdministracionAuditorias() {
               <td>{auditoria.usuario_id}</td>
               <td>{auditoria.accion}</td>
               <td>{auditoria.detalle}</td>
-              <td>{auditoria.created_at}</td>
+              <td>{auditoria.created_at ? new Date(auditoria.created_at).toLocaleString() : "-"}</td>
             </tr>
           ))}
         </tbody>
