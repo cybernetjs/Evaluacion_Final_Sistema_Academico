@@ -252,17 +252,45 @@ export default function CertificadosListar() {
         />
         <button type="submit">Buscar</button>
       </form>
-      {verificacion && (
-        <ul>
-          <li>Válido: {verificacion.valido ? "Sí" : "No"}</li>
-          {verificacion.valido && (
-            <>
-              <li>Tipo: {verificacion.tipo}</li>
-              <li>Estudiante: {verificacion.estudiante_enmascarado}</li>
-              <li>Fecha de emisión: {verificacion.fecha_emision ? new Date(verificacion.fecha_emision).toLocaleDateString() : "-"}</li>
-            </>
-          )}
-        </ul>
+      {verificacion && !verificacion.valido && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: 16,
+            borderRadius: 8,
+            background: "rgba(255, 0, 0, 0.12)",
+            border: "1px solid #ff6b6b",
+            color: "#ff6b6b",
+          }}
+        >
+          {verificacion.mensaje}
+        </div>
+      )}
+      {verificacion && verificacion.valido && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: 16,
+            borderRadius: 8,
+            background: "rgba(0, 200, 0, 0.10)",
+            border: "1px solid #8fd18f",
+          }}
+        >
+          <p style={{ color: "#8fd18f", fontWeight: "bold" }}>Válido / Fidedigno</p>
+          <ul>
+            <li>Estudiante: {verificacion.estudiante_nombre}</li>
+            <li>Tipo de documento: {verificacion.tipo}</li>
+            <li>Fecha de emisión: {verificacion.fecha_emision ? new Date(verificacion.fecha_emision).toLocaleDateString() : "-"}</li>
+            <li>Hash del documento: {verificacion.hash_documento}</li>
+          </ul>
+          <a
+            href={urlDescargarCertificadoEmitido(verificacion.certificado_id)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ver vista previa oficial
+          </a>
+        </div>
       )}
 
       {seleccionada && (

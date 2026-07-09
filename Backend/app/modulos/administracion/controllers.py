@@ -118,6 +118,48 @@ def registrar_docente():
     }), 201
 
 
+def registrar_personal():
+    data = request.get_json()
+
+    campos_requeridos = ["username", "password", "rol"]
+    faltantes = [campo for campo in campos_requeridos if not data.get(campo)]
+
+    if faltantes:
+        return jsonify({"error": f"Faltan campos requeridos: {faltantes}"}), 400
+
+    roles_validos = ["administrador", "direccion"]
+    rol = data.get("rol")
+    if rol not in roles_validos:
+        return jsonify({"error": f"Rol inválido. Debe ser uno de: {roles_validos}"}), 400
+
+    username = data.get("username")
+    if Usuario.query.filter_by(username=username).first():
+        return jsonify({"error": "El nombre de usuario ya está en uso"}), 400
+
+    usuario = Usuario(
+        username=username,
+        password=bcrypt.generate_password_hash(data.get("password")).decode("utf-8"),
+        rol=rol,
+    )
+    db.session.add(usuario)
+    db.session.commit()
+
+    admin_id = int(get_jwt_identity())
+    registro = Auditoria(
+        usuario_id=admin_id,
+        accion="registrar_personal",
+        detalle=f"Se creó la cuenta '{username}' con rol '{rol}'",
+    )
+    db.session.add(registro)
+    db.session.commit()
+
+    return jsonify({
+        "mensaje": "Cuenta de personal registrada correctamente",
+        "usuario_id": usuario.id,
+        "rol": usuario.rol,
+    }), 201
+
+
 def cambiar_rol(usuario_id):
     data = request.get_json()
     nuevo_rol = data.get("rol")

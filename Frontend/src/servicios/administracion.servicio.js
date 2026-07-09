@@ -11,6 +11,20 @@ export async function cambiarRol(usuarioId, rol) {
   });
 }
 
+export async function registrarDocente(datosDocente) {
+  return peticion("/administracion/docentes", {
+    method: "POST",
+    body: JSON.stringify(datosDocente),
+  });
+}
+
+export async function registrarPersonal(datosPersonal) {
+  return peticion("/administracion/personal", {
+    method: "POST",
+    body: JSON.stringify(datosPersonal),
+  });
+}
+
 export async function listarAuditorias() {
   return peticion("/administracion/auditorias");
 }
@@ -33,19 +47,4 @@ export async function listarPlanesEstudio() {
 
 export async function listarSemestres() {
   return peticion("/administracion/semestres");
-}
-
-export async function listarPeriodos() {
-  return peticion("/administracion/periodos");
-}
-
-export async function obtenerConfiguracionCiclo() {
-  return peticion("/administracion/configuracion/ciclo-global");
-}
-
-export async function actualizarConfiguracionCiclo(datos) {
-  return peticion("/administracion/configuracion/ciclo-global", {
-    method: "PUT",
-    body: JSON.stringify(datos),
-  });
 }

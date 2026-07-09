@@ -63,6 +63,12 @@ def registrar_docente():
     return controllers.registrar_docente()
 
 
+@administracion_bp.route('/personal', methods=['POST'])
+@rol_requerido("administrador")
+def registrar_personal():
+    return controllers.registrar_personal()
+
+
 @administracion_bp.route('/auditorias', methods=['GET'])
 @rol_requerido("direccion")
 def listar_auditorias():

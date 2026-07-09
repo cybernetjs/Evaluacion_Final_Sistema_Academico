@@ -269,8 +269,9 @@ class CertificadoService:
             pdf.drawString(80, y, linea)
             y -= 16
 
+        from reportlab.lib.utils import ImageReader
         pdf.drawImage(
-            io.BytesIO(buffer_qr.getvalue()), 80, 80, width=90, height=90, mask="auto"
+            ImageReader(io.BytesIO(buffer_qr.getvalue())), 80, 80, width=90, height=90, mask="auto"
         )
         pdf.setFont("Helvetica", 8)
         pdf.drawString(180, 140, f"Código de verificación: {certificado.codigo_verificacion}")
@@ -343,20 +344,24 @@ class CertificadoService:
         certificado = Certificado.query.filter_by(codigo_verificacion=codigo_verificacion).first()
 
         if not certificado or certificado.estado != "Emitido":
-            return {"valido": False, "mensaje": "El código no corresponde a un documento emitido"}, None
+            return {
+                "valido": False,
+                "mensaje": "Código de Verificación Inválido. El documento no pertenece a los registros oficiales de la facultad",
+            }, None
 
         estudiante = certificado.estudiante
-        nombre_enmascarado = None
+        nombre_completo = None
         if estudiante:
-            inicial_paterno = estudiante.apellido_paterno[0] + "." if estudiante.apellido_paterno else ""
-            inicial_materno = estudiante.apellido_materno[0] + "." if estudiante.apellido_materno else ""
-            nombre_enmascarado = f"{estudiante.nombres} {inicial_paterno} {inicial_materno}"
+            nombre_completo = (
+                f"{estudiante.nombres} {estudiante.apellido_paterno} {estudiante.apellido_materno}"
+            )
 
         return {
             "valido": True,
+            "certificado_id": certificado.id,
             "tipo": certificado.tipo,
             "estado": certificado.estado,
             "fecha_emision": certificado.fecha_firma.isoformat() if certificado.fecha_firma else None,
-            "estudiante_enmascarado": nombre_enmascarado,
+            "estudiante_nombre": nombre_completo,
             "hash_documento": certificado.hash_documento,
         }, None
