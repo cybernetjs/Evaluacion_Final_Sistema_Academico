@@ -59,10 +59,12 @@ export async function rechazarTramite(certificadoId, motivo) {
     body: JSON.stringify({ id: certificadoId, motivo }),
   });
 }
+
+export async function autorizarCertificado(certificadoId) {
   return peticion(`/documentos/${certificadoId}/autorizar`, {
     method: "PUT",
   });
-
+}
 
 export async function emitirCertificado(certificadoId) {
   return peticion(`/documentos/${certificadoId}/emitir`, {
