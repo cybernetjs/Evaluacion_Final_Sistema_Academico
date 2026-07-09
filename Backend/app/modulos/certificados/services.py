@@ -13,7 +13,7 @@ from app.modelos.certificado import Certificado
 from app.modelos.estudiante import Estudiante
 from app.modelos.especialidad import Especialidad
 from app.modelos.facultad import Facultad
-from app.modelos.progreso_estudiante import ProgresoEstudiante
+from app.modulos.record_academico.services import RecordAcademicoService
 
 CARPETA_COMPROBANTES = os.path.join(os.getcwd(), "uploads", "comprobantes_documentos")
 CARPETA_CERTIFICADOS = os.path.join(os.getcwd(), "uploads", "certificados_emitidos")
@@ -153,7 +153,11 @@ class CertificadoService:
             return None, "Solicitud no encontrada"
 
         estudiante = certificado.estudiante
-        progreso = ProgresoEstudiante.query.get(estudiante.id) if estudiante else None
+        if estudiante:
+            filas_historial = RecordAcademicoService._filas_historial(estudiante.id)
+            cabecera = RecordAcademicoService._cabecera_metricas(estudiante.id, filas_historial)
+        else:
+            cabecera = {"total_creditos_aprobados": 0, "promedio_ponderado_acumulado": None}
 
         return {
             "id": certificado.id,
@@ -171,10 +175,8 @@ class CertificadoService:
                 "tiene_sancion_activa": estudiante.tiene_sancion_activa,
             },
             "expediente_academico": {
-                "creditos_aprobados_acumulados": progreso.creditos_aprobados_acumulados if progreso else 0,
-                "promedio_ponderado_acumulado": (
-                    float(progreso.promedio_ponderado_acumulado) if progreso and progreso.promedio_ponderado_acumulado else None
-                ),
+                "creditos_aprobados_acumulados": cabecera["total_creditos_aprobados"],
+                "promedio_ponderado_acumulado": cabecera["promedio_ponderado_acumulado"],
             },
         }, None
 

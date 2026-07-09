@@ -74,13 +74,12 @@ def reportes_estrategicos():
     return controllers.reportes_estrategicos()
 
 
-@administracion_bp.route('/configuracion/ciclo-global', methods=['GET'])
-@rol_requerido("administrador")
-def obtener_configuracion_ciclo():
-    return controllers.obtener_configuracion_ciclo()
+@administracion_bp.route('/configuracion', methods=['GET'])
+def configuracion_sistema():
+    return controllers.obtener_configuracion()
 
 
-@administracion_bp.route('/configuracion/ciclo-global', methods=['PUT'])
+@administracion_bp.route('/configuracion', methods=['PUT'])
 @rol_requerido("administrador")
-def actualizar_configuracion_ciclo():
-    return controllers.actualizar_configuracion_ciclo()
+def actualizar_configuracion_sistema():
+    return controllers.actualizar_configuracion()

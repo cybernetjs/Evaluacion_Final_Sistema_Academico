@@ -1,6 +1,5 @@
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity
-from datetime import datetime
 from app import bcrypt
 from app import db
 from app.modelos.facultad import Facultad
@@ -15,8 +14,8 @@ from app.modelos.estudiante import Estudiante
 from app.modelos.docente import Docente
 from app.modelos.matricula_detalle import MatriculaDetalle
 from app.modelos.certificado import Certificado
-from app.modelos.configuracion_ciclo_global import ConfiguracionCicloGlobal
-from app.utils.ciclo_academico import ESTADOS_CICLO, obtener_configuracion_activa
+from app.modelos.configuracion_sistema import ConfiguracionSistema
+from app.modelos.estado_matricula import EstadoMatricula
 
 
 def listar_facultades():
@@ -147,24 +146,54 @@ def cambiar_rol(usuario_id):
 
 
 def listar_auditorias():
-    registros = Auditoria.query.order_by(Auditoria.created_at.desc()).all()
-    return jsonify([
-        {
-            "id": a.id,
-            "usuario_id": a.usuario_id,
-            "accion": a.accion,
-            "detalle": a.detalle,
-            "created_at": a.created_at.isoformat() if a.created_at else None
-        }
-        for a in registros
-    ])
+    pagina = request.args.get("pagina", 1, type=int)
+    por_pagina = request.args.get("por_pagina", 20, type=int)
+    usuario_id = request.args.get("usuario_id", type=int)
+    accion = request.args.get("accion", type=str)
+    fecha_inicio = request.args.get("fecha_inicio", type=str)
+    fecha_fin = request.args.get("fecha_fin", type=str)
+
+    consulta = Auditoria.query
+
+    if usuario_id:
+        consulta = consulta.filter(Auditoria.usuario_id == usuario_id)
+    if accion:
+        consulta = consulta.filter(Auditoria.accion == accion)
+    if fecha_inicio:
+        consulta = consulta.filter(Auditoria.created_at >= fecha_inicio)
+    if fecha_fin:
+        consulta = consulta.filter(Auditoria.created_at <= fecha_fin)
+
+    consulta = consulta.order_by(Auditoria.created_at.desc())
+    paginado = consulta.paginate(page=pagina, per_page=por_pagina, error_out=False)
+
+    return jsonify({
+        "total": paginado.total,
+        "pagina": pagina,
+        "por_pagina": por_pagina,
+        "registros": [
+            {
+                "id": a.id,
+                "usuario_id": a.usuario_id,
+                "accion": a.accion,
+                "detalle": a.detalle,
+                "created_at": a.created_at.isoformat() if a.created_at else None
+            }
+            for a in paginado.items
+        ],
+    })
 
 
 def reportes_estrategicos():
     total_estudiantes = Estudiante.query.count()
     total_docentes = Docente.query.count()
     total_matriculas = Matricula.query.count()
-    matriculas_confirmadas = Matricula.query.filter_by(estado_id=3).count()
+
+    estado_matriculado = EstadoMatricula.query.filter_by(nombre="Matriculado").first()
+    matriculas_confirmadas = (
+        Matricula.query.filter_by(estado_id=estado_matriculado.id).count()
+        if estado_matriculado else 0
+    )
 
     detalles_con_nota = MatriculaDetalle.query.filter(MatriculaDetalle.nota_final.isnot(None)).all()
     promedio_institucional = None
@@ -194,60 +223,44 @@ def reportes_estrategicos():
     })
 
 
-def obtener_configuracion_ciclo():
-    configuracion = obtener_configuracion_activa()
+def obtener_configuracion():
+    configuracion = ConfiguracionSistema.query.first()
+    if not configuracion:
+        return jsonify({"error": "No hay configuracion del sistema registrada"}), 404
 
     return jsonify({
-        "periodo_academico_id": configuracion.periodo_academico_id,
-        "periodo_academico_nombre": configuracion.periodo_academico.nombre if configuracion.periodo_academico else None,
+        "matricula_habilitada": configuracion.matricula_habilitada,
         "estado_ciclo": configuracion.estado_ciclo,
-        "estados_disponibles": ESTADOS_CICLO,
-        "fecha_cierre_matricula": configuracion.fecha_cierre_matricula.isoformat() if configuracion.fecha_cierre_matricula else None,
-        "fecha_limite_notas": configuracion.fecha_limite_notas.isoformat() if configuracion.fecha_limite_notas else None,
-        "fecha_cierre_actas": configuracion.fecha_cierre_actas.isoformat() if configuracion.fecha_cierre_actas else None,
-        "actualizado_en": configuracion.actualizado_en.isoformat() if configuracion.actualizado_en else None,
+        "actualizado": configuracion.updated_at.isoformat() if configuracion.updated_at else None,
     })
 
 
-def actualizar_configuracion_ciclo():
-    datos = request.get_json()
-    configuracion = obtener_configuracion_activa()
+def actualizar_configuracion():
+    data = request.get_json() or {}
 
-    periodo_academico_id = datos.get("periodo_academico_id")
-    estado_ciclo = datos.get("estado_ciclo")
+    configuracion = ConfiguracionSistema.query.first()
+    if not configuracion:
+        configuracion = ConfiguracionSistema()
+        db.session.add(configuracion)
 
-    if periodo_academico_id is not None:
-        periodo = PeriodoAcademico.query.get(periodo_academico_id)
-        if not periodo:
-            return jsonify({"error": "El periodo académico indicado no existe"}), 404
-        configuracion.periodo_academico_id = periodo_academico_id
+    if "matricula_habilitada" in data:
+        configuracion.matricula_habilitada = bool(data.get("matricula_habilitada"))
+    if "estado_ciclo" in data:
+        configuracion.estado_ciclo = data.get("estado_ciclo")
 
-    if estado_ciclo is not None:
-        if estado_ciclo not in ESTADOS_CICLO:
-            return jsonify({"error": "El estado del ciclo indicado no es válido"}), 400
-        configuracion.estado_ciclo = estado_ciclo
+    admin_id = int(get_jwt_identity())
+    configuracion.actualizado_por_id = admin_id
 
-    for campo in ("fecha_cierre_matricula", "fecha_limite_notas", "fecha_cierre_actas"):
-        if campo in datos and datos[campo]:
-            try:
-                setattr(configuracion, campo, datetime.fromisoformat(datos[campo]))
-            except ValueError:
-                return jsonify({"error": f"El formato de {campo} no es válido"}), 400
-
-    if (
-        configuracion.fecha_cierre_matricula
-        and configuracion.fecha_limite_notas
-        and configuracion.fecha_limite_notas < configuracion.fecha_cierre_matricula
-    ):
-        return jsonify({"error": "La fecha límite de notas no puede ser anterior al cierre de matrícula"}), 400
-
-    if (
-        configuracion.fecha_limite_notas
-        and configuracion.fecha_cierre_actas
-        and configuracion.fecha_cierre_actas < configuracion.fecha_limite_notas
-    ):
-        return jsonify({"error": "La fecha de cierre de actas no puede ser anterior a la fecha límite de notas"}), 400
-
+    registro = Auditoria(
+        usuario_id=admin_id,
+        accion="actualizar_configuracion_sistema",
+        detalle=f"matricula_habilitada={configuracion.matricula_habilitada}, estado_ciclo={configuracion.estado_ciclo}",
+    )
+    db.session.add(registro)
     db.session.commit()
 
-    return jsonify({"mensaje": "Configuración del ciclo actualizada correctamente"})
+    return jsonify({
+        "mensaje": "Configuracion actualizada correctamente",
+        "matricula_habilitada": configuracion.matricula_habilitada,
+        "estado_ciclo": configuracion.estado_ciclo,
+    })

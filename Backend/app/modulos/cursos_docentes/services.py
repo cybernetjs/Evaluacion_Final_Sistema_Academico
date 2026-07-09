@@ -29,8 +29,16 @@ class CursosDocentesService:
 
     @staticmethod
     def periodo_activo():
-        from app.utils.ciclo_academico import periodo_activo as periodo_activo_global
-        return periodo_activo_global()
+        hoy = datetime.utcnow()
+        periodo = (
+            PeriodoAcademico.query
+            .filter(PeriodoAcademico.fecha_inicio <= hoy, PeriodoAcademico.fecha_fin >= hoy)
+            .order_by(PeriodoAcademico.fecha_inicio.desc())
+            .first()
+        )
+        if periodo:
+            return periodo
+        return PeriodoAcademico.query.order_by(PeriodoAcademico.fecha_inicio.desc()).first()
 
     @staticmethod
     def periodos_historicos_docente(usuario_id):

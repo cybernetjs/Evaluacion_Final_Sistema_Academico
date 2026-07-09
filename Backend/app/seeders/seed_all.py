@@ -1,4 +1,5 @@
 from app.seeders import (
+    configuracion_sistema_seeder,
     curso_seeder,
     docente_seeder,
     especialidad_seeder,
@@ -28,6 +29,7 @@ from app.seeders import (
 
 
 SEEDERS = [
+    configuracion_sistema_seeder.ejecutar,
     facultad_seeder.ejecutar,
     especialidad_seeder.ejecutar,
     semestre_seeder.ejecutar,

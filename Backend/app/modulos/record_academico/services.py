@@ -58,13 +58,29 @@ class RecordAcademicoService:
 
     @staticmethod
     def _cabecera_metricas(estudiante_id, filas):
-        progreso = ProgresoEstudiante.query.get(estudiante_id)
         total_matriculados = sum(f["creditos"] for f in filas)
+
+        total_aprobados = sum(
+            f["creditos"] for f in filas
+            if f["estado"] and f["estado"].lower() == "aprobado"
+        )
+
+        filas_con_nota = [
+            f for f in filas
+            if f["nota_final"] is not None
+            and f["estado"] and f["estado"].lower() in ("aprobado", "desaprobado")
+        ]
+        creditos_evaluados = sum(f["creditos"] for f in filas_con_nota)
+        if creditos_evaluados > 0:
+            suma_ponderada = sum(f["nota_final"] * f["creditos"] for f in filas_con_nota)
+            promedio_ponderado = round(suma_ponderada / creditos_evaluados, 2)
+        else:
+            promedio_ponderado = None
 
         return {
             "total_creditos_matriculados": total_matriculados,
-            "total_creditos_aprobados": progreso.creditos_aprobados_acumulados if progreso else 0,
-            "promedio_ponderado_acumulado": float(progreso.promedio_ponderado_acumulado) if progreso else None,
+            "total_creditos_aprobados": total_aprobados,
+            "promedio_ponderado_acumulado": promedio_ponderado,
         }
 
     @staticmethod

@@ -23,7 +23,7 @@ def ejecutar():
         PeriodoAcademico(
             nombre="2026-I",
             fecha_inicio=datetime(2026, 3, 1),
-            fecha_fin=datetime(2026, 7, 31),
+            fecha_fin=datetime(2026, 6, 30),
         ),
     ]
 

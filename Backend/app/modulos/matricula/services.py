@@ -8,6 +8,7 @@ from app import db
 from app.modelos.matricula import Matricula
 from app.modelos.estudiante import Estudiante
 from app.modelos.estado_matricula import EstadoMatricula
+from app.modelos.configuracion_sistema import ConfiguracionSistema
 
 CARPETA_COMPROBANTES = os.path.join(os.getcwd(), "uploads", "comprobantes")
 EXTENSIONES_PERMITIDAS = {".pdf", ".jpg", ".jpeg", ".png"}
@@ -233,9 +234,33 @@ class MatriculaService:
         return buffer, None
 
     @staticmethod
+    def _nombre_periodo_actual(fecha=None):
+        fecha = fecha or datetime.now()
+        semestre = "I" if fecha.month <= 6 else "II"
+        return f"{fecha.year}-{semestre}"
+
+    @staticmethod
     def periodo_actual():
-        from app.utils.ciclo_academico import periodo_activo
-        return periodo_activo()
+        from app.modelos.periodo_academico import PeriodoAcademico
+
+        fecha = datetime.now()
+        nombre = MatriculaService._nombre_periodo_actual(fecha)
+        periodo = PeriodoAcademico.query.filter_by(nombre=nombre).first()
+
+        if periodo:
+            return periodo
+
+        if fecha.month <= 6:
+            fecha_inicio = datetime(fecha.year, 1, 1)
+            fecha_fin = datetime(fecha.year, 6, 30)
+        else:
+            fecha_inicio = datetime(fecha.year, 7, 1)
+            fecha_fin = datetime(fecha.year, 12, 31)
+
+        periodo = PeriodoAcademico(nombre=nombre, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin)
+        db.session.add(periodo)
+        db.session.commit()
+        return periodo
 
     @staticmethod
     def _cursos_aprobados_y_desaprobados(estudiante_id):
@@ -370,9 +395,13 @@ class MatriculaService:
             if item.semestre_id == semestre_siguiente:
                 agregar_curso(item, "adelanto")
 
+        configuracion = ConfiguracionSistema.query.first()
+        matricula_habilitada = configuracion.matricula_habilitada if configuracion else True
+
         return {
             "semestre_actual": semestre_actual,
             "creditos_maximos_por_ciclo": creditos_maximos,
+            "matricula_habilitada": matricula_habilitada,
             "cursos": resultado
         }, None
 
@@ -380,6 +409,10 @@ class MatriculaService:
     def solicitar_matricula(usuario_id, ofertas_seleccionadas):
         from app.modelos.matricula_detalle import MatriculaDetalle
         from app.modelos.estado_curso import EstadoCurso
+
+        configuracion = ConfiguracionSistema.query.first()
+        if configuracion and not configuracion.matricula_habilitada:
+            return None, "El proceso de matrícula se encuentra deshabilitado por la administración"
 
         if not ofertas_seleccionadas:
             return None, "Debes seleccionar al menos un curso"
