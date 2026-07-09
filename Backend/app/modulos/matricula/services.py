@@ -8,7 +8,7 @@ from app import db
 from app.modelos.matricula import Matricula
 from app.modelos.estudiante import Estudiante
 from app.modelos.estado_matricula import EstadoMatricula
-from app.modelos.configuracion_sistema import ConfiguracionSistema
+from app.utils.ciclo_academico import ventana_permite
 
 CARPETA_COMPROBANTES = os.path.join(os.getcwd(), "uploads", "comprobantes")
 EXTENSIONES_PERMITIDAS = {".pdf", ".jpg", ".jpeg", ".png"}
@@ -395,8 +395,7 @@ class MatriculaService:
             if item.semestre_id == semestre_siguiente:
                 agregar_curso(item, "adelanto")
 
-        configuracion = ConfiguracionSistema.query.first()
-        matricula_habilitada = configuracion.matricula_habilitada if configuracion else True
+        matricula_habilitada = ventana_permite("matricula")
 
         return {
             "semestre_actual": semestre_actual,
@@ -410,8 +409,7 @@ class MatriculaService:
         from app.modelos.matricula_detalle import MatriculaDetalle
         from app.modelos.estado_curso import EstadoCurso
 
-        configuracion = ConfiguracionSistema.query.first()
-        if configuracion and not configuracion.matricula_habilitada:
+        if not ventana_permite("matricula"):
             return None, "El proceso de matrícula se encuentra deshabilitado por la administración"
 
         if not ofertas_seleccionadas:

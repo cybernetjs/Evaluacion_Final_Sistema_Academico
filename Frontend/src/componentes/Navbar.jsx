@@ -19,6 +19,7 @@ const ENLACES_POR_ROL = {
     { to: "/record-academico/reportes", texto: "Reportes" },
     { to: "/certificados/listar", texto: "Certificados" },
     { to: "/administracion/usuarios", texto: "Usuarios y roles" },
+    { to: "/administracion/permisos", texto: "Matriz de permisos" },
     { to: "/administracion/configuracion-ciclo", texto: "Configuración del ciclo" },
   ],
   direccion: [

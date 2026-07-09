@@ -52,7 +52,7 @@ def listar_usuarios():
 
 
 @administracion_bp.route('/usuarios/<int:usuario_id>/rol', methods=['PUT'])
-@rol_requerido("administrador")
+@rol_requerido(recurso="administracion", accion="actualizar")
 def cambiar_rol(usuario_id):
     return controllers.cambiar_rol(usuario_id)
 
@@ -80,12 +80,28 @@ def reportes_estrategicos():
     return controllers.reportes_estrategicos()
 
 
-@administracion_bp.route('/configuracion', methods=['GET'])
-def configuracion_sistema():
-    return controllers.obtener_configuracion()
-
-
-@administracion_bp.route('/configuracion', methods=['PUT'])
+@administracion_bp.route('/permisos', methods=['GET'])
 @rol_requerido("administrador")
-def actualizar_configuracion_sistema():
-    return controllers.actualizar_configuracion()
+def matriz_permisos():
+    return controllers.obtener_matriz_permisos()
+
+
+@administracion_bp.route('/permisos', methods=['PUT'])
+@rol_requerido("administrador")
+def actualizar_matriz_permisos():
+    return controllers.actualizar_matriz_permisos()
+
+
+admin_bp = Blueprint('admin_ciclo_global', __name__)
+
+
+@admin_bp.route('/configuracion/ciclo-global', methods=['GET'])
+@rol_requerido("administrador")
+def configuracion_ciclo_global():
+    return controllers.obtener_configuracion_ciclo()
+
+
+@admin_bp.route('/configuracion/ciclo-global', methods=['PUT'])
+@rol_requerido("administrador")
+def actualizar_configuracion_ciclo_global():
+    return controllers.actualizar_configuracion_ciclo()

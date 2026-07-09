@@ -96,7 +96,7 @@ def estado_cronograma(oferta_academica_id):
 
 
 @notas_bp.route('/registro', methods=['PUT'])
-@rol_requerido("docente")
+@rol_requerido(recurso="notas", accion="actualizar")
 def registrar_notas_planilla():
     return controllers.registrar_notas_planilla()
 

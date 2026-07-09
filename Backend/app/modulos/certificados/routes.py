@@ -48,7 +48,7 @@ def rechazar_tramite():
 
 
 @certificados_bp.route('/firmar', methods=['POST'])
-@rol_requerido("direccion")
+@rol_requerido(recurso="certificados", accion="ejecutar_batch")
 def firmar_certificados():
     return controllers.firmar_certificados()
 

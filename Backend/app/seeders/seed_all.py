@@ -1,5 +1,5 @@
 from app.seeders import (
-    configuracion_sistema_seeder,
+    configuracion_ciclo_global_seeder,
     curso_seeder,
     docente_seeder,
     especialidad_seeder,
@@ -16,6 +16,7 @@ from app.seeders import (
     oferta_academica_docente_seeder,
     oferta_academica_seeder,
     periodo_academico_seeder,
+    permiso_rol_seeder,
     plan_de_estudios_seeder,
     plan_cursos_semestre_seeder,
     plan_estudiante_seeder,
@@ -29,12 +30,12 @@ from app.seeders import (
 
 
 SEEDERS = [
-    configuracion_sistema_seeder.ejecutar,
     facultad_seeder.ejecutar,
     especialidad_seeder.ejecutar,
     semestre_seeder.ejecutar,
     periodo_academico_seeder.ejecutar,
     hito_academico_seeder.ejecutar,
+    permiso_rol_seeder.ejecutar,
     plan_de_estudios_seeder.ejecutar,
     tipo_docente_seeder.ejecutar,
     tipo_clasificacion_merito_seeder.ejecutar,
@@ -55,6 +56,7 @@ SEEDERS = [
     oferta_academica_docente_seeder.ejecutar,
     historial_merito_seeder.ejecutar,
     progreso_estudiante_seeder.ejecutar,
+    configuracion_ciclo_global_seeder.ejecutar,
 ]
 
 

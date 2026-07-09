@@ -14,8 +14,8 @@ from app.modelos.estudiante import Estudiante
 from app.modelos.docente import Docente
 from app.modelos.matricula_detalle import MatriculaDetalle
 from app.modelos.certificado import Certificado
-from app.modelos.configuracion_sistema import ConfiguracionSistema
 from app.modelos.estado_matricula import EstadoMatricula
+from app.modelos.permiso_rol import PermisoRol
 
 
 def listar_facultades():
@@ -265,44 +265,116 @@ def reportes_estrategicos():
     })
 
 
-def obtener_configuracion():
-    configuracion = ConfiguracionSistema.query.first()
-    if not configuracion:
-        return jsonify({"error": "No hay configuracion del sistema registrada"}), 404
+def obtener_configuracion_ciclo():
+    from app.utils.ciclo_academico import obtener_configuracion_activa, ESTADOS_CICLO
+
+    configuracion = obtener_configuracion_activa()
 
     return jsonify({
-        "matricula_habilitada": configuracion.matricula_habilitada,
+        "periodo_academico_id": configuracion.periodo_academico_id,
         "estado_ciclo": configuracion.estado_ciclo,
-        "actualizado": configuracion.updated_at.isoformat() if configuracion.updated_at else None,
+        "fecha_cierre_matricula": configuracion.fecha_cierre_matricula.isoformat() if configuracion.fecha_cierre_matricula else None,
+        "fecha_limite_notas": configuracion.fecha_limite_notas.isoformat() if configuracion.fecha_limite_notas else None,
+        "fecha_cierre_actas": configuracion.fecha_cierre_actas.isoformat() if configuracion.fecha_cierre_actas else None,
+        "estados_disponibles": ESTADOS_CICLO,
+        "actualizado_en": configuracion.actualizado_en.isoformat() if configuracion.actualizado_en else None,
     })
 
 
-def actualizar_configuracion():
+def actualizar_configuracion_ciclo():
+    from datetime import datetime as dt
+    from app.utils.ciclo_academico import obtener_configuracion_activa, ESTADOS_CICLO
+
     data = request.get_json() or {}
+    configuracion = obtener_configuracion_activa()
 
-    configuracion = ConfiguracionSistema.query.first()
-    if not configuracion:
-        configuracion = ConfiguracionSistema()
-        db.session.add(configuracion)
+    if "periodo_academico_id" in data:
+        configuracion.periodo_academico_id = data.get("periodo_academico_id") or None
 
-    if "matricula_habilitada" in data:
-        configuracion.matricula_habilitada = bool(data.get("matricula_habilitada"))
     if "estado_ciclo" in data:
-        configuracion.estado_ciclo = data.get("estado_ciclo")
+        nuevo_estado = data.get("estado_ciclo")
+        if nuevo_estado not in ESTADOS_CICLO:
+            return jsonify({"error": f"Estado inválido. Debe ser uno de: {ESTADOS_CICLO}"}), 400
+        configuracion.estado_ciclo = nuevo_estado
+
+    for campo in ["fecha_cierre_matricula", "fecha_limite_notas", "fecha_cierre_actas"]:
+        if campo in data:
+            valor = data.get(campo)
+            setattr(configuracion, campo, dt.fromisoformat(valor) if valor else None)
 
     admin_id = int(get_jwt_identity())
-    configuracion.actualizado_por_id = admin_id
 
     registro = Auditoria(
         usuario_id=admin_id,
-        accion="actualizar_configuracion_sistema",
-        detalle=f"matricula_habilitada={configuracion.matricula_habilitada}, estado_ciclo={configuracion.estado_ciclo}",
+        accion="actualizar_configuracion_ciclo",
+        detalle=f"estado_ciclo={configuracion.estado_ciclo}",
     )
     db.session.add(registro)
     db.session.commit()
 
     return jsonify({
-        "mensaje": "Configuracion actualizada correctamente",
-        "matricula_habilitada": configuracion.matricula_habilitada,
+        "mensaje": "Configuración del ciclo académico actualizada correctamente",
         "estado_ciclo": configuracion.estado_ciclo,
     })
+
+
+ROLES_SISTEMA = ["estudiante", "docente", "administrador", "direccion"]
+RECURSOS_SISTEMA = [
+    "matricula", "notas", "certificados", "cursos_docentes",
+    "administracion", "auditoria", "record_academico",
+]
+
+
+def obtener_matriz_permisos():
+    registros = PermisoRol.query.all()
+    indice = {(p.rol, p.recurso): p for p in registros}
+
+    matriz = []
+    for rol in ROLES_SISTEMA:
+        fila = {"rol": rol, "permisos": []}
+        for recurso in RECURSOS_SISTEMA:
+            permiso = indice.get((rol, recurso))
+            fila["permisos"].append({
+                "recurso": recurso,
+                "puede_crear": permiso.puede_crear if permiso else False,
+                "puede_leer": permiso.puede_leer if permiso else False,
+                "puede_actualizar": permiso.puede_actualizar if permiso else False,
+                "puede_eliminar": permiso.puede_eliminar if permiso else False,
+                "puede_ejecutar_batch": permiso.puede_ejecutar_batch if permiso else False,
+            })
+        matriz.append(fila)
+
+    return jsonify({"roles": ROLES_SISTEMA, "recursos": RECURSOS_SISTEMA, "matriz": matriz})
+
+
+def actualizar_matriz_permisos():
+    data = request.get_json() or {}
+    cambios = data.get("permisos", [])
+
+    campos_booleanos = ["puede_crear", "puede_leer", "puede_actualizar", "puede_eliminar", "puede_ejecutar_batch"]
+
+    for cambio in cambios:
+        rol = cambio.get("rol")
+        recurso = cambio.get("recurso")
+        if rol not in ROLES_SISTEMA or recurso not in RECURSOS_SISTEMA:
+            continue
+
+        permiso = PermisoRol.query.filter_by(rol=rol, recurso=recurso).first()
+        if not permiso:
+            permiso = PermisoRol(rol=rol, recurso=recurso)
+            db.session.add(permiso)
+
+        for campo in campos_booleanos:
+            if campo in cambio:
+                setattr(permiso, campo, bool(cambio.get(campo)))
+
+    admin_id = int(get_jwt_identity())
+    registro = Auditoria(
+        usuario_id=admin_id,
+        accion="actualizar_matriz_permisos",
+        detalle=f"Se actualizaron {len(cambios)} combinaciones rol-recurso",
+    )
+    db.session.add(registro)
+    db.session.commit()
+
+    return jsonify({"mensaje": "Matriz de permisos actualizada correctamente"})
