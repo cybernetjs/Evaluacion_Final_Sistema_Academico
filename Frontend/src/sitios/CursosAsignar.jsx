@@ -3,12 +3,14 @@ import { listarOfertas } from "../servicios/matricula.servicio";
 import {
   asignarDocente,
   gestionarHorario,
+  listarCursos,
   listarDocentes,
   listarTiposDocentes,
 } from "../servicios/cursosDocentes.servicio";
 
 export default function CursosAsignar() {
   const [ofertas, setOfertas] = useState([]);
+  const [cursos, setCursos] = useState([]);
   const [docentes, setDocentes] = useState([]);
   const [tiposDocentes, setTiposDocentes] = useState([]);
   const [ofertaId, setOfertaId] = useState("");
@@ -25,8 +27,9 @@ export default function CursosAsignar() {
   }, []);
 
   async function cargarDatos() {
-    const [resOfertas, resDocentes, resTipos] = await Promise.all([
+    const [resOfertas, resCursos, resDocentes, resTipos] = await Promise.all([
       listarOfertas(),
+      listarCursos(),
       listarDocentes(),
       listarTiposDocentes(),
     ]);
@@ -36,6 +39,10 @@ export default function CursosAsignar() {
       if (resOfertas.data?.length && !ofertaId) {
         setOfertaId(String(resOfertas.data[0].id));
       }
+    }
+
+    if (!resCursos.error) {
+      setCursos(resCursos.data);
     }
 
     if (!resDocentes.error) {
@@ -51,6 +58,16 @@ export default function CursosAsignar() {
         setTipoDocenteId(String(resTipos.data[0].id));
       }
     }
+  }
+
+  function nombreCurso(cursoId) {
+    const curso = cursos.find((item) => item.id === cursoId);
+    if (!curso) return `Curso ${cursoId}`;
+    return `${curso.codigo} - ${curso.nombre}`;
+  }
+
+  function textoOferta(oferta) {
+    return `Oferta ${oferta.id} | ${nombreCurso(oferta.curso_id)} | Semestre ${oferta.semestre_id}`;
   }
 
   async function manejarAsignacion(evento) {
@@ -106,7 +123,7 @@ export default function CursosAsignar() {
             <select value={ofertaId} onChange={(e) => setOfertaId(e.target.value)}>
               {ofertas.map((oferta) => (
                 <option key={oferta.id} value={oferta.id}>
-                  Oferta {oferta.id} - Curso {oferta.curso_id}
+                  {textoOferta(oferta)}
                 </option>
               ))}
             </select>
@@ -141,7 +158,7 @@ export default function CursosAsignar() {
             <select value={ofertaId} onChange={(e) => setOfertaId(e.target.value)}>
               {ofertas.map((oferta) => (
                 <option key={oferta.id} value={oferta.id}>
-                  Oferta {oferta.id} - Curso {oferta.curso_id}
+                  {textoOferta(oferta)}
                 </option>
               ))}
             </select>
@@ -168,6 +185,7 @@ export default function CursosAsignar() {
             <th>Oferta</th>
             <th>Curso</th>
             <th>Semestre</th>
+            <th>Periodo</th>
             <th>Cupos</th>
           </tr>
         </thead>
@@ -175,8 +193,9 @@ export default function CursosAsignar() {
           {ofertas.map((oferta) => (
             <tr key={oferta.id}>
               <td>{oferta.id}</td>
-              <td>{oferta.curso_id}</td>
+              <td>{nombreCurso(oferta.curso_id)}</td>
               <td>{oferta.semestre_id}</td>
+              <td>{oferta.periodo_academico_id}</td>
               <td>{oferta.cupos}</td>
             </tr>
           ))}

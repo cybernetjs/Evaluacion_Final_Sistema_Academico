@@ -18,7 +18,13 @@ export async function peticion(ruta, opciones = {}) {
     const datos = await respuesta.json().catch(() => null);
 
     if (!respuesta.ok) {
-      return { data: null, error: datos?.error || datos?.mensaje || "Ocurrió un error" };
+      if ((respuesta.status === 401 || respuesta.status === 422) && datos?.msg) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("usuario");
+        return { data: null, error: "Tu sesion vencio. Inicia sesion nuevamente." };
+      }
+
+      return { data: null, error: datos?.error || datos?.mensaje || datos?.msg || "Ocurrio un error" };
     }
 
     return { data: datos, error: null };

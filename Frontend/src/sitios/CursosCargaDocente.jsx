@@ -1,25 +1,49 @@
 import { useEffect, useState } from "react";
-import { cargaDocente, evaluarCumplimientoPlan } from "../servicios/cursosDocentes.servicio";
+import { cargaDocente, evaluarCumplimientoPlan, listarCursos } from "../servicios/cursosDocentes.servicio";
+import { listarPeriodos } from "../servicios/matricula.servicio";
 
 export default function CursosCargaDocente() {
   const [carga, setCarga] = useState([]);
+  const [cursos, setCursos] = useState([]);
+  const [periodos, setPeriodos] = useState([]);
   const [periodoAcademicoId, setPeriodoAcademicoId] = useState("");
   const [cumplimiento, setCumplimiento] = useState([]);
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    cargarCargaDocente();
+    cargarDatos();
   }, []);
 
-  async function cargarCargaDocente() {
-    const { data, error } = await cargaDocente();
-    if (error) {
-      setError(error);
-      return;
+  async function cargarDatos() {
+    const [resCarga, resCursos, resPeriodos] = await Promise.all([
+      cargaDocente(),
+      listarCursos(),
+      listarPeriodos(),
+    ]);
+
+    if (resCarga.error) {
+      setError(resCarga.error);
+    } else {
+      setCarga(resCarga.data);
     }
 
-    setCarga(data);
+    if (!resCursos.error) {
+      setCursos(resCursos.data);
+    }
+
+    if (!resPeriodos.error) {
+      setPeriodos(resPeriodos.data);
+      if (resPeriodos.data?.length && !periodoAcademicoId) {
+        setPeriodoAcademicoId(String(resPeriodos.data[0].id));
+      }
+    }
+  }
+
+  function nombreCurso(cursoId) {
+    const curso = cursos.find((item) => item.id === cursoId);
+    if (!curso) return `Curso ${cursoId}`;
+    return `${curso.codigo} - ${curso.nombre}`;
   }
 
   async function manejarCumplimiento(evento) {
@@ -49,12 +73,14 @@ export default function CursosCargaDocente() {
       <form onSubmit={manejarCumplimiento}>
         <div>
           <label>Periodo académico</label>
-          <input
-            type="number"
-            value={periodoAcademicoId}
-            onChange={(e) => setPeriodoAcademicoId(e.target.value)}
-            required
-          />
+          <select value={periodoAcademicoId} onChange={(e) => setPeriodoAcademicoId(e.target.value)} required>
+            <option value="">Selecciona un periodo</option>
+            {periodos.map((periodo) => (
+              <option key={periodo.id} value={periodo.id}>
+                {periodo.nombre || `Periodo ${periodo.id}`}
+              </option>
+            ))}
+          </select>
         </div>
         <button type="submit">Evaluar cumplimiento</button>
       </form>
@@ -89,7 +115,7 @@ export default function CursosCargaDocente() {
         <tbody>
           {cumplimiento.map((item, index) => (
             <tr key={`${item.curso_id}-${index}`}>
-              <td>{item.curso_id}</td>
+              <td>{nombreCurso(item.curso_id)}</td>
               <td>{item.docentes_asignados}</td>
               <td>{item.cupos}</td>
             </tr>
