@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { solicitarDocumento, misSolicitudes } from "../servicios/certificados.servicio";
+import { solicitarDocumento, misSolicitudes, urlDescargarCertificadoEmitido } from "../servicios/certificados.servicio";
 
 const TIPOS_DOCUMENTO = [
   "Constancia de Estudios",
@@ -154,6 +154,16 @@ export default function CertificadosSolicitar() {
                   {s.estado}
                   {s.estado === "Rechazado" && s.motivo_rechazo && (
                     <span style={{ color: "#ff6b6b" }}> — {s.motivo_rechazo}</span>
+                  )}
+                  {s.estado === "Emitido" && (
+                    <a
+                      href={urlDescargarCertificadoEmitido(s.id)}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ marginLeft: 8 }}
+                    >
+                      Descargar
+                    </a>
                   )}
                 </td>
               </tr>

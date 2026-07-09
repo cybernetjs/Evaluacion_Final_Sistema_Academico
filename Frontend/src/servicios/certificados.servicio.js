@@ -2,10 +2,6 @@ import { peticion } from "./api";
 
 const URL_BASE = "http://localhost:5000/api";
 
-export async function listarSolicitudes() {
-  return peticion("/documentos/");
-}
-
 export async function solicitarDocumento(tipo, archivo) {
   const formData = new FormData();
   formData.append("tipo", tipo);
@@ -60,22 +56,17 @@ export async function rechazarTramite(certificadoId, motivo) {
   });
 }
 
-export async function autorizarCertificado(certificadoId) {
-  return peticion(`/documentos/${certificadoId}/autorizar`, {
-    method: "PUT",
+export async function firmarCertificados(certificadoIds) {
+  return peticion("/documentos/firmar", {
+    method: "POST",
+    body: JSON.stringify({ certificado_ids: certificadoIds }),
   });
 }
 
-export async function emitirCertificado(certificadoId) {
-  return peticion(`/documentos/${certificadoId}/emitir`, {
-    method: "POST",
-  });
+export function urlDescargarCertificadoEmitido(certificadoId) {
+  return `${URL_BASE}/documentos/${certificadoId}/descargar`;
 }
 
 export async function verificarCertificado(codigo) {
   return peticion(`/documentos/verificar/${codigo}`);
-}
-
-export function urlQrCertificado(codigo) {
-  return `${URL_BASE}/documentos/qr/${codigo}`;
 }

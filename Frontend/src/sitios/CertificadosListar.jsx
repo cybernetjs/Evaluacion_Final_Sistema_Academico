@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import {
   bandeja,
   detalleExpediente,
   urlComprobante,
   aprobarTramite,
   rechazarTramite,
+  firmarCertificados,
+  urlDescargarCertificadoEmitido,
   verificarCertificado,
 } from "../servicios/certificados.servicio";
 
 export default function CertificadosListar() {
+  const { usuario } = useAuth();
   const [solicitudes, setSolicitudes] = useState([]);
   const [total, setTotal] = useState(0);
   const [filtroEstado, setFiltroEstado] = useState("");
@@ -19,6 +23,11 @@ export default function CertificadosListar() {
   const [expediente, setExpediente] = useState(null);
   const [tramiteARechazar, setTramiteARechazar] = useState(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
+
+  const [seleccionParaFirma, setSeleccionParaFirma] = useState([]);
+  const [mostrarConfirmacionFirma, setMostrarConfirmacionFirma] = useState(false);
+  const [firmando, setFirmando] = useState(false);
+  const [resultadosFirma, setResultadosFirma] = useState(null);
 
   const [codigo, setCodigo] = useState("");
   const [verificacion, setVerificacion] = useState(null);
@@ -41,6 +50,7 @@ export default function CertificadosListar() {
     }
     setSolicitudes(data.solicitudes);
     setTotal(data.total);
+    setSeleccionParaFirma([]);
   }
 
   async function abrirExpediente(sol) {
@@ -79,6 +89,31 @@ export default function CertificadosListar() {
     cargarBandeja();
   }
 
+  function alternarSeleccionFirma(id) {
+    setSeleccionParaFirma((actuales) =>
+      actuales.includes(id) ? actuales.filter((item) => item !== id) : [...actuales, id]
+    );
+  }
+
+  async function confirmarFirma() {
+    setMostrarConfirmacionFirma(false);
+    setFirmando(true);
+    setMensaje(null);
+    setError(null);
+
+    const { data, error } = await firmarCertificados(seleccionParaFirma);
+    setFirmando(false);
+
+    if (error) {
+      setError(error);
+      return;
+    }
+
+    setResultadosFirma(data.resultados);
+    setMensaje("Proceso de firma completado");
+    cargarBandeja();
+  }
+
   async function manejarVerificacion(evento) {
     evento.preventDefault();
     setMensaje(null);
@@ -94,6 +129,7 @@ export default function CertificadosListar() {
   }
 
   const totalPaginas = Math.max(1, Math.ceil(total / porPagina));
+  const esDireccion = usuario?.rol === "direccion";
 
   return (
     <div className="contenedor">
@@ -119,6 +155,7 @@ export default function CertificadosListar() {
           <table>
             <thead>
               <tr>
+                {esDireccion && <th></th>}
                 <th>Ticket</th>
                 <th>Estudiante</th>
                 <th>Tipo</th>
@@ -131,6 +168,17 @@ export default function CertificadosListar() {
               {solicitudes.length > 0 ? (
                 solicitudes.map((s) => (
                   <tr key={s.id}>
+                    {esDireccion && (
+                      <td>
+                        {s.estado === "Apto para Firma" && (
+                          <input
+                            type="checkbox"
+                            checked={seleccionParaFirma.includes(s.id)}
+                            onChange={() => alternarSeleccionFirma(s.id)}
+                          />
+                        )}
+                      </td>
+                    )}
                     <td>{s.ticket_codigo}</td>
                     <td>{s.estudiante_nombre}</td>
                     <td>{s.tipo}</td>
@@ -140,16 +188,48 @@ export default function CertificadosListar() {
                       <button type="button" onClick={() => abrirExpediente(s)}>
                         Ver expediente
                       </button>
+                      {s.estado === "Emitido" && (
+                        <a
+                          href={urlDescargarCertificadoEmitido(s.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ marginLeft: 8 }}
+                        >
+                          Descargar
+                        </a>
+                      )}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6">No hay solicitudes en este estado.</td>
+                  <td colSpan={esDireccion ? "7" : "6"}>No hay solicitudes en este estado.</td>
                 </tr>
               )}
             </tbody>
           </table>
+
+          {esDireccion && (
+            <div style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                disabled={seleccionParaFirma.length === 0 || firmando}
+                onClick={() => setMostrarConfirmacionFirma(true)}
+              >
+                {firmando ? "Firmando..." : `Firmar y emitir seleccionados (${seleccionParaFirma.length})`}
+              </button>
+            </div>
+          )}
+
+          {resultadosFirma && (
+            <ul style={{ marginTop: 12 }}>
+              {resultadosFirma.map((r) => (
+                <li key={r.id} style={{ color: r.estado === "firmado" ? "#8fd18f" : "#ff6b6b" }}>
+                  Certificado {r.id}: {r.estado === "firmado" ? "emitido correctamente" : r.detalle}
+                </li>
+              ))}
+            </ul>
+          )}
 
           <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
             <button type="button" onClick={() => setPagina((p) => Math.max(1, p - 1))} disabled={pagina <= 1}>
@@ -175,8 +255,13 @@ export default function CertificadosListar() {
       {verificacion && (
         <ul>
           <li>Válido: {verificacion.valido ? "Sí" : "No"}</li>
-          <li>Tipo: {verificacion.tipo}</li>
-          <li>Estado: {verificacion.estado}</li>
+          {verificacion.valido && (
+            <>
+              <li>Tipo: {verificacion.tipo}</li>
+              <li>Estudiante: {verificacion.estudiante_enmascarado}</li>
+              <li>Fecha de emisión: {verificacion.fecha_emision ? new Date(verificacion.fecha_emision).toLocaleDateString() : "-"}</li>
+            </>
+          )}
         </ul>
       )}
 
@@ -237,7 +322,7 @@ export default function CertificadosListar() {
                   <p>Créditos aprobados acumulados: {expediente.expediente_academico.creditos_aprobados_acumulados}</p>
                   <p>Promedio ponderado acumulado: {expediente.expediente_academico.promedio_ponderado_acumulado ?? "Sin datos"}</p>
 
-                  {expediente.estado === "Pendiente de Validación" && (
+                  {expediente.estado === "Pendiente de Validación" && !esDireccion && (
                     <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                       <button type="button" onClick={() => manejarAprobar(seleccionada.id)}>
                         Aprobar y Derivar
@@ -302,6 +387,43 @@ export default function CertificadosListar() {
                 Confirmar rechazo
               </button>
               <button type="button" onClick={() => setTramiteARechazar(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mostrarConfirmacionFirma && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1100,
+          }}
+          onClick={() => setMostrarConfirmacionFirma(false)}
+        >
+          <div
+            style={{ background: "#1e1e1e", border: "1px solid #6b6bff", borderRadius: 8, padding: 20, maxWidth: 420 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 style={{ marginTop: 0 }}>Confirmar firma digital</h4>
+            <p>
+              Vas a firmar y emitir {seleccionParaFirma.length} certificado(s). Esta acción generará el
+              documento oficial definitivo y no podrá deshacerse. ¿Deseas continuar?
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={confirmarFirma}>
+                Confirmar y firmar
+              </button>
+              <button type="button" onClick={() => setMostrarConfirmacionFirma(false)}>
                 Cancelar
               </button>
             </div>
