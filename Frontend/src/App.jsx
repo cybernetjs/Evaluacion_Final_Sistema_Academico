@@ -18,6 +18,7 @@ import AnalisisCohorte from "./sitios/AnalisisCohorte.jsx";
 import CertificadosSolicitar from "./sitios/CertificadosSolicitar.jsx";
 import CertificadosListar from "./sitios/CertificadosListar.jsx";
 import AdministracionUsuarios from "./sitios/AdministracionUsuarios.jsx";
+import AdministracionPermisos from "./sitios/AdministracionPermisos.jsx";
 import AdministracionAuditorias from "./sitios/AdministracionAuditorias.jsx";
 import ConfiguracionGlobal from "./sitios/ConfiguracionGlobal.jsx";
 
@@ -168,6 +169,14 @@ export default function App() {
           element={
             <RutaProtegida rolesPermitidos={["administrador"]}>
               <AdministracionUsuarios />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/administracion/permisos"
+          element={
+            <RutaProtegida rolesPermitidos={["administrador"]}>
+              <AdministracionPermisos />
             </RutaProtegida>
           }
         />
