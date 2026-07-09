@@ -8,6 +8,7 @@ import EstadisticasMatricula from "./sitios/EstadisticasMatricula.jsx";
 import CursosMisCursos from "./sitios/CursosMisCursos.jsx";
 import CursosAsignar from "./sitios/CursosAsignar.jsx";
 import CursosCargaDocente from "./sitios/CursosCargaDocente.jsx";
+import CursosAuditoriaSilabos from "./sitios/CursosAuditoriaSilabos.jsx";
 import NotasMiHoja from "./sitios/NotasMiHoja.jsx";
 import NotasRegistrar from "./sitios/NotasRegistrar.jsx";
 import NotasGestion from "./sitios/NotasGestion.jsx";
@@ -78,6 +79,14 @@ export default function App() {
           element={
             <RutaProtegida rolesPermitidos={["direccion"]}>
               <CursosCargaDocente />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/cursos-docentes/auditoria-silabos"
+          element={
+            <RutaProtegida rolesPermitidos={["direccion"]}>
+              <CursosAuditoriaSilabos />
             </RutaProtegida>
           }
         />

@@ -30,10 +30,16 @@ def listar_tipos_docentes():
     return controllers.listar_tipos_docentes()
 
 
-@cursos_docentes_bp.route('/mis-cursos', methods=['GET'])
+@cursos_docentes_bp.route('/carga-academica', methods=['GET'])
 @rol_requerido("docente")
 def mis_cursos_asignados():
     return controllers.mis_cursos_asignados()
+
+
+@cursos_docentes_bp.route('/carga-academica/periodos-historicos', methods=['GET'])
+@rol_requerido("docente")
+def periodos_historicos_docente():
+    return controllers.periodos_historicos_docente()
 
 
 @cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/asignar-docente', methods=['POST'])
@@ -53,6 +59,7 @@ def gestionar_horario(oferta_academica_id):
 def carga_docente():
     return controllers.carga_docente()
 
+
 @cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/silabo', methods=['POST'])
 @rol_requerido("docente")
 def cargar_silabo(oferta_academica_id):
@@ -63,7 +70,8 @@ def cargar_silabo(oferta_academica_id):
 def descargar_silabo(oferta_academica_id):
     return controllers.descargar_silabo(oferta_academica_id)
 
-@cursos_docentes_bp.route('/cumplimiento-plan-estudios', methods=['GET'])
+
+@cursos_docentes_bp.route('/auditoria/cumplimiento-silabos', methods=['GET'])
 @rol_requerido("direccion")
-def evaluar_cumplimiento_plan():
-    return controllers.evaluar_cumplimiento_plan()
+def cumplimiento_silabos():
+    return controllers.cumplimiento_silabos()

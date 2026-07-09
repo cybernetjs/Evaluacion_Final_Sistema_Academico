@@ -1,98 +1,118 @@
 import { useEffect, useState } from "react";
-import { cargaDocente, evaluarCumplimientoPlan } from "../servicios/cursosDocentes.servicio";
+import { cargaDocente } from "../servicios/cursosDocentes.servicio";
+import { listarEspecialidades } from "../servicios/administracion.servicio";
+
+const COLOR_POR_CATEGORIA = {
+  "Carga Incompleta": "#f2c14e",
+  "Carga Regular": "#4caf50",
+  "Sobrecarga Laboral": "#e74c3c",
+};
 
 export default function CursosCargaDocente() {
   const [carga, setCarga] = useState([]);
-  const [periodoAcademicoId, setPeriodoAcademicoId] = useState("");
-  const [cumplimiento, setCumplimiento] = useState([]);
-  const [mensaje, setMensaje] = useState(null);
+  const [especialidades, setEspecialidades] = useState([]);
+  const [especialidadId, setEspecialidadId] = useState("");
+  const [docenteExpandido, setDocenteExpandido] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    cargarCargaDocente();
+    listarEspecialidades().then((res) => {
+      if (!res.error) setEspecialidades(res.data);
+    });
+    cargarDatos();
   }, []);
 
-  async function cargarCargaDocente() {
-    const { data, error } = await cargaDocente();
+  async function cargarDatos(filtros = {}) {
+    const { data, error } = await cargaDocente(filtros);
     if (error) {
       setError(error);
       return;
     }
-
+    setError(null);
     setCarga(data);
   }
 
-  async function manejarCumplimiento(evento) {
-    evento.preventDefault();
-    setMensaje(null);
-    setError(null);
+  function manejarFiltroEspecialidad(valor) {
+    setEspecialidadId(valor);
+    cargarDatos({ especialidadId: valor || undefined });
+  }
 
-    const { data, error } = await evaluarCumplimientoPlan(periodoAcademicoId);
-
-    if (error) {
-      setError(error);
-      return;
-    }
-
-    setCumplimiento(data);
-    setMensaje("Cumplimiento del plan cargado correctamente");
+  function alternarExpandido(docenteId) {
+    setDocenteExpandido((actual) => (actual === docenteId ? null : docenteId));
   }
 
   return (
     <div className="contenedor">
-      <h2>Carga docente</h2>
-      <p>Supervisa la distribución de cursos y el cumplimiento del plan de estudios.</p>
+      <h2>Distribución de carga lectiva</h2>
+      <p>Panel analítico de la plana docente de la facultad para el periodo en curso.</p>
 
-      {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <form onSubmit={manejarCumplimiento}>
-        <div>
-          <label>Periodo académico</label>
-          <input
-            type="number"
-            value={periodoAcademicoId}
-            onChange={(e) => setPeriodoAcademicoId(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Evaluar cumplimiento</button>
-      </form>
+      <select value={especialidadId} onChange={(e) => manejarFiltroEspecialidad(e.target.value)}>
+        <option value="">Todas las especialidades</option>
+        {especialidades.map((e) => (
+          <option key={e.id} value={e.id}>{e.nombre}</option>
+        ))}
+      </select>
 
-      <h3>Carga por docente</h3>
-      <table>
+      <table style={{ marginTop: 16 }}>
         <thead>
           <tr>
             <th>Docente</th>
-            <th>Cursos asignados</th>
+            <th>Especialidad</th>
+            <th>Horas semanales</th>
+            <th>Categoría</th>
           </tr>
         </thead>
         <tbody>
           {carga.map((item) => (
-            <tr key={item.docente_id}>
-              <td>{item.nombres} {item.apellido_paterno}</td>
-              <td>{item.cursos_asignados}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h3>Cumplimiento del plan</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Curso</th>
-            <th>Docentes asignados</th>
-            <th>Cupos</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cumplimiento.map((item, index) => (
-            <tr key={`${item.curso_id}-${index}`}>
-              <td>{item.curso_id}</td>
-              <td>{item.docentes_asignados}</td>
-              <td>{item.cupos}</td>
-            </tr>
+            <>
+              <tr
+                key={item.docente_id}
+                onClick={() => alternarExpandido(item.docente_id)}
+                style={{ cursor: "pointer" }}
+              >
+                <td>{item.nombres} {item.apellido_paterno}</td>
+                <td>{item.especialidad || "-"}</td>
+                <td>{item.total_horas_semanales}</td>
+                <td>
+                  <span
+                    style={{
+                      padding: "2px 8px",
+                      borderRadius: 12,
+                      color: "#fff",
+                      backgroundColor: COLOR_POR_CATEGORIA[item.categoria],
+                    }}
+                  >
+                    {item.categoria}
+                  </span>
+                </td>
+              </tr>
+              {docenteExpandido === item.docente_id && (
+                <tr key={`${item.docente_id}-detalle`}>
+                  <td colSpan={4}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Curso</th>
+                          <th>Función</th>
+                          <th>Horas</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {item.detalle_cursos.map((c, indice) => (
+                          <tr key={indice}>
+                            <td>{c.curso_nombre}</td>
+                            <td>{c.funcion_curso}</td>
+                            <td>{c.horas_asignadas}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+              )}
+            </>
           ))}
         </tbody>
       </table>

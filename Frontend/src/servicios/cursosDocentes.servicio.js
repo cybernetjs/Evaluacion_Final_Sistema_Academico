@@ -22,8 +22,14 @@ export async function listarTiposDocentes() {
   return peticion("/cursos-docentes/tipos-docentes");
 }
 
-export async function misCursosAsignados() {
-  return peticion("/cursos-docentes/mis-cursos");
+export async function misCursosAsignados(periodoAcademicoId) {
+  const parametros = new URLSearchParams();
+  if (periodoAcademicoId) parametros.set("periodo_academico_id", periodoAcademicoId);
+  return peticion(`/cursos-docentes/carga-academica?${parametros.toString()}`);
+}
+
+export async function periodosHistoricosDocente() {
+  return peticion("/cursos-docentes/carga-academica/periodos-historicos");
 }
 
 export async function asignarDocente(ofertaAcademicaId, datos) {
@@ -40,8 +46,11 @@ export async function gestionarHorario(ofertaAcademicaId, datos) {
   });
 }
 
-export async function cargaDocente() {
-  return peticion("/cursos-docentes/carga-docente");
+export async function cargaDocente(filtros = {}) {
+  const parametros = new URLSearchParams();
+  if (filtros.especialidadId) parametros.set("especialidad_id", filtros.especialidadId);
+  if (filtros.periodoAcademicoId) parametros.set("periodo_academico_id", filtros.periodoAcademicoId);
+  return peticion(`/cursos-docentes/carga-docente?${parametros.toString()}`);
 }
 
 export async function cargarSilabo(ofertaAcademicaId, archivo) {
@@ -68,8 +77,10 @@ export async function cargarSilabo(ofertaAcademicaId, archivo) {
   }
 }
 
-export async function evaluarCumplimientoPlan(periodoAcademicoId) {
-  return peticion(`/cursos-docentes/cumplimiento-plan-estudios?periodo_academico_id=${periodoAcademicoId}`);
+export async function cumplimientoSilabos(periodoAcademicoId) {
+  const parametros = new URLSearchParams();
+  if (periodoAcademicoId) parametros.set("periodo_academico_id", periodoAcademicoId);
+  return peticion(`/cursos-docentes/auditoria/cumplimiento-silabos?${parametros.toString()}`);
 }
 
 export function urlDescargarSilabo(ofertaAcademicaId) {
