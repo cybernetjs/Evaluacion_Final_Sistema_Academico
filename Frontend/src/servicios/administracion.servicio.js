@@ -48,3 +48,29 @@ export async function listarPlanesEstudio() {
 export async function listarSemestres() {
   return peticion("/administracion/semestres");
 }
+
+export async function listarPeriodos() {
+  return peticion("/administracion/periodos");
+}
+
+export async function obtenerConfiguracionCiclo() {
+  return peticion("/admin/configuracion/ciclo-global");
+}
+
+export async function actualizarConfiguracionCiclo(datos) {
+  return peticion("/admin/configuracion/ciclo-global", {
+    method: "PUT",
+    body: JSON.stringify(datos),
+  });
+}
+
+export async function obtenerMatrizPermisos() {
+  return peticion("/administracion/permisos");
+}
+
+export async function actualizarMatrizPermisos(cambios) {
+  return peticion("/administracion/permisos", {
+    method: "PUT",
+    body: JSON.stringify({ permisos: cambios }),
+  });
+}
