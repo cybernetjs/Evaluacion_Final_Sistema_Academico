@@ -1,81 +1,77 @@
-from flask import Blueprint, jsonify
-from app.modulos.record_academico import controllers
+from flask import Blueprint
+from app.modulos.cursos_docentes import controllers
 from app.utils.middlewares import rol_requerido
 
-record_academico_bp = Blueprint('record_academico', __name__)
+cursos_docentes_bp = Blueprint('cursos_docentes', __name__)
 
 
-@record_academico_bp.route('/', methods=['GET'])
-def index_record_academico():
-    return jsonify({
-        "endpoints": [
-            "/<estudiante_id>",
-            "/historial-completo",
-            "/historial-completo/pdf",
-            "/progreso/<estudiante_id>",
-            "/tipos-clasificacion",
-            "/estados-permanencia",
-            "/anios-ingreso",
-            "/reportes",
-            "/reportes/exportar",
-            "/analisis-cohorte",
-        ]
-    })
+@cursos_docentes_bp.route('/', methods=['GET'])
+def listar_cursos():
+    return controllers.listar_cursos()
 
 
-@record_academico_bp.route('/<int:estudiante_id>', methods=['GET'])
-@rol_requerido("administrador", "direccion")
-def obtener_record(estudiante_id):
-    return controllers.obtener_record(estudiante_id)
+@cursos_docentes_bp.route('/<int:id>', methods=['GET'])
+def obtener_curso(id):
+    return controllers.obtener_curso(id)
 
 
-@record_academico_bp.route('/historial-completo', methods=['GET'])
-@rol_requerido("estudiante")
-def historial_completo():
-    return controllers.historial_completo()
+@cursos_docentes_bp.route('/prerequisitos', methods=['GET'])
+def listar_prerequisitos():
+    return controllers.listar_prerequisitos()
 
 
-@record_academico_bp.route('/historial-completo/pdf', methods=['GET'])
-@rol_requerido("estudiante")
-def historial_completo_pdf():
-    return controllers.historial_completo_pdf()
+@cursos_docentes_bp.route('/docentes', methods=['GET'])
+def listar_docentes():
+    return controllers.listar_docentes()
 
 
-@record_academico_bp.route('/progreso/<int:estudiante_id>', methods=['GET'])
-@rol_requerido("administrador", "direccion")
-def obtener_progreso(estudiante_id):
-    return controllers.obtener_progreso(estudiante_id)
+@cursos_docentes_bp.route('/tipos-docentes', methods=['GET'])
+def listar_tipos_docentes():
+    return controllers.listar_tipos_docentes()
 
 
-@record_academico_bp.route('/tipos-clasificacion', methods=['GET'])
-def listar_tipos_clasificacion():
-    return controllers.listar_tipos_clasificacion()
+@cursos_docentes_bp.route('/carga-academica', methods=['GET'])
+@rol_requerido("docente")
+def mis_cursos_asignados():
+    return controllers.mis_cursos_asignados()
 
 
-@record_academico_bp.route('/estados-permanencia', methods=['GET'])
-def listar_estados_permanencia():
-    return controllers.listar_estados_permanencia()
+@cursos_docentes_bp.route('/carga-academica/periodos-historicos', methods=['GET'])
+@rol_requerido("docente")
+def periodos_historicos_docente():
+    return controllers.periodos_historicos_docente()
 
 
-@record_academico_bp.route('/anios-ingreso', methods=['GET'])
-@rol_requerido("administrador", "direccion")
-def anios_ingreso():
-    return controllers.anios_ingreso()
+@cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/asignar-docente', methods=['POST'])
+@rol_requerido("administrador")
+def asignar_docente(oferta_academica_id):
+    return controllers.asignar_docente(oferta_academica_id)
 
 
-@record_academico_bp.route('/reportes', methods=['GET'])
-@rol_requerido("administrador", "direccion")
-def reportes_consolidados():
-    return controllers.reportes_consolidados()
+@cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/horario', methods=['POST'])
+@rol_requerido("administrador")
+def gestionar_horario(oferta_academica_id):
+    return controllers.gestionar_horario(oferta_academica_id)
 
 
-@record_academico_bp.route('/reportes/exportar', methods=['GET'])
-@rol_requerido("administrador", "direccion")
-def exportar_reportes():
-    return controllers.exportar_reportes()
-
-
-@record_academico_bp.route('/analisis-cohorte', methods=['GET'])
+@cursos_docentes_bp.route('/carga-docente', methods=['GET'])
 @rol_requerido("direccion")
-def analisis_cohorte():
-    return controllers.analisis_cohorte()
+def carga_docente():
+    return controllers.carga_docente()
+
+
+@cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/silabo', methods=['POST'])
+@rol_requerido("docente")
+def cargar_silabo(oferta_academica_id):
+    return controllers.cargar_silabo(oferta_academica_id)
+
+
+@cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/silabo', methods=['GET'])
+def descargar_silabo(oferta_academica_id):
+    return controllers.descargar_silabo(oferta_academica_id)
+
+
+@cursos_docentes_bp.route('/auditoria/cumplimiento-silabos', methods=['GET'])
+@rol_requerido("direccion")
+def cumplimiento_silabos():
+    return controllers.cumplimiento_silabos()
