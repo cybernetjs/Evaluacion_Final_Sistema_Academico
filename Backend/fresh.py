@@ -16,4 +16,4 @@ with app.app_context():
 
     ejecutar_todos()
 
-    print("Listo: base de datos nueva con datos de prueba xd")
+    print("Listo: base de datos nueva con datos de prueba")

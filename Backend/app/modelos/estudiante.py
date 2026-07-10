@@ -10,6 +10,7 @@ class Estudiante(db.Model):
     nombres = db.Column(db.String(150), nullable=False)
     apellido_paterno = db.Column(db.String(150), nullable=False)
     apellido_materno = db.Column(db.String(150), nullable=False)
+    dni = db.Column(db.CHAR(8), nullable=False)
     correo_institucional = db.Column(db.String(100), nullable=False)
     tiene_deuda_activa = db.Column(db.Boolean, nullable=False, default=False)
     tiene_sancion_activa = db.Column(db.Boolean, nullable=False, default=False)

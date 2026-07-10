@@ -26,7 +26,8 @@ def ejecutar():
         nombres="Maria Fernanda",
         apellido_paterno="Gomez",
         apellido_materno="Vargas",
-        correo_institucional="maria.gomez@universidad.edu.pe",
+        dni="87654321",
+        correo_institucional="maria.gomez@uncp.edu.pe",
     )
 
     db.session.add(estudiante)

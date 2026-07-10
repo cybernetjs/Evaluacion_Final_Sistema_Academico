@@ -4,7 +4,6 @@ from app.utils.middlewares import rol_requerido
 
 administracion_bp = Blueprint('administracion', __name__)
 
-
 @administracion_bp.route('/', methods=['GET'])
 def index_administracion():
     return jsonify({

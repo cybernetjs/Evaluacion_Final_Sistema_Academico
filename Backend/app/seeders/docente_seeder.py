@@ -18,7 +18,8 @@ def ejecutar():
         nombres="Juan Carlos",
         apellido_paterno="Perez",
         apellido_materno="Lopez",
-        correo_institucional="juan.perez@universidad.edu.pe",
+        dni="12345678",
+        correo_institucional="juan.perez@uncp.edu.pe",
     )
 
     db.session.add(docente)

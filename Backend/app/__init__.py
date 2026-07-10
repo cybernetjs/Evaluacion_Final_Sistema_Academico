@@ -30,10 +30,12 @@ def crear_app():
     from app.modulos.administracion.routes import administracion_bp
     from app.modulos.certificados.routes import certificados_bp
     from app.modulos.record_academico.routes import record_academico_bp
+    from app.modulos.docentes.routes import docentes_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(matricula_bp, url_prefix='/api/matriculas')
     app.register_blueprint(notas_bp, url_prefix='/api/notas')
+    app.register_blueprint(docentes_bp, url_prefix='/api/docentes')
     app.register_blueprint(cursos_docentes_bp, url_prefix='/api/cursos-docentes')
     app.register_blueprint(administracion_bp, url_prefix='/api/administracion')
     app.register_blueprint(certificados_bp, url_prefix='/api/documentos')
