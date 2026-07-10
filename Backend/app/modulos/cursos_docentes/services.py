@@ -9,6 +9,7 @@ from app.modelos.oferta_academica import OfertaAcademica
 from app.modelos.oferta_academica_docente import OfertaAcademicaDocente
 from app.modelos.oferta_academica_horario import OfertaAcademicaHorario
 from app.modelos.periodo_academico import PeriodoAcademico
+from app.modelos.semestre import Semestre
 from app.modelos.plan_cursos_semestre import PlanCursosSemestre
 from app.modelos.plan_de_estudios import PlanDeEstudios
 from app.modelos.especialidad import Especialidad
@@ -62,6 +63,157 @@ class CursosDocentesService:
         )
 
         return [{"id": p.id, "nombre": p.nombre} for p in periodos], None
+
+    @staticmethod
+    def crear_curso(nombre, codigo, creditos, horas_lectivas, horas_practicas):
+        if not nombre or not str(nombre).strip():
+            return None, "El nombre del curso es obligatorio", 400
+        if not codigo or not str(codigo).strip():
+            return None, "El código del curso es obligatorio", 400
+
+        codigo_normalizado = str(codigo).strip().upper()
+        if Curso.query.filter_by(codigo=codigo_normalizado).first():
+            return None, f"Ya existe un curso registrado con el código {codigo_normalizado}", 409
+
+        try:
+            creditos = int(creditos)
+            horas_lectivas = int(horas_lectivas)
+            horas_practicas = int(horas_practicas)
+        except (TypeError, ValueError):
+            return None, "Créditos, horas lectivas y horas prácticas deben ser números enteros", 422
+
+        if creditos <= 0:
+            return None, "Los créditos deben ser un número entero positivo", 422
+        if horas_lectivas < 0 or horas_practicas < 0:
+            return None, "Las horas lectivas y prácticas no pueden ser negativas", 422
+        if horas_lectivas + horas_practicas <= 0:
+            return None, "El curso debe tener al menos una hora lectiva o práctica", 422
+
+        curso = Curso(
+            nombre=str(nombre).strip(),
+            codigo=codigo_normalizado,
+            creditos=creditos,
+            horas_lectivas=horas_lectivas,
+            horas_practicas=horas_practicas,
+        )
+        db.session.add(curso)
+        db.session.commit()
+
+        return {
+            "id": curso.id,
+            "nombre": curso.nombre,
+            "codigo": curso.codigo,
+            "creditos": curso.creditos,
+            "horas_lectivas": curso.horas_lectivas,
+            "horas_practicas": curso.horas_practicas,
+        }, None, 201
+
+    @staticmethod
+    def crear_oferta_academica(curso_id, periodo_academico_id, semestre_id, cupos=None):
+        if not curso_id or not periodo_academico_id or not semestre_id:
+            return None, "Debes seleccionar el curso, el periodo académico y el semestre", 400
+
+        curso = Curso.query.get(curso_id)
+        if not curso:
+            return None, "Curso no encontrado", 404
+
+        periodo = PeriodoAcademico.query.get(periodo_academico_id)
+        if not periodo:
+            return None, "Periodo académico no encontrado", 404
+
+        semestre = Semestre.query.get(semestre_id)
+        if not semestre:
+            return None, "Semestre no encontrado", 404
+
+        existente = OfertaAcademica.query.filter_by(
+            curso_id=curso_id,
+            periodo_academico_id=periodo_academico_id,
+            semestre_id=semestre_id,
+        ).first()
+        if existente:
+            return None, (
+                "Ya existe una sección abierta para este curso en el semestre y periodo seleccionados"
+            ), 409
+
+        if cupos is not None:
+            try:
+                cupos = int(cupos)
+            except (TypeError, ValueError):
+                return None, "Los cupos deben ser un número entero", 422
+            if cupos <= 0:
+                return None, "Los cupos deben ser un número entero positivo", 422
+
+        oferta = OfertaAcademica(
+            curso_id=curso_id,
+            periodo_academico_id=periodo_academico_id,
+            semestre_id=semestre_id,
+            cupos=cupos or 40,
+        )
+        db.session.add(oferta)
+        db.session.commit()
+
+        return {
+            "id": oferta.id,
+            "curso_id": oferta.curso_id,
+            "curso_nombre": curso.nombre,
+            "periodo_academico_id": oferta.periodo_academico_id,
+            "semestre_id": oferta.semestre_id,
+            "semestre_codigo": semestre.codigo,
+            "cupos": oferta.cupos,
+        }, None, 201
+
+    @staticmethod
+    def asignaciones_oferta(oferta_academica_id):
+        oferta = OfertaAcademica.query.get(oferta_academica_id)
+        if not oferta:
+            return None, "Oferta académica no encontrada"
+
+        curso = oferta.curso
+        horas_requeridas_curso = curso.horas_lectivas + curso.horas_practicas
+
+        asignaciones = OfertaAcademicaDocente.query.filter_by(
+            oferta_academica_id=oferta_academica_id
+        ).all()
+        horarios = OfertaAcademicaHorario.query.filter_by(
+            oferta_academica_id=oferta_academica_id
+        ).all()
+
+        funciones_cubiertas = {a.funcion_curso for a in asignaciones if a.funcion_curso}
+        suma_horas_asignadas = sum(a.horas_asignadas or 0 for a in asignaciones)
+
+        return {
+            "oferta_academica_id": oferta.id,
+            "curso_nombre": curso.nombre,
+            "horas_requeridas_curso": horas_requeridas_curso,
+            "suma_horas_asignadas": suma_horas_asignadas,
+            "funciones_pendientes": [f for f in FUNCIONES_VALIDAS if f not in funciones_cubiertas],
+            "plana_completa": (
+                set(FUNCIONES_VALIDAS).issubset(funciones_cubiertas)
+                and suma_horas_asignadas == horas_requeridas_curso
+            ),
+            "docentes_asignados": [
+                {
+                    "asignacion_id": a.id,
+                    "docente_id": a.docente_id,
+                    "docente_nombre": (
+                        f"{a.docente.nombres} {a.docente.apellido_paterno}" if a.docente else None
+                    ),
+                    "funcion_curso": a.funcion_curso,
+                    "horas_asignadas": a.horas_asignadas,
+                }
+                for a in asignaciones
+            ],
+            "horarios": [
+                {
+                    "id": h.id,
+                    "dia": DIAS_SEMANA.get(h.dia, h.dia),
+                    "hora_inicio": h.hora_inicio.strftime("%H:%M") if h.hora_inicio else None,
+                    "hora_fin": h.hora_fin.strftime("%H:%M") if h.hora_fin else None,
+                    "aula": h.aula,
+                }
+                for h in horarios
+            ],
+        }, None
 
     @staticmethod
     def mis_cursos(usuario_id, periodo_academico_id=None):

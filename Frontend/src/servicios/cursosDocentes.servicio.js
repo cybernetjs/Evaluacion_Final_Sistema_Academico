@@ -14,6 +14,24 @@ export async function listarPrerequisitos() {
   return peticion("/cursos-docentes/prerequisitos");
 }
 
+export async function crearCurso(datos) {
+  return peticion("/cursos-docentes/cursos", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+}
+
+export async function crearOfertaAcademica(datos) {
+  return peticion("/cursos-docentes/ofertas", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+}
+
+export async function obtenerAsignacionesOferta(ofertaAcademicaId) {
+  return peticion(`/cursos-docentes/ofertas/${ofertaAcademicaId}/asignaciones`);
+}
+
 export async function listarDocentes() {
   return peticion("/cursos-docentes/docentes");
 }

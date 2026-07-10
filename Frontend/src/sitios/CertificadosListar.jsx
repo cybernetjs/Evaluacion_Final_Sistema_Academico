@@ -265,6 +265,12 @@ export default function CertificadosListar() {
       )}
 
       <h3 style={{ marginTop: 32 }}>Verificar un certificado emitido</h3>
+      <p style={{ color: "#aaa", fontSize: "0.9em" }}>
+        Este buscador público confirma si un documento es auténtico. Solo funciona con el código que
+        aparece en el certificado ya <strong>Emitido</strong> (impreso junto al QR y visible en "Ver
+        expediente" de una solicitud emitida). Los trámites en "Pendiente de Validación" o "Apto para
+        Firma" todavía no tienen un código válido, por eso la búsqueda los marca como inválidos.
+      </p>
       <form onSubmit={manejarVerificacion}>
         <input
           value={codigo}
@@ -356,6 +362,15 @@ export default function CertificadosListar() {
                   <p>Especialidad: {expediente.estudiante.especialidad}</p>
                   <p>Tipo de documento: {expediente.tipo}</p>
                   <p>Estado actual: {expediente.estado}</p>
+                  {expediente.estado === "Emitido" ? (
+                    <p>Código de verificación: <strong>{expediente.codigo_verificacion}</strong></p>
+                  ) : (
+                    <p style={{ color: "#aaa", fontSize: "0.9em" }}>
+                      El código de verificación se genera recién cuando el trámite llega al estado
+                      "Emitido" (después de ser aprobado por Administración y firmado por Dirección). Antes
+                      de eso no existe ningún código válido para esta solicitud.
+                    </p>
+                  )}
                   <p>
                     Deuda activa:{" "}
                     <span style={{ color: expediente.estudiante.tiene_deuda_activa ? "#ff6b6b" : "#8fd18f" }}>

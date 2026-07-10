@@ -15,6 +15,24 @@ def obtener_curso(id):
     return controllers.obtener_curso(id)
 
 
+@cursos_docentes_bp.route('/cursos', methods=['POST'])
+@rol_requerido("administrador")
+def crear_curso():
+    return controllers.crear_curso()
+
+
+@cursos_docentes_bp.route('/ofertas', methods=['POST'])
+@rol_requerido("administrador")
+def crear_oferta_academica():
+    return controllers.crear_oferta_academica()
+
+
+@cursos_docentes_bp.route('/ofertas/<int:oferta_academica_id>/asignaciones', methods=['GET'])
+@rol_requerido("administrador")
+def asignaciones_oferta(oferta_academica_id):
+    return controllers.asignaciones_oferta(oferta_academica_id)
+
+
 @cursos_docentes_bp.route('/prerequisitos', methods=['GET'])
 def listar_prerequisitos():
     return controllers.listar_prerequisitos()

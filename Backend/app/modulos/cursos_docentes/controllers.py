@@ -42,6 +42,48 @@ def obtener_curso(id):
     })
 
 
+def crear_curso():
+    data = request.get_json() or {}
+
+    resultado, error, codigo = CursosDocentesService.crear_curso(
+        nombre=data.get("nombre"),
+        codigo=data.get("codigo"),
+        creditos=data.get("creditos"),
+        horas_lectivas=data.get("horas_lectivas"),
+        horas_practicas=data.get("horas_practicas"),
+    )
+
+    if error:
+        return jsonify({"error": error}), codigo
+
+    return jsonify(resultado), codigo
+
+
+def crear_oferta_academica():
+    data = request.get_json() or {}
+
+    resultado, error, codigo = CursosDocentesService.crear_oferta_academica(
+        curso_id=data.get("curso_id"),
+        periodo_academico_id=data.get("periodo_academico_id"),
+        semestre_id=data.get("semestre_id"),
+        cupos=data.get("cupos"),
+    )
+
+    if error:
+        return jsonify({"error": error}), codigo
+
+    return jsonify(resultado), codigo
+
+
+def asignaciones_oferta(oferta_academica_id):
+    resultado, error = CursosDocentesService.asignaciones_oferta(oferta_academica_id)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return jsonify(resultado)
+
+
 def listar_prerequisitos():
     prerequisitos = PreRequisito.query.all()
     return jsonify([

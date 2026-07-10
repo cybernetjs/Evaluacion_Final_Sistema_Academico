@@ -165,6 +165,7 @@ class CertificadoService:
             "tipo": certificado.tipo,
             "estado": certificado.estado,
             "motivo_rechazo": certificado.motivo_rechazo,
+            "codigo_verificacion": certificado.codigo_verificacion if certificado.estado == "Emitido" else None,
             "comprobante_disponible": bool(certificado.comprobante_pago_ruta),
             "estudiante": {
                 "nombres": estudiante.nombres,
