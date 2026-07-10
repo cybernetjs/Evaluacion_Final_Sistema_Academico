@@ -18,14 +18,25 @@ def ejecutar():
         print("No hay datos suficientes para asignar docente a oferta academica")
         return
 
-    asignaciones = [
-        OfertaAcademicaDocente(
-            oferta_academica_id=oferta.id,
-            docente_id=docente.id,
-            tipo_docente_id=tipo_docente.id,
-        )
-        for oferta in ofertas
-    ]
+    asignaciones = []
+    for oferta in ofertas:
+        curso = oferta.curso
+        if curso.horas_lectivas:
+            asignaciones.append(OfertaAcademicaDocente(
+                oferta_academica_id=oferta.id,
+                docente_id=docente.id,
+                tipo_docente_id=tipo_docente.id,
+                funcion_curso="Teorico",
+                horas_asignadas=curso.horas_lectivas,
+            ))
+        if curso.horas_practicas:
+            asignaciones.append(OfertaAcademicaDocente(
+                oferta_academica_id=oferta.id,
+                docente_id=docente.id,
+                tipo_docente_id=tipo_docente.id,
+                funcion_curso="Practico",
+                horas_asignadas=curso.horas_practicas,
+            ))
 
     db.session.add_all(asignaciones)
     db.session.commit()

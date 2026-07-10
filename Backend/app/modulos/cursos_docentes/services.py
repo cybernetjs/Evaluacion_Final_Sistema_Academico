@@ -75,6 +75,7 @@ class CursosDocentesService:
 
         asignaciones = (
             OfertaAcademicaDocente.query.filter_by(docente_id=docente.id)
+            .filter(OfertaAcademicaDocente.funcion_curso.isnot(None))
             .join(OfertaAcademica, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id)
             .filter(OfertaAcademica.periodo_academico_id == periodo_academico_id)
             .all()
@@ -205,14 +206,26 @@ class CursosDocentesService:
                 f"({horas_requeridas_curso})"
             ), 422
 
-        asignacion = OfertaAcademicaDocente(
-            oferta_academica_id=oferta_academica_id,
-            docente_id=docente_id,
-            tipo_docente_id=tipo_docente_id,
-            funcion_curso=funcion_curso,
-            horas_asignadas=horas_asignadas,
+        asignacion_existente = next(
+            (a for a in asignaciones_actuales if a.docente_id == docente_id and a.funcion_curso is None),
+            None,
         )
-        db.session.add(asignacion)
+
+        if asignacion_existente:
+            asignacion_existente.tipo_docente_id = tipo_docente_id
+            asignacion_existente.funcion_curso = funcion_curso
+            asignacion_existente.horas_asignadas = horas_asignadas
+            asignacion = asignacion_existente
+        else:
+            asignacion = OfertaAcademicaDocente(
+                oferta_academica_id=oferta_academica_id,
+                docente_id=docente_id,
+                tipo_docente_id=tipo_docente_id,
+                funcion_curso=funcion_curso,
+                horas_asignadas=horas_asignadas,
+            )
+            db.session.add(asignacion)
+
         db.session.commit()
 
         estado_seccion = (
