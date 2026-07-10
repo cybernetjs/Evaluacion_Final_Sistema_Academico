@@ -7,6 +7,7 @@ import {
   aprobarTramite,
   rechazarTramite,
   firmarCertificados,
+  notificarSolicitud,
   urlDescargarCertificadoEmitido,
   verificarCertificado,
 } from "../servicios/certificados.servicio";
@@ -36,6 +37,8 @@ export default function CertificadosListar() {
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const [notificando, setNotificando] = useState(false);
+  const [textoSugerido, setTextoSugerido] = useState(null);
 
   useEffect(() => {
     cargarBandeja();
@@ -57,10 +60,16 @@ export default function CertificadosListar() {
   async function abrirExpediente(sol) {
     setSeleccionada(sol);
     setExpediente(null);
+    setError(null);
+    setTextoSugerido(null);
     limpiarComprobante();
 
     const { data, error } = await detalleExpediente(sol.id);
-    if (error) return;
+    if (error) {
+      setError(error);
+      setSeleccionada(null);
+      return;
+    }
     setExpediente(data);
 
     if (data.comprobante_disponible) {
@@ -108,6 +117,33 @@ export default function CertificadosListar() {
     setMensaje(data.mensaje);
     cerrarExpediente();
     cargarBandeja();
+  }
+
+  async function manejarNotificar(certificadoId) {
+    setNotificando(true);
+    setMensaje(null);
+    setError(null);
+    setTextoSugerido(null);
+
+    const { data, error } = await notificarSolicitud(certificadoId);
+    setNotificando(false);
+
+    if (error) {
+      setError(error);
+      return;
+    }
+
+    setMensaje(data.mensaje);
+    setTextoSugerido({
+      correo: data.correo_estudiante,
+      asunto: data.asunto_sugerido,
+      cuerpo: data.cuerpo_sugerido,
+    });
+    // Refresca el expediente abierto para mostrar la fecha de notificación actualizada
+    if (seleccionada?.id === certificadoId) {
+      const resultado = await detalleExpediente(certificadoId);
+      if (!resultado.error) setExpediente(resultado.data);
+    }
   }
 
   function alternarSeleccionFirma(id) {
@@ -370,6 +406,49 @@ export default function CertificadosListar() {
                       "Emitido" (después de ser aprobado por Administración y firmado por Dirección). Antes
                       de eso no existe ningún código válido para esta solicitud.
                     </p>
+                  )}
+
+                  <p>
+                    Notificación al estudiante:{" "}
+                    {expediente.notificado_en ? (
+                      <span style={{ color: "#8fd18f" }}>
+                        enviada el {new Date(expediente.notificado_en).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span style={{ color: "#aaa" }}>aún no se ha notificado</span>
+                    )}
+                  </p>
+                  <p style={{ color: "#aaa", fontSize: "0.85em" }}>
+                    El sistema no envía correos por su cuenta: este botón solo marca la solicitud como
+                    atendida y te da un texto sugerido para que tú se lo copies y envíes al estudiante por
+                    tu propio correo.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => manejarNotificar(seleccionada.id)}
+                    disabled={notificando}
+                  >
+                    {notificando
+                      ? "Marcando..."
+                      : expediente.notificado_en
+                      ? "Marcar como notificado nuevamente"
+                      : "Marcar solicitud como atendida / notificada"}
+                  </button>
+
+                  {textoSugerido && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        padding: 12,
+                        border: "1px solid #6b6bff",
+                        borderRadius: 6,
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      <p>Para: {textoSugerido.correo || "el estudiante no tiene correo institucional registrado"}</p>
+                      <p>Asunto: {textoSugerido.asunto}</p>
+                      <p style={{ whiteSpace: "pre-wrap" }}>{textoSugerido.cuerpo}</p>
+                    </div>
                   )}
                   <p>
                     Deuda activa:{" "}

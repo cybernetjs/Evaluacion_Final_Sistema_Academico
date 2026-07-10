@@ -33,18 +33,15 @@ class CertificadoService:
     def _generar_ticket_codigo():
         anio_actual = datetime.now().year
         prefijo = f"REQ-{anio_actual}-"
-
         total_del_anio = Certificado.query.filter(
             Certificado.ticket_codigo.like(f"{prefijo}%")
         ).count()
-        
         correlativo = str(total_del_anio + 1).zfill(4)
         return f"{prefijo}{correlativo}"
 
     @staticmethod
     def solicitar_documento(usuario_id, tipo, archivo):
         estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
-
         if not estudiante:
             return None, "No se encontró un estudiante asociado a este usuario", 404
 
@@ -61,7 +58,6 @@ class CertificadoService:
         archivo.stream.seek(0, os.SEEK_END)
         tamano = archivo.stream.tell()
         archivo.stream.seek(0)
-
         if tamano == 0:
             return None, "El archivo de sustento está vacío", 400
         if tamano > TAMANO_MAXIMO_BYTES:
@@ -73,7 +69,6 @@ class CertificadoService:
             return None, "No es posible procesar la solicitud: el estudiante registra sanciones disciplinarias vigentes", 422
 
         os.makedirs(CARPETA_COMPROBANTES, exist_ok=True)
-        
         nombre_unico = f"{uuid.uuid4()}{extension}"
         ruta_completa = os.path.join(CARPETA_COMPROBANTES, nombre_unico)
         archivo.save(ruta_completa)
@@ -171,6 +166,7 @@ class CertificadoService:
             "estado": certificado.estado,
             "motivo_rechazo": certificado.motivo_rechazo,
             "codigo_verificacion": certificado.codigo_verificacion if certificado.estado == "Emitido" else None,
+            "notificado_en": certificado.notificado_en.isoformat() if certificado.notificado_en else None,
             "comprobante_disponible": bool(certificado.comprobante_pago_ruta),
             "estudiante": {
                 "nombres": estudiante.nombres,
@@ -192,6 +188,63 @@ class CertificadoService:
         if not certificado or not certificado.comprobante_pago_ruta:
             return None, "No hay comprobante disponible para esta solicitud"
         return certificado.comprobante_pago_ruta, None
+
+    @staticmethod
+    def _mensaje_por_estado(certificado):
+        nombre = certificado.estudiante.nombres if certificado.estudiante else "estudiante"
+
+        if certificado.estado == "Rechazado":
+            asunto = f"Tu solicitud de {certificado.tipo} fue rechazada"
+            cuerpo = (
+                f"Hola {nombre},\n\n"
+                f"Tu solicitud (ticket {certificado.ticket_codigo}) de {certificado.tipo} fue rechazada.\n"
+                f"Motivo: {certificado.motivo_rechazo or 'No especificado'}.\n\n"
+                "Puedes volver a generar una nueva solicitud desde el portal de trámites documentales."
+            )
+        elif certificado.estado == "Emitido":
+            asunto = f"Tu {certificado.tipo} ya está lista"
+            cuerpo = (
+                f"Hola {nombre},\n\n"
+                f"Tu solicitud (ticket {certificado.ticket_codigo}) de {certificado.tipo} fue aprobada y firmada.\n"
+                f"Código de verificación: {certificado.codigo_verificacion}\n\n"
+                "Ya puedes descargar el documento oficial desde el portal de trámites documentales."
+            )
+        else:
+            asunto = f"Actualización de tu solicitud de {certificado.tipo}"
+            cuerpo = (
+                f"Hola {nombre},\n\n"
+                f"Tu solicitud (ticket {certificado.ticket_codigo}) de {certificado.tipo} se encuentra "
+                f"actualmente en estado: {certificado.estado}."
+            )
+
+        return asunto, cuerpo
+
+    @staticmethod
+    def notificar_estudiante(certificado_id):
+        """
+        El sistema NO envía correos por sí mismo (no hay integración SMTP). Esta acción solo
+        deja constancia de que una persona (Administración/Dirección) ya avisó al estudiante
+        por su cuenta, y entrega un asunto/cuerpo sugeridos para que esa persona los copie en
+        su propio correo si quiere.
+        """
+        certificado = Certificado.query.get(certificado_id)
+        if not certificado:
+            return None, "Solicitud no encontrada", 404
+
+        asunto, cuerpo = CertificadoService._mensaje_por_estado(certificado)
+
+        certificado.notificado_en = datetime.utcnow()
+        certificado.notificado_asunto = asunto
+        db.session.commit()
+
+        return {
+            "mensaje": "Se marcó la solicitud como atendida/notificada. Recuerda que el sistema no envía "
+                       "correos: usa el asunto y el cuerpo sugeridos para avisarle al estudiante tú mismo.",
+            "notificado_en": certificado.notificado_en.isoformat(),
+            "correo_estudiante": certificado.estudiante.correo_institucional if certificado.estudiante else None,
+            "asunto_sugerido": asunto,
+            "cuerpo_sugerido": cuerpo,
+        }, None, 200
 
     @staticmethod
     def aprobar_tramite(certificado_id):

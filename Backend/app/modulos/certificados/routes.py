@@ -35,6 +35,12 @@ def descargar_comprobante(certificado_id):
     return controllers.descargar_comprobante(certificado_id)
 
 
+@certificados_bp.route('/<int:certificado_id>/notificar', methods=['POST'])
+@rol_requerido("administrador", "direccion")
+def notificar_solicitud(certificado_id):
+    return controllers.notificar_solicitud(certificado_id)
+
+
 @certificados_bp.route('/tramite/aprobar', methods=['PUT'])
 @rol_requerido("administrador")
 def aprobar_tramite():

@@ -3,7 +3,7 @@ from flask_jwt_extended import get_jwt_identity
 from app.modulos.certificados.services import CertificadoService
 
 
-def solicitar_certificado() -> tuple[dict | None]:
+def solicitar_certificado():
     usuario_id = int(get_jwt_identity())
     tipo = request.form.get("tipo")
     archivo = request.files.get("comprobante")
@@ -16,14 +16,12 @@ def solicitar_certificado() -> tuple[dict | None]:
     return jsonify(resultado), codigo
 
 
-def mis_solicitudes() -> list[dict]:
+def mis_solicitudes():
     usuario_id = int(get_jwt_identity())
     resultado, error = CertificadoService.mis_solicitudes(usuario_id)
 
     if error:
-        return jsonify({
-            "error": error
-        }), 404
+        return jsonify({"error": error}), 404
 
     return jsonify(resultado)
 
@@ -39,31 +37,11 @@ def bandeja_solicitudes():
         return jsonify({"error": error}), 404
 
     return jsonify(resultado)
-def listar_solicitudes() -> list[dict]:
-    certificados = Certificado.query.all()
-    return jsonify([
-        {
-            "id": c.id,
-            "ticket_codigo": c.ticket_codigo,
-            "estudiante_id": c.estudiante_id,
-            "estudiante_nombre": f"{c.estudiante.nombres} {c.estudiante.apellido_paterno} {c.estudiante.apellido_materno}" if c.estudiante else None,
-            "tipo": c.tipo,
-            "estado": c.estado,
-            "codigo_verificacion": c.codigo_verificacion
-        }
-        for c in certificados
-    ])
 
 
 def detalle_expediente(certificado_id):
     resultado, error = CertificadoService.detalle_expediente(certificado_id)
-def autorizar_certificado(certificado_id) -> list[dict]:
-    certificado = Certificado.query.get(certificado_id)
 
-    if not certificado:
-        return jsonify({
-            "error": "Certificado no encontrado"
-        }), 404
     if error:
         return jsonify({"error": error}), 404
 
@@ -77,6 +55,15 @@ def descargar_comprobante(certificado_id):
         return jsonify({"error": error}), 404
 
     return send_file(ruta)
+
+
+def notificar_solicitud(certificado_id):
+    resultado, error, codigo = CertificadoService.notificar_estudiante(certificado_id)
+
+    if error:
+        return jsonify({"error": error}), codigo
+
+    return jsonify(resultado), codigo
 
 
 def aprobar_tramite():
@@ -123,29 +110,10 @@ def descargar_certificado_emitido(certificado_id):
     return send_file(ruta, as_attachment=True, download_name=f"certificado_{certificado_id}.pdf")
 
 
-def verificar_certificado(codigo) -> list[dict]:
-    certificado = Certificado.query.filter_by(codigo_verificacion=codigo).first()
-
-    if not certificado or certificado.estado != "Emitido":
-        return jsonify({
-            "valido": False,
-            "mensaje": "Certificado no encontrado o no emitido"
-        }), 404
-
-    return jsonify({
-        "valido": True,
-        "tipo": certificado.tipo,
-        "estudiante_id": certificado.estudiante_id,
-        "estado": certificado.estado
-    })
-
-
-def descargar_qr(codigo) -> list[dict]:
-    buffer, error = CertificadoService.generar_qr(codigo)
+def verificar_certificado(codigo):
+    resultado, error = CertificadoService.verificar_publico(codigo)
 
     if error:
-        return jsonify({
-            "error": error
-        }), 404
+        return jsonify({"error": error}), 404
 
     return jsonify(resultado)

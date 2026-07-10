@@ -74,6 +74,12 @@ export async function rechazarTramite(certificadoId, motivo) {
   });
 }
 
+export async function notificarSolicitud(certificadoId) {
+  return peticion(`/documentos/${certificadoId}/notificar`, {
+    method: "POST",
+  });
+}
+
 export async function firmarCertificados(certificadoIds) {
   return peticion("/documentos/firmar", {
     method: "POST",
