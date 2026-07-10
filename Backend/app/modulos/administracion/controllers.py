@@ -21,7 +21,10 @@ from app.modelos.permiso_rol import PermisoRol
 def listar_facultades():
     facultades = Facultad.query.all()
     return jsonify([
-        {"id": f.id, "nombre": f.nombre}
+        {
+            "id": f.id, 
+            "nombre": f.nombre
+        }
         for f in facultades
     ])
 
@@ -54,7 +57,10 @@ def listar_planes_estudio():
 def listar_semestres():
     semestres = Semestre.query.all()
     return jsonify([
-        {"id": s.id, "codigo": s.codigo}
+        {
+            "id": s.id, 
+            "codigo": s.codigo
+        }
         for s in semestres
     ])
 
@@ -75,7 +81,11 @@ def listar_periodos():
 def listar_usuarios():
     usuarios = Usuario.query.all()
     return jsonify([
-        {"id": u.id, "username": u.username, "rol": u.rol}
+        {
+            "id": u.id, 
+            "username": u.username, 
+            "rol": u.rol
+        }
         for u in usuarios
     ])
 
@@ -184,7 +194,11 @@ def cambiar_rol(usuario_id):
     db.session.add(registro)
     db.session.commit()
 
-    return jsonify({"mensaje": "Rol actualizado correctamente", "usuario_id": usuario.id, "rol": usuario.rol})
+    return jsonify({
+        "mensaje": "Rol actualizado correctamente", 
+        "usuario_id": usuario.id, 
+        "rol": usuario.rol
+    })
 
 
 def listar_auditorias():

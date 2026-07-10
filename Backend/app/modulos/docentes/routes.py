@@ -1,0 +1,31 @@
+from flask import Blueprint, jsonify
+from app.modulos.docentes import controllers
+from app.utils.middlewares import rol_requerido
+
+docentes_bp = Blueprint('docentes', __name__)
+
+# --- CRUD ---
+@docentes_bp.route('/', methods=['GET'])
+@rol_requerido("administrador", "direccion")
+def listar_docentes():
+    return controllers.listar_docentes()
+
+@docentes_bp.route('/<int:id>', methods=['GET'])
+@rol_requerido("administrador", "direccion", "docente")
+def obtener_docente(id):
+    return controllers.obtener_docente(id)
+
+@docentes_bp.route('/', methods=['POST'])
+@rol_requerido("administrador")
+def registrar_docente():
+    return controllers.registrar_docente()
+
+@docentes_bp.route('/<int:id>', methods=['PUT'])
+@rol_requerido("administrador", "direccion")
+def actualizar_docente(id):
+    return controllers.actualizar_docente(id)
+
+@docentes_bp.route('/<int:id>', methods=['DELETE'])
+@rol_requerido("administrador", "direccion")
+def eliminar_docente(id):
+    return controllers.eliminar_docente(id)

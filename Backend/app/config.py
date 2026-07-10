@@ -9,5 +9,5 @@ load_dotenv()
 class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_hex(32))
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "cambiar_este_valor_por_uno_seguro_en_produccion")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)

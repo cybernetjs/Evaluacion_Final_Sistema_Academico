@@ -9,6 +9,10 @@ auth_bp = Blueprint("auth", __name__)
 def login():
     return controllers.login()
 
+@auth_bp.route("/logout", methods=["POST"])
+def logout():
+    return controllers.logout()
+
 
 @auth_bp.route("/registrar", methods=["POST"])
 @rol_requerido("administrador")

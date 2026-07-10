@@ -2,11 +2,12 @@ from app import db, bcrypt
 from app.modelos.usuario import Usuario
 from app.modelos.estudiante import Estudiante
 
-
 class AuthService:
-
+    '''
+        Método especializado en el registro de estudiantes
+    '''
     @staticmethod
-    def registrar_estudiante(username, password, nombres, apellido_paterno, apellido_materno, correo_institucional, especialidad_id):
+    def registrar_estudiante(username: str, password: str, nombres: str, apellido_paterno: str, apellido_materno: str, correo_institucional: str, especialidad_id: int) -> tuple[dict | None]:
         if Usuario.query.filter_by(username=username).first():
             return None, "El nombre de usuario ya está en uso"
 
@@ -27,4 +28,7 @@ class AuthService:
         db.session.add(estudiante)
         db.session.commit()
 
-        return {"usuario_id": usuario.id, "estudiante_id": estudiante.id}, None
+        return {
+            "usuario_id": usuario.id,
+            "estudiante_id": estudiante.id
+        }, None

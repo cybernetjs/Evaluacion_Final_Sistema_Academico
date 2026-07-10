@@ -7,14 +7,21 @@ from app.modulos.auth.services import AuthService
 
 def login():
     datos = request.get_json()
+
     username = datos.get("username")
     password = datos.get("password")
+
     usuario = Usuario.query.filter_by(username=username).first()
+
     if not usuario or not bcrypt.check_password_hash(usuario.password, password):
         return jsonify({"error": "Usuario o contraseña incorrectos"}), 401
+    
     token = create_access_token(
         identity=str(usuario.id),
-        additional_claims={"rol": usuario.rol, "username": usuario.username},
+        additional_claims={
+            "rol": usuario.rol, 
+            "username": usuario.username
+        },
     )
     return jsonify({
         "token": token,
@@ -25,6 +32,8 @@ def login():
         },
     })
 
+def logout():
+    return jsonify({"mensaje": "Logout exitoso"})
 
 def registrar():
     datos = request.get_json()
