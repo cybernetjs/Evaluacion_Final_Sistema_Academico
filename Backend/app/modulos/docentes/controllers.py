@@ -8,6 +8,7 @@ from app.modulos.docentes.services import DocenteService
 from app.modulos.docentes.schemas import RegistroDocenteSchema, ActualizarDocenteSchema
 
 docenteService = DocenteService()
+
 def listar_docentes()->jsonify:  #:
     '''
         Función especializada en listar todos los docentes del sistema
@@ -66,6 +67,7 @@ def actualizar_docente(id):
     data = request.get_json()
 
     schema = ActualizarDocenteSchema()
+    schema.context = {"id": id}
     result = schema.load(data)
 
     docente = docenteService.actualizar_docente(id, result)

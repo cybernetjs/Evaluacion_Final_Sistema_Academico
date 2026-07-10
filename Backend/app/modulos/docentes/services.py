@@ -95,7 +95,17 @@ class DocenteService:
         # --------------------- 
 
         docente = Docente.query.get_or_404(id)
-        Docente.query.filter_by(id=id).update(data)
+
+        # Actualizar campos del Usuario asociado si están presentes
+        username = data.pop("username", None)
+        if username and docente.usuario:
+            docente.usuario.username = username
+            db.session.add(docente.usuario)
+
+        # Actualizar campos de Docente
+        if data:
+            Docente.query.filter_by(id=id).update(data)
+        
         db.session.commit()
 
         return docente

@@ -5,6 +5,9 @@ from app.modelos.usuario import Usuario
 from app.modelos.docente import Docente
 
 class RegistroDocenteSchema(Schema):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     username = fields.Str(
         required=True,
         validate=validate.Length(max=100, error="El nombre de usuario debe tener un máximo de 100 caracteres."),
@@ -77,6 +80,9 @@ class RegistroDocenteSchema(Schema):
             raise ValidationError("El DNI ya está registrado.")
 
 class ActualizarDocenteSchema(Schema):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
     username = fields.Str(
         required=False,
         validate=validate.Length(max=100, error="El nombre de usuario debe tener un máximo de 100 caracteres."),
@@ -88,7 +94,13 @@ class ActualizarDocenteSchema(Schema):
 
     @validates("username")
     def validar_username_unico(self, value, **kwargs):
-        if Usuario.query.filter_by(username=value).first():
+        docente_id = self.context.get("id", None)
+        query = Usuario.query.filter_by(username=value)
+        if docente_id:
+            docente = Docente.query.get(docente_id)
+            if docente and docente.usuario_id:
+                query = query.filter(Usuario.id != docente.usuario_id)
+        if value and query.first():
             raise ValidationError("El nombre de usuario ya está registrado.")
 
     nombres = fields.Str(
@@ -146,5 +158,12 @@ class ActualizarDocenteSchema(Schema):
 
     @validates("dni")
     def validar_dni_unico(self, value, **kwargs):
-        if Docente.query.filter_by(dni=value).first():
+        docente_id = self.context.get("id", None)
+
+        query = Docente.query.filter_by(dni=value)
+        
+        if docente_id:
+            query = query.filter(Docente.id != docente_id)
+        
+        if value and query.first():
             raise ValidationError("El DNI ya está registrado.")

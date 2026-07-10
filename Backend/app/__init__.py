@@ -31,15 +31,21 @@ def crear_app():
     from app.modulos.certificados.routes import certificados_bp
     from app.modulos.record_academico.routes import record_academico_bp
     from app.modulos.docentes.routes import docentes_bp
+    from app.modulos.cursos.routes import cursos_bp
+    from app.modulos.ofertas_academicas.routes import ofertas_academicas_bp
+    from app.modulos.periodos_academicos.routes import periodos_academicos_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(matricula_bp, url_prefix='/api/matriculas')
     app.register_blueprint(notas_bp, url_prefix='/api/notas')
     app.register_blueprint(docentes_bp, url_prefix='/api/docentes')
+    app.register_blueprint(cursos_bp, url_prefix='/api/cursos')
     app.register_blueprint(cursos_docentes_bp, url_prefix='/api/cursos-docentes')
     app.register_blueprint(administracion_bp, url_prefix='/api/administracion')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(certificados_bp, url_prefix='/api/documentos')
     app.register_blueprint(record_academico_bp, url_prefix='/api/record-academico')
+    app.register_blueprint(ofertas_academicas_bp, url_prefix='/api/ofertas-academicas')
+    app.register_blueprint(periodos_academicos_bp, url_prefix='/api/periodos-academicos')
 
     return app

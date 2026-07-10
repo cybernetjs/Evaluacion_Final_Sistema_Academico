@@ -41,8 +41,32 @@ class CursosService:
         return cursos
     
     def obtener_curso(id):
-        curso = Curso.query.get(id)
+        curso = Curso.query.get_or_404(id)
         return curso
 
-    def registrar_curso():
-        
+    def registrar_curso(data):
+        curso = Curso(
+            nombre=data.get("nombre"),
+            codigo=data.get("codigo"),
+            creditos=data.get("creditos"),
+            horas_lectivas=data.get("horas_lectivas"),
+            horas_practicas=data.get("horas_practicas")
+        )
+        db.session.add(curso)
+        db.session.commit()
+        return curso
+
+    def actualizar_curso(id, data):
+        curso = Curso.query.get_or_404(id)
+        Curso.query.filter_by(id=id).update(data)
+        db.session.commit()
+        return curso
+
+    def eliminar_curso(id):
+        curso = Curso.query.get_or_404(id)
+        db.session.delete(curso)
+        db.session.commit()
+
+    def listar_prerequisitos(curso_id):
+        from app.modelos.pre_requisito import PreRequisito
+        return PreRequisito.query.filter_by(curso_dependiente_id=curso_id).all()
