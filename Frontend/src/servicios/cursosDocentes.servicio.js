@@ -3,11 +3,11 @@ import { peticion } from "./api";
 const URL_BASE = "http://localhost:5000/api";
 
 export async function listarCursos() {
-  return peticion("/cursos-docentes/");
+  return peticion("/cursos/");
 }
 
 export async function obtenerCurso(id) {
-  return peticion(`/cursos-docentes/${id}`);
+  return peticion(`/cursos/${id}`);
 }
 
 export async function listarPrerequisitos() {
@@ -15,14 +15,14 @@ export async function listarPrerequisitos() {
 }
 
 export async function crearCurso(datos) {
-  return peticion("/cursos-docentes/cursos", {
+  return peticion("/cursos/", {
     method: "POST",
     body: JSON.stringify(datos),
   });
 }
 
 export async function crearOfertaAcademica(datos) {
-  return peticion("/cursos-docentes/ofertas", {
+  return peticion("/ofertas-academicas/", {
     method: "POST",
     body: JSON.stringify(datos),
   });
@@ -33,7 +33,7 @@ export async function obtenerAsignacionesOferta(ofertaAcademicaId) {
 }
 
 export async function listarDocentes() {
-  return peticion("/cursos-docentes/docentes");
+  return peticion("/docentes/");
 }
 
 export async function listarTiposDocentes() {
