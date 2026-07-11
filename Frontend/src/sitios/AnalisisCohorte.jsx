@@ -60,7 +60,7 @@ export default function AnalisisCohorte() {
   return (
     <div className="contenedor">
       <h2>Análisis por cohorte</h2>
-      <p>Compara hasta 3 cohortes de ingreso dentro del mismo programa de estudios.</p>
+      
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 

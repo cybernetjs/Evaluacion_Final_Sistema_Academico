@@ -30,8 +30,8 @@ export default function AdministracionAuditorias() {
 
   return (
     <div className="contenedor">
-      <h2>Auditorías y reportes estratégicos</h2>
-      <p>Consulta los eventos de administración y el resumen institucional.</p>
+      <h2>Auditorías y reportes</h2>
+      <p></p>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 

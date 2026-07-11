@@ -139,7 +139,7 @@ export default function CertificadosListar() {
       asunto: data.asunto_sugerido,
       cuerpo: data.cuerpo_sugerido,
     });
-    // Refresca el expediente abierto para mostrar la fecha de notificación actualizada
+
     if (seleccionada?.id === certificadoId) {
       const resultado = await detalleExpediente(certificadoId);
       if (!resultado.error) setExpediente(resultado.data);

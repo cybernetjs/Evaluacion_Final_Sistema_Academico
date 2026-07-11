@@ -149,7 +149,6 @@ export default function AdministracionUsuarios() {
   return (
     <div className="contenedor">
       <h2>Usuarios y roles</h2>
-      <p>Administra el acceso del sistema por perfil de usuario.</p>
 
       {mensaje && <p style={{ color: "#8fd18f" }}>{mensaje}</p>}
       {error && <p style={{ color: "#ff6b6b" }}>{error}</p>}
