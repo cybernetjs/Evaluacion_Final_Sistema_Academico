@@ -49,8 +49,15 @@ def crear_oferta():
     oferta = ofertaAcademicaService.crear_oferta(result)
 
     return jsonify({
-        "message": "Oferta académica creada exitosamente."
-    })
+        "message": "Oferta académica creada exitosamente.",
+        "id": oferta.id,
+        "curso_id": oferta.curso_id,
+        "curso_nombre": oferta.curso.nombre,
+        "periodo_academico_id": oferta.periodo_academico_id,
+        "semestre_id": oferta.semestre_id,
+        "semestre_codigo": oferta.semestre.codigo,
+        "cupos": oferta.cupos,
+    }), 201
 
 def actualizar_oferta(id: int):
     data = request.get_json()

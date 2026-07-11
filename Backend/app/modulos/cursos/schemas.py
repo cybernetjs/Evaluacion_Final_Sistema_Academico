@@ -13,7 +13,7 @@ class RegistroCursoSchema(Schema):
     codigo = fields.Str(
         required=True,
         validate=validate.Length(max=20, error="El código del curso debe tener un máximo de 20 caracteres."),
-        error_messages={
+        error_messages = {
             "required": "El código del curso es un campo obligatorio.",
             "invalid": "El formato del código no es válido."
         }

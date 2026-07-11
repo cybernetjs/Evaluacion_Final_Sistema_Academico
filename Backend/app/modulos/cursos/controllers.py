@@ -37,7 +37,12 @@ def registrar_curso():
 
     return jsonify({
         "mensaje": "Curso registrado correctamente",
-        "curso_id": curso.id
+        "id": curso.id,
+        "nombre": curso.nombre,
+        "codigo": curso.codigo,
+        "creditos": curso.creditos,
+        "horas_lectivas": curso.horas_lectivas,
+        "horas_practicas": curso.horas_practicas
     }), 201
 
 def actualizar_curso(id):
