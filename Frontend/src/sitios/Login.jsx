@@ -30,34 +30,36 @@ export default function Login() {
     navigate("/");
   }
 
- return (
+  return (
     <div className="pantalla-centrada">
       <div className="tarjeta-login">
-        <h1>Iniciar sesión</h1>
+        <h1>Inicio de Sesion</h1>
         <form onSubmit={manejarEnvio}>
-          <div>
-            <label>Usuario</label>
+          <fieldset>
+            <legend>Usuario</legend>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
-          </div>
-          <div>
-            <label>Contraseña</label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Contrasena</legend>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-          </div>
+          </fieldset>
+
           <button type="submit" disabled={cargando}>
             {cargando ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
-        {error && <p style={{ color: "#ff6b6b" }}>{error}</p>}
+        {error && <p className="mensaje-error">{error}</p>}
       </div>
     </div>
   );
