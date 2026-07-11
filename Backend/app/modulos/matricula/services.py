@@ -497,8 +497,9 @@ class MatriculaService:
         if not estudiante or matricula.estudiante_id != estudiante.id:
             return None, "No tienes permiso para subir el comprobante de esta matrícula", 403
 
-        if not matricula.estado or matricula.estado.nombre != "Validado":
-            return None, "La matrícula debe estar validada antes de subir el comprobante de pago", 400
+        estados_permiten_comprobante = ("pendiente", "validado")
+        if not matricula.estado or matricula.estado.nombre.lower() not in estados_permiten_comprobante:
+            return None, "Solo puedes subir el comprobante mientras tu solicitud está pendiente o validada", 400
 
         if matricula.pagado:
             return None, "El pago de esta matrícula ya fue verificado por administración", 400

@@ -113,7 +113,10 @@ export default function SolicitarMatricula() {
     setMensaje(`Solicitud registrada correctamente. N° de matrícula: ${data.id} — Créditos: ${data.total_creditos}`);
     setUltimaMatriculaId(data.id);
     setSeleccionados([]);
-    cargarDatos();
+    await cargarDatos();
+
+    // El estudiante adjunta su comprobante de pago justo al enviar la solicitud.
+    setMostrarModalPago(true);
   }
 
   async function manejarDescargaFicha(url) {
@@ -253,6 +256,19 @@ export default function SolicitarMatricula() {
           >
             {descargandoFicha ? "Generando..." : "Descargar Ficha Preliminar"}
           </button>
+
+          <div style={{ marginTop: 8 }}>
+            {solicitudActual?.tiene_comprobante ? (
+              <p style={{ color: "#e0c34a" }}>
+                Tu comprobante de pago fue enviado. Está pendiente de validación de tu solicitud y verificación del pago por administración.
+              </p>
+            ) : (
+              <p>Adjunta tu comprobante de pago para que administración lo revise.</p>
+            )}
+            <button type="button" onClick={() => setMostrarModalPago(true)}>
+              {solicitudActual?.tiene_comprobante ? "Reenviar comprobante de pago" : "Subir comprobante de pago"}
+            </button>
+          </div>
         </div>
       )}
 
