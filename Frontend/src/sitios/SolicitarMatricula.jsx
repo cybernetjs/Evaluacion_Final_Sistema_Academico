@@ -7,6 +7,7 @@ import {
   urlDescargarFichaPreliminar,
   urlDescargarFichaOficialEstudiante,
 } from "../servicios/matricula.servicio";
+import ModalRegistrarPago from "../componentes/ModalRegistrarPago";
 
 const NOMBRES_DIA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
@@ -33,6 +34,7 @@ export default function SolicitarMatricula() {
   const [solicitudActual, setSolicitudActual] = useState(null);
   const [descargandoFicha, setDescargandoFicha] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+  const [mostrarModalPago, setMostrarModalPago] = useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -254,6 +256,21 @@ export default function SolicitarMatricula() {
         </div>
       )}
 
+      {solicitudActual?.estado === "Validado" && !solicitudActual?.pagado && (
+        <div style={{ marginTop: 16 }}>
+          {solicitudActual?.tiene_comprobante ? (
+            <p style={{ color: "#e0c34a" }}>
+              Tu comprobante de pago fue enviado. Está pendiente de verificación por administración.
+            </p>
+          ) : (
+            <p>Tu matrícula fue validada. Ahora debes subir el comprobante de pago para que administración lo valide.</p>
+          )}
+          <button type="button" onClick={() => setMostrarModalPago(true)}>
+            {solicitudActual?.tiene_comprobante ? "Reenviar comprobante de pago" : "Subir comprobante de pago"}
+          </button>
+        </div>
+      )}
+
       {solicitudActual?.estado === "Matriculado" && (
         <div style={{ marginTop: 16 }}>
           <p style={{ color: "#8fd18f" }}>Matrícula oficializada</p>
@@ -343,6 +360,18 @@ export default function SolicitarMatricula() {
             </button>
           </div>
         </div>
+      )}
+
+      {mostrarModalPago && solicitudActual && (
+        <ModalRegistrarPago
+          matricula={solicitudActual}
+          onCerrar={() => setMostrarModalPago(false)}
+          onExito={(data) => {
+            setMensaje(data.mensaje);
+            setMostrarModalPago(false);
+            cargarDatos();
+          }}
+        />
       )}
     </div>
   );

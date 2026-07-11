@@ -44,9 +44,21 @@ def validar_requisitos(matricula_id):
 
 
 @matricula_bp.route('/<int:matricula_id>/pago', methods=['POST'])
-@rol_requerido("administrador")
+@rol_requerido("estudiante")
 def registrar_pago(matricula_id):
     return controllers.registrar_pago(matricula_id)
+
+
+@matricula_bp.route('/<int:matricula_id>/verificar-pago', methods=['PUT'])
+@rol_requerido("administrador")
+def verificar_pago(matricula_id):
+    return controllers.verificar_pago(matricula_id)
+
+
+@matricula_bp.route('/<int:matricula_id>/comprobante', methods=['GET'])
+@rol_requerido("administrador")
+def descargar_comprobante(matricula_id):
+    return controllers.descargar_comprobante(matricula_id)
 
 
 @matricula_bp.route('/<int:matricula_id>/ficha-oficial', methods=['POST'])

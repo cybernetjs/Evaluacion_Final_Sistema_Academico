@@ -42,11 +42,16 @@ class MatriculaService:
         if not matricula:
             return {"matricula": None}, None
 
+        from app.modelos.pago import Pago
+
+        tiene_comprobante = db.session.query(Pago.id).filter_by(matricula_id=matricula.id).first() is not None
+
         return {
             "matricula": {
                 "id": matricula.id,
                 "estado": matricula.estado.nombre if matricula.estado else None,
                 "pagado": matricula.pagado,
+                "tiene_comprobante": tiene_comprobante,
             }
         }, None
 
@@ -481,31 +486,22 @@ class MatriculaService:
         return {"id": matricula.id, "total_creditos": total_creditos}, None
 
     @staticmethod
-    def registrar_pago(matricula_id, numero_operacion, fecha_pago, monto, archivo):
+    def registrar_pago(matricula_id, usuario_id, archivo):
         from app.modelos.pago import Pago
 
         matricula = Matricula.query.get(matricula_id)
         if not matricula:
             return None, "Matrícula no encontrada", 404
 
+        estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
+        if not estudiante or matricula.estudiante_id != estudiante.id:
+            return None, "No tienes permiso para subir el comprobante de esta matrícula", 403
+
         if not matricula.estado or matricula.estado.nombre != "Validado":
-            return None, "La matrícula debe estar validada antes de registrar el pago", 400
+            return None, "La matrícula debe estar validada antes de subir el comprobante de pago", 400
 
-        if not numero_operacion or not numero_operacion.strip():
-            return None, "El número de operación es obligatorio", 400
-
-        try:
-            monto_decimal = float(monto)
-        except (TypeError, ValueError):
-            return None, "El monto pagado debe ser un valor numérico", 400
-
-        if monto_decimal <= 0:
-            return None, "El monto pagado debe ser mayor a cero", 400
-
-        try:
-            fecha_pago_convertida = datetime.strptime(fecha_pago, "%Y-%m-%d").date()
-        except (TypeError, ValueError):
-            return None, "La fecha de pago debe tener el formato AAAA-MM-DD", 400
+        if matricula.pagado:
+            return None, "El pago de esta matrícula ya fue verificado por administración", 400
 
         if not archivo or not archivo.filename:
             return None, "Debes adjuntar el comprobante de pago", 400
@@ -520,40 +516,117 @@ class MatriculaService:
         if tamano > TAMANO_MAXIMO_BYTES:
             return None, "El comprobante no puede superar los 5 MB", 400
 
-        duplicado = (
-            Pago.query.join(Matricula, Pago.matricula_id == Matricula.id)
-            .filter(
-                Matricula.periodo_academico_id == matricula.periodo_academico_id,
-                Pago.numero_operacion == numero_operacion.strip(),
-            )
-            .first()
-        )
-        if duplicado:
-            return None, "El número de operación ya fue registrado en este periodo", 409
-
         os.makedirs(CARPETA_COMPROBANTES, exist_ok=True)
         nombre_unico = f"{uuid.uuid4()}{extension}"
         ruta_completa = os.path.join(CARPETA_COMPROBANTES, nombre_unico)
         archivo.save(ruta_completa)
 
-        pago = Pago(
-            matricula_id=matricula.id,
-            numero_operacion=numero_operacion.strip(),
-            fecha_pago=fecha_pago_convertida,
-            monto=monto_decimal,
-            comprobante_ruta=ruta_completa,
-            comprobante_nombre_original=archivo.filename,
+        # Si ya existe un comprobante enviado y aún no verificado, se reemplaza
+        # en el mismo registro en lugar de acumular filas "pendientes".
+        pago_pendiente = (
+            Pago.query.filter_by(matricula_id=matricula.id, numero_operacion=None)
+            .order_by(Pago.id.desc())
+            .first()
         )
-        db.session.add(pago)
+
+        if pago_pendiente:
+            pago_pendiente.comprobante_ruta = ruta_completa
+            pago_pendiente.comprobante_nombre_original = archivo.filename
+            pago = pago_pendiente
+        else:
+            pago = Pago(
+                matricula_id=matricula.id,
+                comprobante_ruta=ruta_completa,
+                comprobante_nombre_original=archivo.filename,
+            )
+            db.session.add(pago)
+
+        db.session.commit()
+
+        return {
+            "mensaje": "Comprobante de pago enviado. Administración lo revisará y verificará.",
+            "matricula_id": matricula.id,
+            "pago_id": pago.id,
+        }, None, 201
+
+    @staticmethod
+    def verificar_pago(matricula_id, numero_operacion, fecha_pago, monto):
+        from app.modelos.pago import Pago
+
+        matricula = Matricula.query.get(matricula_id)
+        if not matricula:
+            return None, "Matrícula no encontrada"
+
+        if not matricula.estado or matricula.estado.nombre != "Validado":
+            return None, "La matrícula debe estar validada antes de verificar el pago"
+
+        if matricula.pagado:
+            return None, "El pago de esta matrícula ya fue verificado"
+
+        pago = (
+            Pago.query.filter_by(matricula_id=matricula.id, numero_operacion=None)
+            .order_by(Pago.id.desc())
+            .first()
+        )
+        if not pago:
+            return None, "El estudiante todavía no ha enviado ningún comprobante de pago"
+
+        if not numero_operacion or not numero_operacion.strip():
+            return None, "El número de operación es obligatorio"
+
+        try:
+            monto_decimal = float(monto)
+        except (TypeError, ValueError):
+            return None, "El monto pagado debe ser un valor numérico"
+
+        if monto_decimal <= 0:
+            return None, "El monto pagado debe ser mayor a cero"
+
+        try:
+            fecha_pago_convertida = datetime.strptime(fecha_pago, "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            return None, "La fecha de pago debe tener el formato AAAA-MM-DD"
+
+        duplicado = (
+            Pago.query.join(Matricula, Pago.matricula_id == Matricula.id)
+            .filter(
+                Matricula.periodo_academico_id == matricula.periodo_academico_id,
+                Pago.numero_operacion == numero_operacion.strip(),
+                Pago.id != pago.id,
+            )
+            .first()
+        )
+        if duplicado:
+            return None, "El número de operación ya fue registrado en este periodo"
+
+        pago.numero_operacion = numero_operacion.strip()
+        pago.fecha_pago = fecha_pago_convertida
+        pago.monto = monto_decimal
 
         matricula.pagado = True
         db.session.commit()
 
         return {
-            "mensaje": "Pago registrado y verificado correctamente",
+            "mensaje": "Pago verificado correctamente",
             "matricula_id": matricula.id,
             "pago_id": pago.id,
-        }, None, 201
+        }, None
+
+    @staticmethod
+    def obtener_comprobante(matricula_id):
+        from app.modelos.pago import Pago
+
+        matricula = Matricula.query.get(matricula_id)
+        if not matricula:
+            return None, "Matrícula no encontrada"
+
+        ultimo_pago = (
+            Pago.query.filter_by(matricula_id=matricula.id).order_by(Pago.id.desc()).first()
+        )
+        if not ultimo_pago or not ultimo_pago.comprobante_ruta:
+            return None, "No hay comprobante disponible para esta matrícula"
+
+        return ultimo_pago.comprobante_ruta, None
 
     @staticmethod
     def _plazo_vencido(matricula):
@@ -584,6 +657,8 @@ class MatriculaService:
             .all()
         )
 
+        from app.modelos.pago import Pago
+
         filas = []
         for m in matriculas:
             estudiante = m.estudiante
@@ -595,6 +670,7 @@ class MatriculaService:
                 "semestre_codigo": m.semestre.codigo if m.semestre else None,
                 "estado": m.estado.nombre if m.estado else None,
                 "pagado": m.pagado,
+                "tiene_comprobante": db.session.query(Pago.id).filter_by(matricula_id=m.id).first() is not None,
                 "plazo_vencido": MatriculaService._plazo_vencido(m),
                 "puede_cancelar": MatriculaService._plazo_vencido(m)
                 and not m.pagado

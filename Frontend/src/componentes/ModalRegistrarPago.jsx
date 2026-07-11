@@ -5,9 +5,6 @@ const EXTENSIONES_PERMITIDAS = ["pdf", "jpg", "jpeg", "png"];
 const TAMANO_MAXIMO_BYTES = 5 * 1024 * 1024;
 
 export default function ModalRegistrarPago({ matricula, onCerrar, onExito }) {
-  const [numeroOperacion, setNumeroOperacion] = useState("");
-  const [fechaPago, setFechaPago] = useState("");
-  const [monto, setMonto] = useState("");
   const [archivo, setArchivo] = useState(null);
   const [errorArchivo, setErrorArchivo] = useState(null);
   const [error, setError] = useState(null);
@@ -39,18 +36,13 @@ export default function ModalRegistrarPago({ matricula, onCerrar, onExito }) {
     e.preventDefault();
     setError(null);
 
-    if (!numeroOperacion || !fechaPago || !monto || !archivo) {
-      setError("Completa todos los campos y adjunta el comprobante");
+    if (!archivo) {
+      setError("Adjunta el comprobante de pago");
       return;
     }
 
     setEnviando(true);
-    const { data, error } = await registrarPago(matricula.id, {
-      numeroOperacion,
-      fechaPago,
-      monto,
-      archivo,
-    });
+    const { data, error } = await registrarPago(matricula.id, archivo);
     setEnviando(false);
 
     if (error) {
@@ -83,37 +75,7 @@ export default function ModalRegistrarPago({ matricula, onCerrar, onExito }) {
         style={{ background: "#1e1e1e", border: "1px solid #6b6bff", borderRadius: 8, padding: 20, maxWidth: 420, width: "100%" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h4 style={{ marginTop: 0 }}>Registrar pago — Matrícula #{matricula.id}</h4>
-
-        <label>Número de Operación Bancaria</label>
-        <input
-          type="text"
-          value={numeroOperacion}
-          onChange={(e) => setNumeroOperacion(e.target.value)}
-          readOnly={confirmado}
-          style={{ width: "100%", marginBottom: 10 }}
-        />
-
-        <label>Fecha de Pago</label>
-        <input
-          type="date"
-          value={fechaPago}
-          onChange={(e) => setFechaPago(e.target.value)}
-          readOnly={confirmado}
-          disabled={confirmado}
-          style={{ width: "100%", marginBottom: 10 }}
-        />
-
-        <label>Monto Pagado</label>
-        <input
-          type="number"
-          step="0.01"
-          min="0"
-          value={monto}
-          onChange={(e) => setMonto(e.target.value)}
-          readOnly={confirmado}
-          style={{ width: "100%", marginBottom: 10 }}
-        />
+        <h4 style={{ marginTop: 0 }}>Subir comprobante de pago — Matrícula #{matricula.id}</h4>
 
         <label>Comprobante (PDF, JPEG o PNG, máx. 5 MB)</label>
         <input
@@ -127,12 +89,16 @@ export default function ModalRegistrarPago({ matricula, onCerrar, onExito }) {
         {archivo && !errorArchivo && <p style={{ color: "#8fd18f", marginTop: 0 }}>{archivo.name}</p>}
 
         {error && <p style={{ color: "#ff6b6b" }}>{error}</p>}
-        {confirmado && <p style={{ color: "#8fd18f" }}>Pago confirmado. El formulario ya no puede modificarse.</p>}
+        {confirmado && (
+          <p style={{ color: "#8fd18f" }}>
+            Comprobante enviado. Administración lo revisará y verificará.
+          </p>
+        )}
 
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           {!confirmado && (
             <button type="submit" disabled={enviando || !archivo || errorArchivo}>
-              {enviando ? "Registrando..." : "Confirmar y Registrar Pago"}
+              {enviando ? "Enviando..." : "Confirmar y Registrar Pago"}
             </button>
           )}
           <button type="button" onClick={onCerrar}>

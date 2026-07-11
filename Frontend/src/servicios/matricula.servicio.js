@@ -66,12 +66,9 @@ export async function validarRequisitos(matriculaId) {
   return peticion(`/matriculas/${matriculaId}/validar`, { method: "PUT" });
 }
 
-export async function registrarPago(matriculaId, datosPago) {
+export async function registrarPago(matriculaId, archivo) {
   const formData = new FormData();
-  formData.append("numero_operacion", datosPago.numeroOperacion);
-  formData.append("fecha_pago", datosPago.fechaPago);
-  formData.append("monto", datosPago.monto);
-  formData.append("comprobante", datosPago.archivo);
+  formData.append("comprobante", archivo);
 
   const token = localStorage.getItem("token");
   const respuesta = await fetch(`http://localhost:5000/api/matriculas/${matriculaId}/pago`, {
@@ -82,9 +79,38 @@ export async function registrarPago(matriculaId, datosPago) {
 
   const cuerpo = await respuesta.json().catch(() => null);
   if (!respuesta.ok) {
-    return { data: null, error: cuerpo?.error || "No se pudo registrar el pago" };
+    return { data: null, error: cuerpo?.error || "No se pudo enviar el comprobante" };
   }
   return { data: cuerpo, error: null };
+}
+
+export async function verificarPago(matriculaId, datosPago) {
+  return peticion(`/matriculas/${matriculaId}/verificar-pago`, {
+    method: "PUT",
+    body: JSON.stringify({
+      numero_operacion: datosPago.numeroOperacion,
+      fecha_pago: datosPago.fechaPago,
+      monto: datosPago.monto,
+    }),
+  });
+}
+
+export async function obtenerComprobanteMatriculaBlobUrl(matriculaId) {
+  const token = localStorage.getItem("token");
+  try {
+    const respuesta = await fetch(`http://localhost:5000/api/matriculas/${matriculaId}/comprobante`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!respuesta.ok) {
+      return { data: null, error: "No se pudo cargar el comprobante" };
+    }
+
+    const blob = await respuesta.blob();
+    return { data: URL.createObjectURL(blob), error: null };
+  } catch {
+    return { data: null, error: "No se pudo conectar con el servidor" };
+  }
 }
 
 export async function generarFichaOficial(matriculaId) {

@@ -133,19 +133,38 @@ def validar_requisitos(matricula_id):
 
 
 def registrar_pago(matricula_id):
-    numero_operacion = request.form.get("numero_operacion")
-    fecha_pago = request.form.get("fecha_pago")
-    monto = request.form.get("monto")
+    usuario_id = get_jwt_identity()
     archivo = request.files.get("comprobante")
 
-    resultado, error, codigo = MatriculaService.registrar_pago(
-        matricula_id, numero_operacion, fecha_pago, monto, archivo
-    )
+    resultado, error, codigo = MatriculaService.registrar_pago(matricula_id, usuario_id, archivo)
 
     if error:
         return jsonify({"error": error}), codigo
 
     return jsonify(resultado), codigo
+
+
+def verificar_pago(matricula_id):
+    datos = request.get_json(silent=True) or {}
+    numero_operacion = datos.get("numero_operacion")
+    fecha_pago = datos.get("fecha_pago")
+    monto = datos.get("monto")
+
+    resultado, error = MatriculaService.verificar_pago(matricula_id, numero_operacion, fecha_pago, monto)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(resultado)
+
+
+def descargar_comprobante(matricula_id):
+    ruta, error = MatriculaService.obtener_comprobante(matricula_id)
+
+    if error:
+        return jsonify({"error": error}), 404
+
+    return send_file(ruta)
 
 
 def generar_ficha_oficial(matricula_id):

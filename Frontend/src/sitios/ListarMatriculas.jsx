@@ -5,10 +5,11 @@ import {
   validarRequisitos,
   generarFichaOficial,
   cancelarMatricula,
+  obtenerComprobanteMatriculaBlobUrl,
 } from "../servicios/matricula.servicio";
 import { listarEspecialidades } from "../servicios/administracion.servicio";
 import { listarPeriodos } from "../servicios/matricula.servicio";
-import ModalRegistrarPago from "../componentes/ModalRegistrarPago";
+import ModalVerificarPago from "../componentes/ModalVerificarPago";
 
 export default function ListarMatriculas() {
   const [matriculas, setMatriculas] = useState([]);
@@ -23,7 +24,9 @@ export default function ListarMatriculas() {
   const [pagina, setPagina] = useState(1);
   const porPagina = 10;
   const [matriculaACancelar, setMatriculaACancelar] = useState(null);
-  const [matriculaAPagar, setMatriculaAPagar] = useState(null);
+  const [matriculaAVerificar, setMatriculaAVerificar] = useState(null);
+  const [comprobanteUrl, setComprobanteUrl] = useState(null);
+  const [cargandoComprobante, setCargandoComprobante] = useState(false);
 
   useEffect(() => {
     cargarCatalogos();
@@ -63,8 +66,8 @@ export default function ListarMatriculas() {
     return matricula.estado === "Pendiente";
   }
 
-  function puedeRegistrarPago(matricula) {
-    return matricula.estado === "Validado" && !matricula.pagado;
+  function puedeVerificarPago(matricula) {
+    return matricula.estado === "Validado" && !matricula.pagado && matricula.tiene_comprobante;
   }
 
   function puedeGenerarFicha(matricula) {
@@ -84,8 +87,30 @@ export default function ListarMatriculas() {
     cargarMatriculas();
   }
 
-  function manejarExitoPago(data) {
+  async function abrirVerificacionPago(matricula) {
+    setMatriculaAVerificar(matricula);
+    setComprobanteUrl(null);
+    setCargandoComprobante(true);
+    const { data, error } = await obtenerComprobanteMatriculaBlobUrl(matricula.id);
+    setCargandoComprobante(false);
+    if (error) {
+      setError(error);
+      return;
+    }
+    setComprobanteUrl(data);
+  }
+
+  function cerrarVerificacionPago() {
+    setComprobanteUrl((actual) => {
+      if (actual) URL.revokeObjectURL(actual);
+      return null;
+    });
+    setMatriculaAVerificar(null);
+  }
+
+  function manejarExitoVerificacion(data) {
     setMensaje(data.mensaje);
+    cerrarVerificacionPago();
     cargarMatriculas();
   }
 
@@ -194,8 +219,19 @@ export default function ListarMatriculas() {
                       <button type="button" onClick={() => manejarValidar(m.id)} disabled={!puedeValidar(m)}>
                         Validar
                       </button>
-                      <button type="button" onClick={() => setMatriculaAPagar(m)} disabled={!puedeRegistrarPago(m)}>
-                        Registrar pago
+                      <button
+                        type="button"
+                        onClick={() => abrirVerificacionPago(m)}
+                        disabled={!puedeVerificarPago(m)}
+                        title={
+                          !m.tiene_comprobante
+                            ? "El estudiante todavía no envió el comprobante"
+                            : m.pagado
+                            ? "El pago ya fue verificado"
+                            : undefined
+                        }
+                      >
+                        Verificar pago
                       </button>
                       <button type="button" onClick={() => manejarFicha(m.id)} disabled={!puedeGenerarFicha(m)}>
                         Generar ficha oficial
@@ -284,11 +320,13 @@ export default function ListarMatriculas() {
         </div>
       )}
 
-      {matriculaAPagar && (
-        <ModalRegistrarPago
-          matricula={matriculaAPagar}
-          onCerrar={() => setMatriculaAPagar(null)}
-          onExito={manejarExitoPago}
+      {matriculaAVerificar && (
+        <ModalVerificarPago
+          matricula={matriculaAVerificar}
+          comprobanteUrl={comprobanteUrl}
+          cargandoComprobante={cargandoComprobante}
+          onCerrar={cerrarVerificacionPago}
+          onExito={manejarExitoVerificacion}
         />
       )}
     </div>
