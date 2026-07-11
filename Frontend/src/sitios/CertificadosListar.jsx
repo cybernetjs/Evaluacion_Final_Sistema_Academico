@@ -300,21 +300,6 @@ export default function CertificadosListar() {
         </>
       )}
 
-      <h3 style={{ marginTop: 32 }}>Verificar un certificado emitido</h3>
-      <p style={{ color: "#aaa", fontSize: "0.9em" }}>
-        Este buscador público confirma si un documento es auténtico. Solo funciona con el código que
-        aparece en el certificado ya <strong>Emitido</strong> (impreso junto al QR y visible en "Ver
-        expediente" de una solicitud emitida). Los trámites en "Pendiente de Validación" o "Apto para
-        Firma" todavía no tienen un código válido, por eso la búsqueda los marca como inválidos.
-      </p>
-      <form onSubmit={manejarVerificacion}>
-        <input
-          value={codigo}
-          onChange={(e) => setCodigo(e.target.value)}
-          placeholder="Código de verificación"
-        />
-        <button type="submit">Buscar</button>
-      </form>
       {verificacion && !verificacion.valido && (
         <div
           style={{

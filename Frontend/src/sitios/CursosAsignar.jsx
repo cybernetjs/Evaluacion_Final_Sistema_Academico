@@ -236,7 +236,7 @@ export default function CursosAsignar() {
   return (
     <div className="contenedor">
       <h2>Cursos y docentes</h2>
-      <p>Gestiona el catálogo de cursos, la apertura de secciones y la asignación de docentes y horarios.</p>
+      
 
       {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
@@ -246,9 +246,6 @@ export default function CursosAsignar() {
           {mostrarFormCurso ? "Ocultar" : "Registrar nuevo curso"}
         </button>
         <p style={{ marginTop: 8, color: "#aaa" }}>
-          Un "curso" es la materia en sí (por ejemplo, Redes de Computadoras). Una vez registrado el curso,
-          debes abrir una sección (oferta académica) para el periodo vigente antes de poder asignarle
-          docente y horario.
         </p>
 
         {mostrarFormCurso && (
@@ -315,9 +312,7 @@ export default function CursosAsignar() {
           {mostrarFormSeccion ? "Ocultar" : "Abrir sección para el periodo vigente"}
         </button>
         <p style={{ marginTop: 8, color: "#aaa" }}>
-          Elige un curso ya registrado y el semestre del plan de estudios al que pertenece. Esto crea la
-          "oferta académica" (sección) que luego aparece en el desplegable de abajo para asignar docente y
-          horario. {periodoActual ? `Periodo vigente: ${periodoActual.nombre}.` : ""}
+           {periodoActual ? `Periodo vigente: ${periodoActual.nombre}.` : ""}
         </p>
 
         {mostrarFormSeccion && (
@@ -415,8 +410,7 @@ export default function CursosAsignar() {
 
           {seccionCompleta ? (
             <p style={{ color: "#8fd18f" }}>
-              La plana docente de esta sección está completa (cubre las horas teóricas y prácticas
-              requeridas).
+              La plana docente de esta sección está completa.
             </p>
           ) : (
             <p style={{ color: "#f0ad4e" }}>
@@ -441,9 +435,6 @@ export default function CursosAsignar() {
             ))}
           </select>
           <p style={{ color: "#aaa", fontSize: "0.9em" }}>
-            Solo aparecen aquí los docentes ya registrados por Administración (menú "Registrar docente").
-            Si no encuentras al docente que buscas, primero debes registrarlo ahí; después estará
-            disponible para asignarlo a cualquier sección.
           </p>
         </div>
 
@@ -477,11 +468,6 @@ export default function CursosAsignar() {
       </form>
 
       <h3>Registrar horario y aula de la sección</h3>
-      <p style={{ color: "#aaa" }}>
-        El horario y el aula pertenecen a la sección completa (no a un docente en particular): todos los
-        docentes asignados a esta oferta académica comparten el mismo bloque de horario y aula/enlace
-        virtual.
-      </p>
 
       {asignaciones && asignaciones.horarios.length > 0 && (
         <table style={{ marginBottom: 12 }}>

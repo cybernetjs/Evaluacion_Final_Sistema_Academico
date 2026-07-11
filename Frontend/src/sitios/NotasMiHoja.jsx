@@ -57,7 +57,7 @@ export default function NotasMiHoja() {
         </select>
       </div>
 
-      {esHistorico && <p style={{ opacity: 0.7 }}>Consultando historial en modo de solo lectura</p>}
+      {esHistorico && <p style={{ opacity: 0.7 }}>Consultando historial </p>}
 
       {error && <p style={{ color: "red" }}>{error}</p>}
       {cargando && <p>Cargando...</p>}

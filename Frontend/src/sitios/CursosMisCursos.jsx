@@ -117,7 +117,7 @@ export default function CursosMisCursos() {
   return (
     <div className="contenedor">
       <h2>Mi carga académica</h2>
-      <p>Consulta tus cursos y secciones asignadas para el periodo académico.</p>
+      
 
       <select value={periodoSeleccionado} onChange={(e) => manejarCambioPeriodo(e.target.value)}>
         <option value="">Periodo académico vigente</option>

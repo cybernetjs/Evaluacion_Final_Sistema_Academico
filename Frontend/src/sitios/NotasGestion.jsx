@@ -319,9 +319,7 @@ export default function NotasGestion() {
             onClick={(e) => e.stopPropagation()}
           >
             <p>
-              ¿Está seguro de cerrar formalmente el acta de la sección {actaAConfirmar.curso_codigo}? Esta
-              acción es irreversible, guardará un hash de auditoría y bloqueará cualquier modificación
-              posterior sobre las notas de esta sección.
+              ¿Está seguro de cerrar formalmente el acta de la sección {actaAConfirmar.curso_codigo}?
             </p>
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" onClick={confirmarCierreActa}>

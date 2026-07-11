@@ -44,7 +44,7 @@ export default function CursosCargaDocente() {
   return (
     <div className="contenedor">
       <h2>Distribución de carga lectiva</h2>
-      <p>Panel analítico de la plana docente de la facultad para el periodo en curso.</p>
+      
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 

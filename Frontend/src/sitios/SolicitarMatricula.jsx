@@ -115,7 +115,6 @@ export default function SolicitarMatricula() {
     setSeleccionados([]);
     await cargarDatos();
 
-    // El estudiante adjunta su comprobante de pago justo al enviar la solicitud.
     setMostrarModalPago(true);
   }
 
@@ -260,7 +259,7 @@ export default function SolicitarMatricula() {
           <div style={{ marginTop: 8 }}>
             {solicitudActual?.tiene_comprobante ? (
               <p style={{ color: "#e0c34a" }}>
-                Tu comprobante de pago fue enviado. Está pendiente de validación de tu solicitud y verificación del pago por administración.
+                Tu comprobante de pago fue enviado. Está pendiente de validación de tu solicitud y verificación del pago.
               </p>
             ) : (
               <p>Adjunta tu comprobante de pago para que administración lo revise.</p>
@@ -327,9 +326,7 @@ export default function SolicitarMatricula() {
             onClick={(e) => e.stopPropagation()}
           >
             <p>
-              ¿Está seguro de confirmar la matrícula? Esta acción cerrará el proceso de matrícula
-              y no se permitirán modificaciones en las asignaturas. (Aún estarán permitidos la
-              descarga de las fichas de matrícula preliminar y oficial)
+              ¿Está seguro de confirmar la matrícula? Esta acción cerrará el proceso de matrícula.
             </p>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
               <button type="button" onClick={confirmarEnvio}>
