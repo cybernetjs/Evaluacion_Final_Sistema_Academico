@@ -1,6 +1,7 @@
-import { Routes, Route } from "react-router-dom";
-import Navbar from "./componentes/Navbar.jsx";
+import { Link, Routes, Route } from "react-router-dom";
+import Navbar, { ENLACES_POR_ROL } from "./componentes/Navbar.jsx";
 import RutaProtegida from "./rutas/RutaProtegida.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
 import Login from "./sitios/Login.jsx";
 import SolicitarMatricula from "./sitios/SolicitarMatricula.jsx";
 import ListarMatriculas from "./sitios/ListarMatriculas.jsx";
@@ -23,7 +24,32 @@ import AdministracionAuditorias from "./sitios/AdministracionAuditorias.jsx";
 import ConfiguracionGlobal from "./sitios/ConfiguracionGlobal.jsx";
 
 function Inicio() {
-  return <h1>Sistema Académico</h1>;
+  const { usuario, estaAutenticado } = useAuth();
+
+  if (!estaAutenticado) {
+    return (
+      <main className="inicio-publico">
+        <Link className="boton-login-publico" to="/login">
+          Iniciar Sesion
+        </Link>
+      </main>
+    );
+  }
+
+  const modulos = (ENLACES_POR_ROL[usuario.rol] || []).filter((enlace) => enlace.to !== "/");
+
+  return (
+    <main className="panel-inicio">
+      <h2>Modulos disponibles</h2>
+      <div className="modulos-grid">
+        {modulos.map((modulo) => (
+          <a className="modulo-card" href={modulo.to} key={modulo.to}>
+            {modulo.texto}
+          </a>
+        ))}
+      </div>
+    </main>
+  );
 }
 
 export default function App() {
@@ -59,7 +85,6 @@ export default function App() {
           }
         />
 
-
         <Route
           path="/cursos-docentes/mis-cursos"
           element={
@@ -93,7 +118,6 @@ export default function App() {
           }
         />
 
-   
         <Route
           path="/notas/mi-hoja"
           element={
@@ -119,7 +143,6 @@ export default function App() {
           }
         />
 
-     
         <Route
           path="/record-academico/mi-historial"
           element={
@@ -145,7 +168,6 @@ export default function App() {
           }
         />
 
-      
         <Route
           path="/certificados/solicitar"
           element={
@@ -163,7 +185,6 @@ export default function App() {
           }
         />
 
-      
         <Route
           path="/administracion/usuarios"
           element={
