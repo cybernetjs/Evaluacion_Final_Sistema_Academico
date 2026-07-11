@@ -56,20 +56,17 @@ export default function Navbar() {
   return (
     <nav>
       <div className="marca-sistema">
-        <h1>Sistema de Gestion Academica</h1>
-        <p>Plataforma academica institucional</p>
+        <h1>Sistema</h1>
       </div>
 
       <div className="usuario-panel">
         <strong>{usuario.username}</strong>
-        <span>PLATAFORMA DE ATENCION AL USUARIO</span>
       </div>
 
       <button type="button" onClick={manejarCerrarSesion}>
         Cerrar Sesion
       </button>
 
-      <div className="menu-titulo">Modulos</div>
       {enlaces.map((enlace) => (
         <Link
           className={location.pathname === enlace.to ? "activo" : ""}
