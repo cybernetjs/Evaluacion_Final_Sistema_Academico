@@ -86,10 +86,9 @@ export default function AdministracionPermisos() {
 
   return (
     <div className="contenedor">
-      <h2>Matriz de control de permisos (RBAC)</h2>
+      <h2>Matriz de control de permisos</h2>
       <p>
-        Define, por rol y por módulo, qué operaciones puede ejecutar cada perfil del sistema.
-        Los cambios aplican de inmediato a las próximas peticiones.
+        Define, por rol y por módulo.
       </p>
 
       {mensaje && <p style={{ color: "#8fd18f" }}>{mensaje}</p>}
