@@ -388,9 +388,6 @@ export default function CertificadosListar() {
                     <p>Código de verificación: <strong>{expediente.codigo_verificacion}</strong></p>
                   ) : (
                     <p style={{ color: "#aaa", fontSize: "0.9em" }}>
-                      El código de verificación se genera recién cuando el trámite llega al estado
-                      "Emitido" (después de ser aprobado por Administración y firmado por Dirección). Antes
-                      de eso no existe ningún código válido para esta solicitud.
                     </p>
                   )}
 
@@ -403,11 +400,6 @@ export default function CertificadosListar() {
                     ) : (
                       <span style={{ color: "#aaa" }}>aún no se ha notificado</span>
                     )}
-                  </p>
-                  <p style={{ color: "#aaa", fontSize: "0.85em" }}>
-                    El sistema no envía correos por su cuenta: este botón solo marca la solicitud como
-                    atendida y te da un texto sugerido para que tú se lo copies y envíes al estudiante por
-                    tu propio correo.
                   </p>
                   <button
                     type="button"

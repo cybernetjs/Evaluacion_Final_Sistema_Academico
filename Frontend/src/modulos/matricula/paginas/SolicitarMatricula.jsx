@@ -220,7 +220,7 @@ export default function SolicitarMatricula() {
 
       {periodo && (
         <p>
-          Periodo académico: <strong>{periodo.nombre}</strong> (asignado automáticamente)
+          Periodo académico: <strong>{periodo.nombre}</strong> 
         </p>
       )}
 

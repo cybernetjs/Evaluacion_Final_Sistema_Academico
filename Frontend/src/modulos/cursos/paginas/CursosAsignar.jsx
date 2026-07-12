@@ -105,7 +105,6 @@ export default function CursosAsignar() {
     const { data, error } = await obtenerAsignacionesOferta(ofertaId);
     if (!error) {
       setAsignaciones(data);
-      // Preselecciona automáticamente la función que todavía falta por cubrir
       if (data.funciones_pendientes?.length === 1) {
         setFuncionCurso(data.funciones_pendientes[0]);
       } else if (data.funciones_pendientes?.length > 1) {
@@ -414,10 +413,7 @@ export default function CursosAsignar() {
             </p>
           ) : (
             <p style={{ color: "#f0ad4e" }}>
-              Falta asignar: {funcionesPendientes.map((f) => ETIQUETA_FUNCION[f] ?? f).join(", ")}. Cada
-              sección necesita, como máximo, un docente Teórico y un docente Práctico — un mismo docente
-              puede cubrir ambos roles en distintas secciones, pero no dos veces el mismo rol en la misma
-              sección.
+              Falta asignar: {funcionesPendientes.map((f) => ETIQUETA_FUNCION[f] ?? f).join(", ")}. 
             </p>
           )}
         </div>
