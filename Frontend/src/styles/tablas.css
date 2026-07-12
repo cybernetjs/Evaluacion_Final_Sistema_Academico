@@ -1,0 +1,28 @@
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+  background: var(--panel);
+}
+
+th,
+td {
+  border: 1px solid var(--linea);
+  padding: 9px 11px;
+  text-align: left;
+  color: var(--texto);
+}
+
+th {
+  background: var(--panel-alterno);
+  color: var(--texto-suave);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+}
+
+tbody tr:nth-child(even) td {
+  background: var(--panel-alterno);
+}

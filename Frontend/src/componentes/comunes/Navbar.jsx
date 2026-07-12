@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import useToggle from "../../hooks/useToggle";
+import useClickFuera from "../../hooks/useClickFuera";
 
 export const ENLACES_POR_ROL = {
   estudiante: [
@@ -52,7 +54,14 @@ export default function Navbar() {
   const { usuario, cerrarSesion, estaAutenticado } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [abierto, setAbierto] = useState(false);
+  const [abierto, alternarAbierto, setAbierto] = useToggle(false);
+  const referenciaNav = useRef(null);
+
+  useClickFuera(referenciaNav, () => setAbierto(false));
+
+  useEffect(() => {
+    document.body.classList.toggle("nav-abierto", abierto);
+  }, [abierto]);
 
   if (!estaAutenticado) {
     return null;
@@ -66,8 +75,8 @@ export default function Navbar() {
   const enlaces = ENLACES_POR_ROL[usuario.rol] || [];
 
   return (
-    <>
-      <button type="button" className="nav-toggle" onClick={() => setAbierto(!abierto)}>
+    <div ref={referenciaNav}>
+      <button type="button" className="nav-toggle" onClick={alternarAbierto}>
         <IconoMenu />
       </button>
 
@@ -94,6 +103,6 @@ export default function Navbar() {
           Cerrar sesion
         </button>
       </nav>
-    </>
+    </div>
   );
 }

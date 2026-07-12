@@ -1,0 +1,91 @@
+.nav-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 950;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  color: var(--texto);
+  padding: 0;
+  margin: 0;
+}
+
+.nav-toggle:hover {
+  border-color: var(--acento-claro);
+  background: var(--panel);
+}
+
+nav {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 260px;
+  background: var(--panel);
+  border-right: 1px solid var(--linea);
+  padding: 24px 20px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 900;
+  transform: translateX(-100%);
+  transition: transform 0.22s ease;
+}
+
+nav.abierto {
+  transform: translateX(0);
+  box-shadow: 6px 0 30px rgba(0, 0, 0, 0.55);
+}
+
+.nav-usuario {
+  margin-bottom: 24px;
+}
+
+.nav-usuario-nombre {
+  display: block;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.nav-usuario-rol {
+  display: block;
+  color: var(--texto-suave);
+  font-size: 12px;
+  margin-top: 2px;
+  text-transform: capitalize;
+}
+
+.nav-enlaces {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.nav-enlaces a {
+  display: block;
+  color: var(--texto-suave);
+  font-weight: 500;
+  padding: 10px 12px;
+  border-left: 2px solid transparent;
+}
+
+.nav-enlaces a:hover {
+  color: var(--texto);
+}
+
+.nav-enlaces a.activo {
+  color: var(--texto);
+  background: var(--panel-alterno);
+  border-left-color: var(--acento-claro);
+}
+
+.nav-salir {
+  width: 100%;
+  margin: 20px 0 0;
+  background: var(--acento);
+  border-color: var(--acento);
+}
