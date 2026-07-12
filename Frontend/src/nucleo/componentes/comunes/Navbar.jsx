@@ -50,15 +50,6 @@ function IconoMenu() {
   );
 }
 
-function IconoCerrar() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <line x1="5" y1="5" x2="19" y2="19" />
-      <line x1="19" y1="5" x2="5" y2="19" />
-    </svg>
-  );
-}
-
 export default function Navbar() {
   const { usuario, cerrarSesion, estaAutenticado } = useAuth();
   const navigate = useNavigate();
@@ -89,18 +80,12 @@ export default function Navbar() {
         <IconoMenu />
       </button>
 
+      <div className="nav-usuario-flotante">
+        <span className="nav-usuario-nombre">{usuario.username}</span>
+        <span className="nav-usuario-rol">{usuario.rol}</span>
+      </div>
+
       <nav className={abierto ? "abierto" : ""}>
-        <div className="nav-cabecera">
-          <button type="button" className="nav-cerrar" onClick={() => setAbierto(false)}>
-            <IconoCerrar />
-          </button>
-
-          <div className="nav-usuario">
-            <span className="nav-usuario-nombre">{usuario.username}</span>
-            <span className="nav-usuario-rol">{usuario.rol}</span>
-          </div>
-        </div>
-
         <div className="nav-enlaces">
           {enlaces.map((enlace) => (
             <Link
