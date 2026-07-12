@@ -1,0 +1,85 @@
+.campo {
+  margin-bottom: 18px;
+}
+
+.caja {
+  border: 1px solid var(--linea-oscura);
+  background: var(--panel);
+  padding: 22px 16px 16px;
+  margin-bottom: 18px;
+  position: relative;
+}
+
+.caja-titulo {
+  position: absolute;
+  top: -9px;
+  left: 14px;
+  background: var(--panel);
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-suave);
+}
+
+.caja-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+fieldset {
+  border: 1px solid var(--acento);
+  background: var(--panel);
+  padding: 20px 16px 16px;
+  margin: 0 0 18px;
+}
+
+legend {
+  margin-left: 12px;
+  padding: 0 8px;
+  color: var(--acento-claro);
+  background: var(--panel);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+fieldset input,
+fieldset select,
+fieldset textarea {
+  background: var(--panel-alterno);
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: none;
+  background: var(--panel-alterno);
+  color: var(--texto);
+  padding: 10px 11px;
+  font: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--acento-claro);
+}
+
+button:focus,
+a:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--acento-claro);
+}

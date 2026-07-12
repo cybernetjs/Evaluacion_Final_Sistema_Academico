@@ -1,0 +1,54 @@
+button {
+  background: var(--acento);
+  color: #fff;
+  border: 1px solid var(--acento);
+  padding: 9px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--acento-hover);
+  border-color: var(--acento-claro);
+}
+
+button:active:not(:disabled) {
+  background: var(--acento-activo);
+  border-color: var(--acento-claro);
+  transform: translateY(1px);
+}
+
+button:disabled {
+  background: var(--panel-alterno);
+  border-color: var(--linea);
+  color: var(--texto-suave);
+  cursor: not-allowed;
+}
+
+button.secundario {
+  background: var(--panel-alterno);
+  border-color: var(--linea);
+  color: var(--texto);
+}
+
+button.secundario:hover:not(:disabled) {
+  border-color: var(--acento-claro);
+  background: #1e1e26;
+}
+
+button.secundario:active:not(:disabled) {
+  background: #131318;
+  transform: translateY(1px);
+}
+
+.mensaje-error {
+  color: var(--error);
+  margin-top: 14px;
+}
+
+.mensaje-exito {
+  color: var(--exito);
+  margin-top: 14px;
+}
