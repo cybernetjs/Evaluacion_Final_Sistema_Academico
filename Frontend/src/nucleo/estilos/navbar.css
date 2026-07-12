@@ -26,6 +26,18 @@
   right: 18px;
   z-index: 950;
   text-align: right;
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  padding: 8px 16px;
+  max-width: min(260px, calc(100vw - 36px));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.nav-usuario-nombre,
+.nav-usuario-rol {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 nav {
