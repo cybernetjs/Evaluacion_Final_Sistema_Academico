@@ -1,16 +1,21 @@
+@import url("https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap");
+
 * {
   box-sizing: border-box;
 }
 
 :root {
-  --fondo: #14141a;
-  --panel: #1b1b23;
-  --panel-alterno: #202029;
-  --linea: #33333f;
-  --acento: #6c63ff;
-  --acento-oscuro: #4f47cc;
-  --texto: #e9e9f0;
-  --texto-suave: #9696a8;
+  --fondo: #08080a;
+  --panel: #0e0e11;
+  --panel-alterno: #17171c;
+  --linea: #2a2a32;
+  --linea-caja: #45465a;
+  --linea-acento: #362a80;
+  --acento: #5849e6;
+  --acento-hover: #241d63;
+  --acento-claro: #b6acff;
+  --texto: #edeef2;
+  --texto-suave: #86869a;
   --error: #ff6b6b;
   --exito: #7fd88f;
 }
@@ -47,36 +52,55 @@ h3 {
 }
 
 a {
-  color: var(--acento);
+  color: var(--acento-claro);
   text-decoration: none;
+}
+
+.nav-toggle {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 950;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  color: var(--texto);
+  padding: 0;
+  margin: 0;
+}
+
+.nav-toggle:hover {
+  border-color: var(--acento);
 }
 
 nav {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 250px;
+  width: 260px;
   background: var(--panel);
   border-right: 1px solid var(--linea);
-  padding: 24px 18px;
+  padding: 84px 20px 20px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  z-index: 900;
+  transform: translateX(-100%);
+  transition: transform 0.22s ease;
 }
 
-.nav-marca {
-  margin-bottom: 22px;
-}
-
-.nav-marca h1 {
-  font-size: 18px;
-  letter-spacing: 0.5px;
+nav.abierto {
+  transform: translateX(0);
+  box-shadow: 6px 0 30px rgba(0, 0, 0, 0.55);
 }
 
 .nav-usuario {
-  background: var(--panel-alterno);
-  border: 1px solid var(--linea);
-  padding: 12px 14px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--linea);
 }
 
 .nav-usuario-nombre {
@@ -93,30 +117,18 @@ nav {
   text-transform: capitalize;
 }
 
-.nav-salir {
-  width: 100%;
-  margin: 0 0 24px;
-  background: var(--panel-alterno);
-  border-color: var(--linea);
-  color: var(--texto);
-}
-
-.nav-salir:hover {
-  background: var(--linea);
-  border-color: var(--linea);
-}
-
 .nav-enlaces {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
 }
 
 .nav-enlaces a {
   display: block;
   color: var(--texto-suave);
   font-weight: 500;
-  padding: 9px 10px;
+  padding: 10px 12px;
   border-left: 2px solid transparent;
 }
 
@@ -130,9 +142,16 @@ nav {
   border-left-color: var(--acento);
 }
 
+.nav-salir {
+  width: 100%;
+  margin: 20px 0 0;
+  background: var(--acento);
+  border-color: var(--acento);
+}
+
 main,
 .contenedor {
-  margin: 24px 24px 24px 274px;
+  margin: 24px 24px 24px 84px;
   background: var(--panel);
   border: 1px solid var(--linea);
   padding: 26px 28px;
@@ -166,22 +185,25 @@ main,
 .modulos-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(240px, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .modulo-card {
-  display: block;
+  display: flex;
+  align-items: center;
   background: var(--panel);
-  border: 1px solid var(--linea);
+  border: 1px solid var(--linea-acento);
   color: var(--texto);
   font-size: 15px;
   font-weight: 600;
-  padding: 22px;
+  padding: 24px 22px;
+  min-height: 80px;
 }
 
 .modulo-card:hover {
   border-color: var(--acento);
-  color: var(--acento);
+  background: var(--panel-alterno);
+  color: var(--acento-claro);
 }
 
 .pantalla-centrada {
@@ -210,22 +232,21 @@ main,
 }
 
 .caja {
-  border: 1px solid var(--linea);
-  padding: 18px 16px 16px;
+  border: 1px solid var(--linea-caja);
+  padding: 22px 16px 16px;
   margin-bottom: 18px;
   position: relative;
 }
 
 .caja-titulo {
   position: absolute;
-  top: -10px;
-  left: 12px;
+  top: -12px;
+  left: 14px;
   background: var(--panel);
   padding: 0 8px;
-  font-size: 12px;
-  color: var(--texto-suave);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-family: "Kalam", cursive;
+  font-size: 15px;
+  color: var(--acento-claro);
 }
 
 .caja-contenido {
@@ -235,25 +256,26 @@ main,
 }
 
 fieldset {
-  border: 1px solid var(--linea);
-  padding: 0;
-  background: var(--panel-alterno);
+  border: 1px solid var(--linea-caja);
+  background: var(--panel);
+  padding: 18px 14px 14px;
   margin: 0 0 18px;
 }
 
 legend {
-  margin-left: 16px;
+  margin-left: 12px;
   padding: 0 8px;
-  color: var(--texto-suave);
+  color: var(--acento-claro);
   background: var(--panel);
-  font-size: 12px;
+  font-family: "Kalam", cursive;
+  font-size: 15px;
 }
 
 fieldset input,
 fieldset select,
 fieldset textarea {
-  border: 0;
-  background: transparent;
+  background: var(--panel-alterno);
+  border: 1px solid var(--linea);
 }
 
 label {
@@ -296,8 +318,8 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background: var(--acento-oscuro);
-  border-color: var(--acento-oscuro);
+  background: var(--acento-hover);
+  border-color: var(--acento-hover);
 }
 
 button:disabled {
@@ -315,6 +337,7 @@ button.secundario {
 
 button.secundario:hover:not(:disabled) {
   border-color: var(--acento);
+  background: var(--panel-alterno);
 }
 
 .tarjeta-login button {
@@ -374,7 +397,7 @@ ul {
 .modal-fondo {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -404,16 +427,9 @@ ul {
 }
 
 @media (max-width: 820px) {
-  nav {
-    position: static;
-    width: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--linea);
-  }
-
   main,
   .contenedor {
-    margin: 16px;
+    margin: 20px 16px 16px 74px;
   }
 
   .modulos-grid {

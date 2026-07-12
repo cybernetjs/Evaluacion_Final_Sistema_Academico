@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -37,10 +38,21 @@ export const ENLACES_POR_ROL = {
   ],
 };
 
+function IconoMenu() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
 export default function Navbar() {
   const { usuario, cerrarSesion, estaAutenticado } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [abierto, setAbierto] = useState(false);
 
   if (!estaAutenticado) {
     return null;
@@ -54,31 +66,34 @@ export default function Navbar() {
   const enlaces = ENLACES_POR_ROL[usuario.rol] || [];
 
   return (
-    <nav>
-      <div className="nav-marca">
-        <h1>Sistema Academico</h1>
-      </div>
-
-      <div className="nav-usuario">
-        <span className="nav-usuario-nombre">{usuario.username}</span>
-        <span className="nav-usuario-rol">{usuario.rol}</span>
-      </div>
-
-      <button type="button" className="nav-salir" onClick={manejarCerrarSesion}>
-        Cerrar sesion
+    <>
+      <button type="button" className="nav-toggle" onClick={() => setAbierto(!abierto)}>
+        <IconoMenu />
       </button>
 
-      <div className="nav-enlaces">
-        {enlaces.map((enlace) => (
-          <Link
-            key={enlace.to}
-            to={enlace.to}
-            className={location.pathname === enlace.to ? "activo" : ""}
-          >
-            {enlace.texto}
-          </Link>
-        ))}
-      </div>
-    </nav>
+      <nav className={abierto ? "abierto" : ""}>
+        <div className="nav-usuario">
+          <span className="nav-usuario-nombre">{usuario.username}</span>
+          <span className="nav-usuario-rol">{usuario.rol}</span>
+        </div>
+
+        <div className="nav-enlaces">
+          {enlaces.map((enlace) => (
+            <Link
+              key={enlace.to}
+              to={enlace.to}
+              className={location.pathname === enlace.to ? "activo" : ""}
+              onClick={() => setAbierto(false)}
+            >
+              {enlace.texto}
+            </Link>
+          ))}
+        </div>
+
+        <button type="button" className="nav-salir" onClick={manejarCerrarSesion}>
+          Cerrar sesion
+        </button>
+      </nav>
+    </>
   );
 }
