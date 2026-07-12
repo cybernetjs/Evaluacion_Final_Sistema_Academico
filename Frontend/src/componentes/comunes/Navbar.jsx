@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 export const ENLACES_POR_ROL = {
   estudiante: [
@@ -23,7 +23,7 @@ export const ENLACES_POR_ROL = {
     { to: "/certificados/listar", texto: "Certificados" },
     { to: "/administracion/usuarios", texto: "Usuarios y roles" },
     { to: "/administracion/permisos", texto: "Matriz de permisos" },
-    { to: "/administracion/configuracion-ciclo", texto: "Configuración del ciclo" },
+    { to: "/administracion/configuracion-ciclo", texto: "Configuracion del ciclo" },
   ],
   direccion: [
     { to: "/", texto: "Inicio" },
@@ -42,40 +42,43 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  if (!estaAutenticado) {
+    return null;
+  }
+
   function manejarCerrarSesion() {
     cerrarSesion();
     navigate("/login");
-  }
-
-  if (!estaAutenticado) {
-    return null;
   }
 
   const enlaces = ENLACES_POR_ROL[usuario.rol] || [];
 
   return (
     <nav>
-      <div className="marca-sistema">
-        <h1>Sistema</h1>
+      <div className="nav-marca">
+        <h1>Sistema Academico</h1>
       </div>
 
-      <div className="usuario-panel">
-        <strong>{usuario.username}</strong>
+      <div className="nav-usuario">
+        <span className="nav-usuario-nombre">{usuario.username}</span>
+        <span className="nav-usuario-rol">{usuario.rol}</span>
       </div>
 
-      <button type="button" onClick={manejarCerrarSesion}>
-        Cerrar Sesion
+      <button type="button" className="nav-salir" onClick={manejarCerrarSesion}>
+        Cerrar sesion
       </button>
 
-      {enlaces.map((enlace) => (
-        <Link
-          className={location.pathname === enlace.to ? "activo" : ""}
-          key={enlace.to}
-          to={enlace.to}
-        >
-          {enlace.texto}
-        </Link>
-      ))}
+      <div className="nav-enlaces">
+        {enlaces.map((enlace) => (
+          <Link
+            key={enlace.to}
+            to={enlace.to}
+            className={location.pathname === enlace.to ? "activo" : ""}
+          >
+            {enlace.texto}
+          </Link>
+        ))}
+      </div>
     </nav>
   );
 }

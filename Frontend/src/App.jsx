@@ -1,27 +1,34 @@
 import { Link, Routes, Route } from "react-router-dom";
-import Navbar, { ENLACES_POR_ROL } from "./componentes/Navbar.jsx";
+import Navbar, { ENLACES_POR_ROL } from "./componentes/comunes/Navbar.jsx";
 import RutaProtegida from "./rutas/RutaProtegida.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
-import Login from "./sitios/auth/Login.jsx";
-import SolicitarMatricula from "./sitios/matricula/SolicitarMatricula.jsx";
-import ListarMatriculas from "./sitios/matricula/ListarMatriculas.jsx";
-import EstadisticasMatricula from "./sitios/matricula/EstadisticasMatricula.jsx";
-import CursosMisCursos from "./sitios/cursos/CursosMisCursos.jsx";
-import CursosAsignar from "./sitios/cursos/CursosAsignar.jsx";
-import CursosCargaDocente from "./sitios/cursos/CursosCargaDocente.jsx";
-import CursosAuditoriaSilabos from "./sitios/cursos/CursosAuditoriaSilabos.jsx";
-import NotasMiHoja from "./sitios/notas/NotasMiHoja.jsx";
-import NotasRegistrar from "./sitios/notas/NotasRegistrar.jsx";
-import NotasGestion from "./sitios/notas/NotasGestion.jsx";
-import RecordMiHistorial from "./sitios/record_academico/RecordMiHistorial.jsx";
-import RecordReportes from "./sitios/record_academico/RecordReportes.jsx";
-import AnalisisCohorte from "./sitios/record_academico/AnalisisCohorte.jsx";
-import CertificadosSolicitar from "./sitios/certificados/CertificadosSolicitar.jsx";
-import CertificadosListar from "./sitios/certificados/CertificadosListar.jsx";
-import AdministracionUsuarios from "./sitios/administracion/AdministracionUsuarios.jsx";
-import AdministracionPermisos from "./sitios/administracion/AdministracionPermisos.jsx";
-import AdministracionAuditorias from "./sitios/administracion/AdministracionAuditorias.jsx";
-import ConfiguracionGlobal from "./sitios/administracion/ConfiguracionGlobal.jsx";
+
+import Login from "./paginas/auth/Login.jsx";
+
+import SolicitarMatricula from "./paginas/matricula/SolicitarMatricula.jsx";
+import ListarMatriculas from "./paginas/matricula/ListarMatriculas.jsx";
+import EstadisticasMatricula from "./paginas/matricula/EstadisticasMatricula.jsx";
+
+import CursosMisCursos from "./paginas/cursos/CursosMisCursos.jsx";
+import CursosAsignar from "./paginas/cursos/CursosAsignar.jsx";
+import CursosCargaDocente from "./paginas/cursos/CursosCargaDocente.jsx";
+import CursosAuditoriaSilabos from "./paginas/cursos/CursosAuditoriaSilabos.jsx";
+
+import NotasMiHoja from "./paginas/notas/NotasMiHoja.jsx";
+import NotasRegistrar from "./paginas/notas/NotasRegistrar.jsx";
+import NotasGestion from "./paginas/notas/NotasGestion.jsx";
+
+import RecordMiHistorial from "./paginas/record-academico/RecordMiHistorial.jsx";
+import RecordReportes from "./paginas/record-academico/RecordReportes.jsx";
+import AnalisisCohorte from "./paginas/record-academico/AnalisisCohorte.jsx";
+
+import CertificadosSolicitar from "./paginas/certificados/CertificadosSolicitar.jsx";
+import CertificadosListar from "./paginas/certificados/CertificadosListar.jsx";
+
+import AdministracionUsuarios from "./paginas/administracion/AdministracionUsuarios.jsx";
+import AdministracionPermisos from "./paginas/administracion/AdministracionPermisos.jsx";
+import AdministracionAuditorias from "./paginas/administracion/AdministracionAuditorias.jsx";
+import ConfiguracionGlobal from "./paginas/administracion/ConfiguracionGlobal.jsx";
 
 function Inicio() {
   const { usuario, estaAutenticado } = useAuth();

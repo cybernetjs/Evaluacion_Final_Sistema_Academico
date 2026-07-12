@@ -9,7 +9,7 @@ import {
 } from "../../servicios/matricula.servicio";
 import { listarEspecialidades } from "../../servicios/administracion.servicio";
 import { listarPeriodos } from "../../servicios/matricula.servicio";
-import ModalVerificarPago from "../../componentes/ModalVerificarPago";
+import ModalVerificarPago from "../../componentes/modales/ModalVerificarPago";
 
 export default function ListarMatriculas() {
   const [matriculas, setMatriculas] = useState([]);

@@ -33,7 +33,7 @@ export default function Login() {
   return (
     <div className="pantalla-centrada">
       <div className="tarjeta-login">
-        <h1>Inicio de Sesion</h1>
+        <h1>Inicio de sesion</h1>
         <form onSubmit={manejarEnvio}>
           <fieldset>
             <legend>Usuario</legend>

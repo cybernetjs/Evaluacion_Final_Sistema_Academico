@@ -7,7 +7,7 @@ import {
   urlDescargarFichaPreliminar,
   urlDescargarFichaOficialEstudiante,
 } from "../../servicios/matricula.servicio";
-import ModalRegistrarPago from "../../componentes/ModalRegistrarPago";
+import ModalRegistrarPago from "../../componentes/modales/ModalRegistrarPago";
 
 const NOMBRES_DIA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
