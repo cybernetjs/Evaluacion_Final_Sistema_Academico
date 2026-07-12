@@ -1,0 +1,28 @@
+from app import db
+from app.dominio.modelos.docentes.docente import Docente
+from app.dominio.modelos.identidad.usuario import Usuario
+
+
+def ejecutar():
+    if Docente.query.first():
+        print("Docentes ya existen")
+        return
+
+    usuario = Usuario.query.filter_by(username="docente_prueba").first()
+    if not usuario:
+        print("No existe el usuario docente_prueba para crear docentes")
+        return
+
+    docente = Docente(
+        usuario_id=usuario.id,
+        nombres="Juan Carlos",
+        apellido_paterno="Perez",
+        apellido_materno="Lopez",
+        dni="12345678",
+        correo_institucional="juan.perez@uncp.edu.pe",
+    )
+
+    db.session.add(docente)
+    db.session.commit()
+
+    print("Docentes creados")
