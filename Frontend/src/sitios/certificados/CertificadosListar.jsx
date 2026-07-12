@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import {
   bandeja,
   detalleExpediente,
@@ -10,7 +10,7 @@ import {
   notificarSolicitud,
   urlDescargarCertificadoEmitido,
   verificarCertificado,
-} from "../servicios/certificados.servicio";
+} from "../../servicios/certificados.servicio";
 
 export default function CertificadosListar() {
   const { usuario } = useAuth();

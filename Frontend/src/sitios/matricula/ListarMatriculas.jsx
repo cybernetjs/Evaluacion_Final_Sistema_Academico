@@ -6,10 +6,10 @@ import {
   generarFichaOficial,
   cancelarMatricula,
   obtenerComprobanteMatriculaBlobUrl,
-} from "../servicios/matricula.servicio";
-import { listarEspecialidades } from "../servicios/administracion.servicio";
-import { listarPeriodos } from "../servicios/matricula.servicio";
-import ModalVerificarPago from "../componentes/ModalVerificarPago";
+} from "../../servicios/matricula.servicio";
+import { listarEspecialidades } from "../../servicios/administracion.servicio";
+import { listarPeriodos } from "../../servicios/matricula.servicio";
+import ModalVerificarPago from "../../componentes/ModalVerificarPago";
 
 export default function ListarMatriculas() {
   const [matriculas, setMatriculas] = useState([]);

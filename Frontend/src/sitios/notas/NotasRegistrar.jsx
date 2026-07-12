@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { misCursosAsignados } from "../servicios/cursosDocentes.servicio";
-import { obtenerPlanilla, registrarNotasPlanilla, publicarNotas } from "../servicios/notas.servicio";
+import { misCursosAsignados } from "../../servicios/cursosDocentes.servicio";
+import { obtenerPlanilla, registrarNotasPlanilla, publicarNotas } from "../../servicios/notas.servicio";
 
 const TIPOS_NOTA = [
   { valor: "parcial1", etiqueta: "Parcial 1" },

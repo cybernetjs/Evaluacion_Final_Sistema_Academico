@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { cambiarRol, listarUsuarios, listarEspecialidades, registrarDocente, registrarPersonal } from "../servicios/administracion.servicio";
-import { registrarEstudiante } from "../servicios/auth.servicio";
+import { cambiarRol, listarUsuarios, listarEspecialidades, registrarDocente, registrarPersonal } from "../../servicios/administracion.servicio";
+import { registrarEstudiante } from "../../servicios/auth.servicio";
 
 const ROLES = ["estudiante", "docente", "administrador", "direccion"];
 

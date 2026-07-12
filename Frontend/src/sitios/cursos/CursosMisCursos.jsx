@@ -4,7 +4,7 @@ import {
   misCursosAsignados,
   periodosHistoricosDocente,
   urlDescargarSilabo,
-} from "../servicios/cursosDocentes.servicio";
+} from "../../servicios/cursosDocentes.servicio";
 
 const DIAS_CALENDARIO = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
 const HORAS_CALENDARIO = Array.from({ length: 15 }, (_, i) => i + 7);

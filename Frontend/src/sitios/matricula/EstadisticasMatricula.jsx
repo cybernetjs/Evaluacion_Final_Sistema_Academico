@@ -3,8 +3,8 @@ import {
   obtenerEstadisticas,
   urlExportarReporte,
   listarPeriodos,
-} from "../servicios/matricula.servicio";
-import { listarEspecialidades } from "../servicios/administracion.servicio";
+} from "../../servicios/matricula.servicio";
+import { listarEspecialidades } from "../../servicios/administracion.servicio";
 import {
   BarChart,
   Bar,

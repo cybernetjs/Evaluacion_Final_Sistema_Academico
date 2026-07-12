@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { obtenerCiclosCursados, obtenerHojaCiclo } from "../servicios/notas.servicio";
+import { obtenerCiclosCursados, obtenerHojaCiclo } from "../../servicios/notas.servicio";
 
 function celda(valor) {
   return valor === null || valor === undefined ? "Pendiente" : valor;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import {
   indicadoresAcademicos,
   listarNotas,
@@ -9,8 +9,8 @@ import {
   cerrarActa,
   estadoPeriodoConsolidacion,
   consolidarSemestre,
-} from "../servicios/notas.servicio";
-import { listarPeriodos } from "../servicios/matricula.servicio";
+} from "../../servicios/notas.servicio";
+import { listarPeriodos } from "../../servicios/matricula.servicio";
 
 export default function NotasGestion() {
   const { usuario } = useAuth();

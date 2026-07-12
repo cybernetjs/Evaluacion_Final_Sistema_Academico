@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { analisisCohorte, listarAniosIngreso } from "../servicios/recordAcademico.servicio";
-import { listarEspecialidades } from "../servicios/administracion.servicio";
+import { analisisCohorte, listarAniosIngreso } from "../../servicios/recordAcademico.servicio";
+import { listarEspecialidades } from "../../servicios/administracion.servicio";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";

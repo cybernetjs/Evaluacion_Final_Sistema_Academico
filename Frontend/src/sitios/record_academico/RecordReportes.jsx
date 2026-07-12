@@ -3,8 +3,8 @@ import {
   reportesConsolidados,
   urlExportarReportesXlsx,
   listarAniosIngreso,
-} from "../servicios/recordAcademico.servicio";
-import { listarEspecialidades } from "../servicios/administracion.servicio";
+} from "../../servicios/recordAcademico.servicio";
+import { listarEspecialidades } from "../../servicios/administracion.servicio";
 
 export default function RecordReportes() {
   const [anios, setAnios] = useState([]);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { listarOfertas, obtenerPeriodoActual } from "../servicios/matricula.servicio";
-import { listarSemestres } from "../servicios/administracion.servicio";
+import { listarOfertas, obtenerPeriodoActual } from "../../servicios/matricula.servicio";
+import { listarSemestres } from "../../servicios/administracion.servicio";
 import {
   asignarDocente,
   crearCurso,
@@ -10,7 +10,7 @@ import {
   listarDocentes,
   obtenerAsignacionesOferta,
   obtenerCurso,
-} from "../servicios/cursosDocentes.servicio";
+} from "../../servicios/cursosDocentes.servicio";
 
 const DIAS = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { miHistorial, urlDescargarHistorialPdf } from "../servicios/recordAcademico.servicio";
+import { miHistorial, urlDescargarHistorialPdf } from "../../servicios/recordAcademico.servicio";
 
 export default function RecordMiHistorial() {
   const [datos, setDatos] = useState(null);

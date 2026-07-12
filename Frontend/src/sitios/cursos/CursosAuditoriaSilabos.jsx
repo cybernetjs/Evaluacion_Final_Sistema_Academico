@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { cumplimientoSilabos } from "../servicios/cursosDocentes.servicio";
+import { cumplimientoSilabos } from "../../servicios/cursosDocentes.servicio";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";

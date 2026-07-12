@@ -3,7 +3,7 @@ import {
   obtenerConfiguracionCiclo,
   actualizarConfiguracionCiclo,
   listarPeriodos,
-} from "../servicios/administracion.servicio";
+} from "../../servicios/administracion.servicio";
 
 const MODULOS_AFECTADOS_POR_ESTADO = {
   "Planificacion Horaria": ["Matrícula", "Registro de notas", "Cierre de actas"],

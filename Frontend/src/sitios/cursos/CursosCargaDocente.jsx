@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { cargaDocente } from "../servicios/cursosDocentes.servicio";
-import { listarEspecialidades } from "../servicios/administracion.servicio";
+import { cargaDocente } from "../../servicios/cursosDocentes.servicio";
+import { listarEspecialidades } from "../../servicios/administracion.servicio";
 
 const COLOR_POR_CATEGORIA = {
   "Carga Incompleta": "#f2c14e",

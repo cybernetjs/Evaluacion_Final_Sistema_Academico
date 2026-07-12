@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { obtenerMatrizPermisos, actualizarMatrizPermisos } from "../servicios/administracion.servicio";
+import { obtenerMatrizPermisos, actualizarMatrizPermisos } from "../../servicios/administracion.servicio";
 
 const ETIQUETAS_RECURSO = {
   matricula: "Matrícula",

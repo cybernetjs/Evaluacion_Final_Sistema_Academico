@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { solicitarDocumento, misSolicitudes, urlDescargarCertificadoEmitido } from "../servicios/certificados.servicio";
+import { solicitarDocumento, misSolicitudes, urlDescargarCertificadoEmitido } from "../../servicios/certificados.servicio";
 
 const TIPOS_DOCUMENTO = [
   "Constancia de Estudios",

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { indicadoresDireccion } from "../servicios/notas.servicio";
-import { listarPeriodos } from "../servicios/matricula.servicio";
-import { listarEspecialidades, listarPlanesEstudio } from "../servicios/administracion.servicio";
+import { indicadoresDireccion } from "../../servicios/notas.servicio";
+import { listarPeriodos } from "../../servicios/matricula.servicio";
+import { listarEspecialidades, listarPlanesEstudio } from "../../servicios/administracion.servicio";
 import {
   BarChart,
   Bar,

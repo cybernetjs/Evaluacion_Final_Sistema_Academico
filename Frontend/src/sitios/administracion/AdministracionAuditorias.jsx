@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { listarAuditorias, reportesEstrategicos } from "../servicios/administracion.servicio";
+import { listarAuditorias, reportesEstrategicos } from "../../servicios/administracion.servicio";
 
 export default function AdministracionAuditorias() {
   const [auditorias, setAuditorias] = useState([]);
