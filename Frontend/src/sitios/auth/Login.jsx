@@ -35,25 +35,27 @@ export default function Login() {
       <div className="tarjeta-login">
         <h1>Inicio de Sesion</h1>
         <form onSubmit={manejarEnvio}>
-          <fieldset>
-            <legend>Usuario</legend>
+          <div className="campo-login">
+            <label htmlFor="usuario">Usuario</label>
             <input
+              id="usuario"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
-          </fieldset>
+          </div>
 
-          <fieldset>
-            <legend>Contrasena</legend>
+          <div className="campo-login">
+            <label htmlFor="contrasena">Contrasena</label>
             <input
+              id="contrasena"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-          </fieldset>
+          </div>
 
           <button type="submit" disabled={cargando}>
             {cargando ? "Ingresando..." : "Ingresar"}

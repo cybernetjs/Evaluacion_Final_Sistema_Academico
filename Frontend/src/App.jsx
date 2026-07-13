@@ -1,5 +1,5 @@
 import { Link, Routes, Route } from "react-router-dom";
-import Navbar, { ENLACES_POR_ROL } from "./componentes/Navbar.jsx";
+import Navbar from "./componentes/Navbar.jsx";
 import RutaProtegida from "./rutas/RutaProtegida.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import Login from "./sitios/auth/Login.jsx";
@@ -24,7 +24,7 @@ import AdministracionAuditorias from "./sitios/administracion/AdministracionAudi
 import ConfiguracionGlobal from "./sitios/administracion/ConfiguracionGlobal.jsx";
 
 function Inicio() {
-  const { usuario, estaAutenticado } = useAuth();
+  const { estaAutenticado } = useAuth();
 
   if (!estaAutenticado) {
     return (
@@ -36,20 +36,7 @@ function Inicio() {
     );
   }
 
-  const modulos = (ENLACES_POR_ROL[usuario.rol] || []).filter((enlace) => enlace.to !== "/");
-
-  return (
-    <main className="panel-inicio">
-      <h2>Modulos disponibles</h2>
-      <div className="modulos-grid">
-        {modulos.map((modulo) => (
-          <a className="modulo-card" href={modulo.to} key={modulo.to}>
-            {modulo.texto}
-          </a>
-        ))}
-      </div>
-    </main>
-  );
+  return <main className="panel-inicio" />;
 }
 
 export default function App() {

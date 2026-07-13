@@ -50,32 +50,28 @@ export default function RecordMiHistorial() {
 
   return (
     <div className="contenedor">
-      <h2>Mi historial académico</h2>
-      <p>Revisa tu historial completo, del semestre más reciente al más antiguo.</p>
+      <h2>Mi historial academico</h2>
+      <p className="texto-descripcion">
+        Revisa tu historial completo, del semestre mas reciente al mas antiguo.
+      </p>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
       {errorDescarga && <p style={{ color: "red" }}>{errorDescarga}</p>}
 
       {datos && (
         <>
-          <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
-            <div style={{ border: "1px solid #444", borderRadius: 8, padding: 16, minWidth: 180 }}>
-              <p style={{ margin: 0, opacity: 0.7 }}>Créditos matriculados</p>
-              <p style={{ margin: 0, fontSize: 28, fontWeight: "bold" }}>
-                {datos.cabecera.total_creditos_matriculados}
-              </p>
+          <div className="resumen-historial">
+            <div className="resumen-card">
+              <p>Creditos matriculados</p>
+              <strong>{datos.cabecera.total_creditos_matriculados}</strong>
             </div>
-            <div style={{ border: "1px solid #444", borderRadius: 8, padding: 16, minWidth: 180 }}>
-              <p style={{ margin: 0, opacity: 0.7 }}>Créditos aprobados</p>
-              <p style={{ margin: 0, fontSize: 28, fontWeight: "bold" }}>
-                {datos.cabecera.total_creditos_aprobados}
-              </p>
+            <div className="resumen-card">
+              <p>Creditos aprobados</p>
+              <strong>{datos.cabecera.total_creditos_aprobados}</strong>
             </div>
-            <div style={{ border: "1px solid #444", borderRadius: 8, padding: 16, minWidth: 180 }}>
-              <p style={{ margin: 0, opacity: 0.7 }}>Promedio ponderado acumulado</p>
-              <p style={{ margin: 0, fontSize: 28, fontWeight: "bold" }}>
-                {datos.cabecera.promedio_ponderado_acumulado ?? "Sin datos"}
-              </p>
+            <div className="resumen-card">
+              <p>Promedio ponderado acumulado</p>
+              <strong>{datos.cabecera.promedio_ponderado_acumulado ?? "Sin datos"}</strong>
             </div>
           </div>
 
@@ -88,9 +84,9 @@ export default function RecordMiHistorial() {
               <tr>
                 <th>Periodo</th>
                 <th>Semestre</th>
-                <th>Código</th>
+                <th>Codigo</th>
                 <th>Curso</th>
-                <th>Créditos</th>
+                <th>Creditos</th>
                 <th>Nota final</th>
                 <th>Estado</th>
               </tr>

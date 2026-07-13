@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -23,7 +24,7 @@ export const ENLACES_POR_ROL = {
     { to: "/certificados/listar", texto: "Certificados" },
     { to: "/administracion/usuarios", texto: "Usuarios y roles" },
     { to: "/administracion/permisos", texto: "Matriz de permisos" },
-    { to: "/administracion/configuracion-ciclo", texto: "Configuración del ciclo" },
+    { to: "/administracion/configuracion-ciclo", texto: "Configuracion del ciclo" },
   ],
   direccion: [
     { to: "/", texto: "Inicio" },
@@ -39,8 +40,23 @@ export const ENLACES_POR_ROL = {
 
 export default function Navbar() {
   const { usuario, cerrarSesion, estaAutenticado } = useAuth();
+  const [perfilAbierto, setPerfilAbierto] = useState(false);
+  const perfilRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    function cerrarSiClickAfuera(evento) {
+      if (!perfilRef.current || perfilRef.current.contains(evento.target)) {
+        return;
+      }
+
+      setPerfilAbierto(false);
+    }
+
+    document.addEventListener("mousedown", cerrarSiClickAfuera);
+    return () => document.removeEventListener("mousedown", cerrarSiClickAfuera);
+  }, []);
 
   function manejarCerrarSesion() {
     cerrarSesion();
@@ -52,30 +68,63 @@ export default function Navbar() {
   }
 
   const enlaces = ENLACES_POR_ROL[usuario.rol] || [];
+  const rolFormateado = usuario.rol?.toUpperCase() || "USUARIO";
+  const inicial = usuario.username?.charAt(0)?.toUpperCase() || "U";
 
   return (
-    <nav>
-      <div className="marca-sistema">
-        <h1>Sistema</h1>
-      </div>
-
-      <div className="usuario-panel">
-        <strong>{usuario.username}</strong>
-      </div>
-
-      <button type="button" onClick={manejarCerrarSesion}>
-        Cerrar Sesion
-      </button>
-
-      {enlaces.map((enlace) => (
-        <Link
-          className={location.pathname === enlace.to ? "activo" : ""}
-          key={enlace.to}
-          to={enlace.to}
-        >
-          {enlace.texto}
+    <>
+      <header className="barra-superior">
+        <Link className="marca-sistema" to="/">
+          <span>
+            <strong>Sistema Academico</strong>
+            <small>Gestion institucional</small>
+          </span>
         </Link>
-      ))}
-    </nav>
+
+        <div className="acciones-superiores">
+          <div className={`perfil-menu ${perfilAbierto ? "abierto" : ""}`} ref={perfilRef}>
+            <button
+              className="perfil-trigger"
+              type="button"
+              onClick={() => setPerfilAbierto((abierto) => !abierto)}
+            >
+              <span>
+                <strong>{usuario.username}</strong>
+                <small>{rolFormateado}</small>
+              </span>
+              <span className="avatar-usuario">{inicial}</span>
+            </button>
+
+            {perfilAbierto && (
+              <div className="perfil-desplegable">
+                <div className="perfil-cabecera">
+                  <span className="avatar-usuario grande">{inicial}</span>
+                  <div>
+                    <strong>{usuario.username}</strong>
+                    <small>{rolFormateado}</small>
+                  </div>
+                </div>
+                <button type="button" onClick={manejarCerrarSesion}>
+                  Cerrar sesion
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <nav className="menu-lateral">
+        {enlaces.map((enlace) => (
+          <Link
+            className={location.pathname === enlace.to ? "activo" : ""}
+            key={enlace.to}
+            onClick={() => setPerfilAbierto(false)}
+            to={enlace.to}
+          >
+            <span>{enlace.texto}</span>
+          </Link>
+        ))}
+      </nav>
+    </>
   );
 }
