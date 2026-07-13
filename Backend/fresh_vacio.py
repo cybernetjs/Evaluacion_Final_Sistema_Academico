@@ -5,7 +5,7 @@ app = crear_app()
 
 with app.app_context():
     respuesta = input(
-        "Esto va a borrar TODA la base de datos y recrearla VACÍA (sin datos de prueba). "
+        "Esto va a borrar TODA la base de datos y recrearla VACÍA. "
         "¿Continuar? (si/no): "
     )
 
