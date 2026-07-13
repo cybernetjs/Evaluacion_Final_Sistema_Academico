@@ -17,9 +17,12 @@ def crear_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    CORS(app, resources={
+   CORS(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:5173"],
+            "origins": [
+                "http://localhost:5173",
+                "https://evaluacion-final-sistema-academico.vercel.app"
+            ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
