@@ -1,0 +1,183 @@
+.barra-superior {
+  position: fixed;
+  z-index: 30;
+  inset: 0 0 auto;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 28px 0 18px;
+  background: var(--azul-panel);
+  border-bottom: 1px solid var(--borde);
+  box-shadow: var(--sombra);
+}
+
+.marca-sistema {
+  display: inline-flex;
+  align-items: center;
+  min-width: 220px;
+  color: var(--texto);
+}
+
+.marca-sistema strong,
+.marca-sistema small,
+.perfil-trigger strong,
+.perfil-trigger small,
+.perfil-cabecera strong,
+.perfil-cabecera small {
+  display: block;
+}
+
+.marca-sistema strong { color: var(--texto); font-size: 22px; }
+.marca-sistema small { margin-top: 2px; color: var(--texto-suave); font-size: 12px; }
+.acciones-superiores { display: flex; align-items: center; justify-content: flex-end; }
+.perfil-menu { position: relative; }
+
+.perfil-trigger {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 238px;
+  margin: 0;
+  padding: 6px 8px 6px 16px;
+  border: 0;
+  border-left: 1px solid var(--borde);
+  border-radius: 0;
+  background: transparent;
+  color: var(--texto);
+  text-align: right;
+}
+
+.perfil-trigger span:first-child { flex: 1; }
+.perfil-trigger strong { color: var(--texto); font-size: 14px; }
+.perfil-trigger small { margin-top: 2px; color: var(--azul-claro); font-size: 11px; }
+
+.avatar-usuario {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 50%;
+  background: var(--azul-activo);
+  color: var(--texto);
+  font-weight: 800;
+}
+
+.avatar-usuario.grande { width: 76px; height: 76px; font-size: 26px; }
+
+.perfil-desplegable {
+  position: absolute;
+  right: 0;
+  top: 62px;
+  width: 390px;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: var(--sombra);
+}
+
+.perfil-desplegable::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  right: 92px;
+  width: 18px;
+  height: 18px;
+  transform: rotate(45deg);
+  background: #fff;
+}
+
+.perfil-desplegable .avatar-usuario {
+  background: #f1f1f1;
+  border-color: #d8d8d8;
+  color: #111;
+}
+
+.perfil-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 28px 24px;
+  background: #fff;
+}
+
+.perfil-cabecera strong { color: #111; font-size: 20px; line-height: 1.35; }
+.perfil-cabecera small { margin-top: 6px; color: #5f5f5f; }
+
+.perfil-desplegable button {
+  display: block;
+  width: calc(100% - 48px);
+  margin: 18px 24px;
+  padding: 13px 18px;
+  border: 1px solid #d8d8d8;
+  border-radius: 999px;
+  background: transparent;
+  color: #222;
+  text-align: center;
+}
+
+.perfil-desplegable button:hover:not(:disabled),
+.perfil-desplegable button:active,
+.perfil-desplegable button:focus {
+  background: transparent;
+  border-color: #d8d8d8;
+  color: #222;
+}
+
+.menu-lateral {
+  position: fixed;
+  z-index: 25;
+  inset: 88px auto 0 0;
+  width: 232px;
+  padding: 22px 0 28px;
+  overflow-y: auto;
+  background: var(--azul-menu);
+  border-right: 1px solid var(--borde-fuerte);
+}
+
+.menu-lateral a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  color: var(--texto);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.menu-lateral a.activo { background: var(--azul); color: #fff; }
+
+@media (max-width: 900px) {
+  .barra-superior {
+    height: auto;
+    min-height: 82px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+  }
+
+  .marca-sistema { min-width: auto; }
+  .acciones-superiores { width: 100%; justify-content: space-between; }
+  .perfil-trigger { min-width: 0; }
+  .perfil-desplegable { width: min(360px, calc(100vw - 32px)); }
+
+  .menu-lateral {
+    position: static;
+    display: flex;
+    gap: 6px;
+    width: auto;
+    margin-top: 122px;
+    padding: 12px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--borde-fuerte);
+  }
+
+  .menu-lateral a { min-width: 112px; min-height: 46px; }
+}

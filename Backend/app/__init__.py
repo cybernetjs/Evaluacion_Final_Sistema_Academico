@@ -5,7 +5,7 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_bcrypt import Bcrypt
 
-from app.config import Config
+from app.configuracion.configuracion import Config
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -17,30 +17,33 @@ def crear_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    CORS(app, resources={
+   CORS(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:5173"],
+            "origins": [
+                "http://localhost:5173",
+                "https://evaluacion-final-sistema-academico.vercel.app"
+            ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
 
     db.init_app(app)
-    migrate.init_app(app, db)
+    migrate.init_app(app, db, directory='migraciones')
     jwt.init_app(app)
     bcrypt.init_app(app)
 
-    from app.modulos.auth.routes import auth_bp
-    from app.modulos.matricula.routes import matricula_bp
-    from app.modulos.notas.routes import notas_bp
-    from app.modulos.cursos_docentes.routes import cursos_docentes_bp
-    from app.modulos.administracion.routes import administracion_bp, admin_bp
-    from app.modulos.certificados.routes import certificados_bp
-    from app.modulos.record_academico.routes import record_academico_bp
-    from app.modulos.docentes.routes import docentes_bp
-    from app.modulos.cursos.routes import cursos_bp
-    from app.modulos.ofertas_academicas.routes import ofertas_academicas_bp
-    from app.modulos.periodos_academicos.routes import periodos_academicos_bp
+    from app.modulos.autenticacion.presentacion.rutas import auth_bp
+    from app.modulos.matriculas.presentacion.rutas import matricula_bp
+    from app.modulos.notas.presentacion.rutas import notas_bp
+    from app.modulos.cursos_docentes.presentacion.rutas import cursos_docentes_bp
+    from app.modulos.administracion.presentacion.rutas import administracion_bp, admin_bp
+    from app.modulos.certificados.presentacion.rutas import certificados_bp
+    from app.modulos.record_academico.presentacion.rutas import record_academico_bp
+    from app.modulos.docentes.presentacion.rutas import docentes_bp
+    from app.modulos.cursos.presentacion.rutas import cursos_bp
+    from app.modulos.ofertas_academicas.presentacion.rutas import ofertas_academicas_bp
+    from app.modulos.periodos_academicos.presentacion.rutas import periodos_academicos_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(matricula_bp, url_prefix='/api/matriculas')

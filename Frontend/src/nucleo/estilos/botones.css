@@ -1,0 +1,37 @@
+button {
+  margin-right: 8px;
+  padding: 10px 18px;
+  border: 1px solid var(--azul);
+  border-radius: 8px;
+  background: var(--azul);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover:not(:disabled),
+button:active,
+button:focus {
+  background: var(--azul);
+  border-color: var(--azul);
+  color: #fff;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+button:disabled {
+  background: #263241;
+  border-color: #263241;
+  color: #7b8897;
+  cursor: not-allowed;
+}
+
+button.secundario {
+  background: #fff;
+  border-color: #d8d8d8;
+  color: #222;
+}
+
+.mensaje-error { margin-top: 18px; color: var(--error); }
+.mensaje-exito { margin-top: 18px; color: var(--exito); }

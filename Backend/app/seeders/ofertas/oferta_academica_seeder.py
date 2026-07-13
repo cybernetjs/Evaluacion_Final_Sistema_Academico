@@ -1,0 +1,72 @@
+from datetime import datetime
+
+from app import db
+from app.dominio.modelos.ofertas.oferta_academica import OfertaAcademica
+from app.dominio.modelos.ofertas.periodo_academico import PeriodoAcademico
+from app.dominio.modelos.academico.plan_cursos_semestre import PlanCursosSemestre
+
+
+def _nombre_periodo_actual():
+    fecha = datetime.now()
+    semestre = "I" if fecha.month <= 6 else "II"
+    return f"{fecha.year}-{semestre}"
+
+
+def _obtener_o_crear_periodo_actual():
+    nombre = _nombre_periodo_actual()
+    periodo = PeriodoAcademico.query.filter_by(nombre=nombre).first()
+    if periodo:
+        return periodo
+
+    fecha = datetime.now()
+    if fecha.month <= 6:
+        inicio, fin = datetime(fecha.year, 1, 1), datetime(fecha.year, 6, 30)
+    else:
+        inicio, fin = datetime(fecha.year, 7, 1), datetime(fecha.year, 12, 31)
+
+    periodo = PeriodoAcademico(nombre=nombre, fecha_inicio=inicio, fecha_fin=fin)
+    db.session.add(periodo)
+    db.session.commit()
+    return periodo
+
+
+def ejecutar():
+    if OfertaAcademica.query.first():
+        print("Ofertas academicas ya existen")
+        return
+
+    periodo_actual = _obtener_o_crear_periodo_actual()
+    periodo_anterior = (
+        PeriodoAcademico.query.filter(PeriodoAcademico.id != periodo_actual.id)
+        .filter(PeriodoAcademico.fecha_inicio < periodo_actual.fecha_inicio)
+        .order_by(PeriodoAcademico.fecha_inicio.desc())
+        .first()
+    )
+
+    periodos = [periodo_actual]
+    if periodo_anterior:
+        periodos.append(periodo_anterior)
+
+    combinaciones = PlanCursosSemestre.query.with_entities(
+        PlanCursosSemestre.curso_id, PlanCursosSemestre.semestre_id
+    ).distinct().all()
+
+    if not combinaciones:
+        print("No hay plan_cursos_semestre para crear ofertas academicas")
+        return
+
+    ofertas = [
+        OfertaAcademica(
+            periodo_academico_id=periodo.id,
+            curso_id=curso_id,
+            semestre_id=semestre_id,
+            cupos=40,
+        )
+        for periodo in periodos
+        for curso_id, semestre_id in combinaciones
+    ]
+
+    db.session.add_all(ofertas)
+    db.session.commit()
+
+    print(f"Ofertas academicas creadas: {len(ofertas)} para {len(periodos)} periodo(s)")

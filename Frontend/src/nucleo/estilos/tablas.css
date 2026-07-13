@@ -1,0 +1,25 @@
+table {
+  width: 100%;
+  margin: 14px 0 26px;
+  overflow: hidden;
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid #ececec;
+  color: #111;
+  text-align: left;
+}
+
+th { background: var(--azul-panel); color: #fff; font-weight: 700; }
+tbody tr { height: 52px; }
+tbody td { background: #fff; }
+tbody tr:last-child td { border-bottom: 0; }

@@ -1,0 +1,70 @@
+main, .contenedor {
+  margin: 112px 24px 24px 256px;
+  padding: 30px 28px;
+  min-height: 140px;
+  max-width: none;
+  background: #f7f7f7;
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  color: #111;
+}
+
+.contenedor p,
+.contenedor label,
+.texto-descripcion {
+  color: #333;
+}
+
+.contenedor div[style*="border"] { background: #fff; color: #111; }
+.contenedor div[style*="border"] p { color: #333; }
+.panel-inicio { background: transparent; box-shadow: none; padding: 0; }
+
+.pantalla-centrada {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--fondo);
+}
+
+.tarjeta-login {
+  width: min(620px, 100%);
+  padding: 48px 54px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--sombra);
+}
+
+.tarjeta-login h1 {
+  margin-bottom: 34px;
+  color: #111;
+  text-align: center;
+  font-size: 34px;
+}
+
+.tarjeta-login button { display: block; width: 100%; margin: 34px 0 0; }
+
+.resumen-historial {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.resumen-card {
+  min-width: 180px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  color: #111;
+}
+
+.resumen-card p { margin: 0 0 8px; color: #4b4b4b; }
+.resumen-card strong { display: block; color: #111; font-size: 28px; line-height: 1.1; }
+
+@media (max-width: 900px) {
+  main, .contenedor { margin: 18px; }
+  .tarjeta-login { padding: 34px 24px; }
+}
