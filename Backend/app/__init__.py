@@ -17,7 +17,7 @@ def crear_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-   CORS(app, resources={
+    CORS(app, resources={
         r"/api/*": {
             "origins": [
                 "http://localhost:5173",
