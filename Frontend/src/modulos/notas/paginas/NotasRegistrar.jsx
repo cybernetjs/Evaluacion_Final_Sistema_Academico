@@ -148,9 +148,7 @@ export default function NotasRegistrar() {
 
       {planilla && planilla.estudiantes.length === 0 && (
         <p style={{ color: "#f0c15c" }}>
-          Todavía no hay estudiantes matriculados en esta sección, por eso la planilla aparece vacía.
-          Esto no significa que la matrícula esté cerrada: simplemente ningún estudiante se ha
-          matriculado aún en este curso para el periodo seleccionado.
+          Todavía no hay estudiantes matriculados en esta sección.
         </p>
       )}
 
