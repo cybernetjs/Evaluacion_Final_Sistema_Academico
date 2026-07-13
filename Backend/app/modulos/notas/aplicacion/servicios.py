@@ -200,6 +200,12 @@ class NotasService:
         if tipo_nota not in CAMPOS_POR_TIPO:
             return None, "Tipo de nota inválido", 400
 
+        if tipo_nota == "final":
+            return None, (
+                "La nota final se calcula automáticamente a partir de los parciales "
+                "y la práctica, no puede registrarse manualmente"
+            ), 400
+
         docente = NotasService._docente_asignado(usuario_id_docente, oferta_academica_id)
         if not docente:
             return None, "No tienes asignada esta sección", 403

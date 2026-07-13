@@ -7,9 +7,12 @@ class AuthService:
         Método especializado en el registro de estudiantes
     '''
     @staticmethod
-    def registrar_estudiante(username: str, password: str, nombres: str, apellido_paterno: str, apellido_materno: str, correo_institucional: str, especialidad_id: int) -> tuple[dict | None]:
+    def registrar_estudiante(username: str, password: str, nombres: str, apellido_paterno: str, apellido_materno: str, dni: str, correo_institucional: str, especialidad_id: int) -> tuple[dict | None]:
         if Usuario.query.filter_by(username=username).first():
             return None, "El nombre de usuario ya está en uso"
+
+        if Estudiante.query.filter_by(dni=dni).first():
+            return None, "Ya existe un estudiante registrado con ese DNI"
 
         password_encriptado = bcrypt.generate_password_hash(password).decode("utf-8")
 
@@ -23,6 +26,7 @@ class AuthService:
             nombres=nombres,
             apellido_paterno=apellido_paterno,
             apellido_materno=apellido_materno,
+            dni=dni,
             correo_institucional=correo_institucional
         )
         db.session.add(estudiante)

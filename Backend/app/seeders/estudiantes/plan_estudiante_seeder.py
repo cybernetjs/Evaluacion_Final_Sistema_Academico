@@ -9,19 +9,30 @@ def ejecutar():
         print("Planes de estudiante ya existen")
         return
 
-    estudiante = Estudiante.query.first()
-    plan = PlanDeEstudios.query.first()
-
-    if not estudiante or not plan:
-        print("No hay estudiante o plan de estudios para crear plan_estudiante")
+    estudiantes = Estudiante.query.all()
+    if not estudiantes:
+        print("No hay estudiantes para crear plan_estudiante")
         return
 
-    plan_estudiante = PlanEstudiante(
-        estudiante_id=estudiante.id,
-        plan_estudios_id=plan.id,
-    )
+    planes_asignados = []
+    for estudiante in estudiantes:
+        plan = (
+            PlanDeEstudios.query.filter_by(especialidad_id=estudiante.especialidad_id, vigente=True)
+            .first()
+        )
+        if not plan:
+            plan = PlanDeEstudios.query.first()
+        if not plan:
+            print(f"No hay plan de estudios para el estudiante {estudiante.id}")
+            continue
 
-    db.session.add(plan_estudiante)
+        planes_asignados.append(PlanEstudiante(estudiante_id=estudiante.id, plan_estudios_id=plan.id))
+
+    if not planes_asignados:
+        print("No se pudo asignar ningun plan de estudiante")
+        return
+
+    db.session.add_all(planes_asignados)
     db.session.commit()
 
-    print("Planes de estudiante creados")
+    print(f"Planes de estudiante creados: {len(planes_asignados)}")

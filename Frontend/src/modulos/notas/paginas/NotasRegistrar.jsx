@@ -6,7 +6,6 @@ const TIPOS_NOTA = [
   { valor: "parcial1", etiqueta: "Parcial 1" },
   { valor: "parcial2", etiqueta: "Parcial 2" },
   { valor: "practica", etiqueta: "Práctica" },
-  { valor: "final", etiqueta: "Final" },
 ];
 
 const CAMPO_POR_TIPO = {
@@ -127,7 +126,6 @@ export default function NotasRegistrar() {
           {secciones.map((s) => (
             <option key={s.oferta_academica_id} value={s.oferta_academica_id}>
               {s.nombre_curso} — S-{s.oferta_academica_id}
-              {s.funcion_curso ? ` (${s.funcion_curso === "Practico" ? "Práctico" : "Teórico"})` : ""}
             </option>
           ))}
         </select>

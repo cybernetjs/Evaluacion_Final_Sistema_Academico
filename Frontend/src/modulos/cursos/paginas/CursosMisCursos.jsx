@@ -101,15 +101,19 @@ export default function CursosMisCursos() {
     (c) => String(c.oferta_academica_id) === ofertaSeleccionada
   );
 
+  const ETIQUETA_FUNCION = { Teorico: "Teórico", Practico: "Práctico" };
+
   const bloquesCalendario = {};
   cursos.forEach((curso) => {
     curso.horario.forEach((h) => {
       const inicio = horaANumero(h.hora_inicio);
       const fin = horaANumero(h.hora_fin);
       if (inicio === null || fin === null) return;
+      const funcion = ETIQUETA_FUNCION[h.funcion_curso];
+      const etiqueta = `${curso.codigo_curso}${funcion ? ` (${funcion})` : ""} - ${h.aula || "sin aula"}`;
       for (let hora = inicio; hora < fin; hora++) {
         const clave = `${h.dia_numero}-${hora}`;
-        bloquesCalendario[clave] = `${curso.codigo_curso} (${h.aula || "sin aula"})`;
+        bloquesCalendario[clave] = etiqueta;
       }
     });
   });
@@ -147,7 +151,6 @@ export default function CursosMisCursos() {
                 <p style={{ margin: 0, fontWeight: "bold" }}>{curso.nombre_curso}</p>
                 <p style={{ margin: "4px 0", opacity: 0.7 }}>{curso.codigo_curso} - Sección {curso.seccion}</p>
                 <p style={{ margin: "2px 0" }}>Créditos: {curso.creditos}</p>
-                <p style={{ margin: "2px 0" }}>Función: {curso.funcion_curso || "-"}</p>
                 <p style={{ margin: "2px 0" }}>Horas semanales: {curso.horas_semanales ?? "-"}</p>
                 <p
                   style={{

@@ -10,6 +10,7 @@ const VACIO_ESTUDIANTE = {
   nombres: "",
   apellido_paterno: "",
   apellido_materno: "",
+  dni: "",
   correo_institucional: "",
   especialidad_id: "",
 };
@@ -20,6 +21,7 @@ const VACIO_DOCENTE = {
   nombres: "",
   apellido_paterno: "",
   apellido_materno: "",
+  dni: "",
   correo_institucional: "",
 };
 
@@ -87,6 +89,12 @@ export default function AdministracionUsuarios() {
     evento.preventDefault();
     setMensaje(null);
     setError(null);
+
+    if (!/^\d{8}$/.test(formEstudiante.dni)) {
+      setError("El DNI debe tener 8 dígitos");
+      return;
+    }
+
     setEnviando(true);
 
     const { data, error } = await registrarEstudiante({
@@ -110,6 +118,12 @@ export default function AdministracionUsuarios() {
     evento.preventDefault();
     setMensaje(null);
     setError(null);
+
+    if (!/^\d{8}$/.test(formDocente.dni)) {
+      setError("El DNI debe tener 8 dígitos");
+      return;
+    }
+
     setEnviando(true);
 
     const { data, error } = await registrarDocente(formDocente);
@@ -199,6 +213,16 @@ export default function AdministracionUsuarios() {
             required
           />
           <input
+            placeholder="DNI"
+            value={formEstudiante.dni}
+            maxLength={8}
+            inputMode="numeric"
+            onChange={(e) =>
+              setFormEstudiante((f) => ({ ...f, dni: e.target.value.replace(/\D/g, "").slice(0, 8) }))
+            }
+            required
+          />
+          <input
             type="email"
             placeholder="Correo institucional"
             value={formEstudiante.correo_institucional}
@@ -254,6 +278,16 @@ export default function AdministracionUsuarios() {
             placeholder="Apellido materno"
             value={formDocente.apellido_materno}
             onChange={(e) => setFormDocente((f) => ({ ...f, apellido_materno: e.target.value }))}
+            required
+          />
+          <input
+            placeholder="DNI"
+            value={formDocente.dni}
+            maxLength={8}
+            inputMode="numeric"
+            onChange={(e) =>
+              setFormDocente((f) => ({ ...f, dni: e.target.value.replace(/\D/g, "").slice(0, 8) }))
+            }
             required
           />
           <input

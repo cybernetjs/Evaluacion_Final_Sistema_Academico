@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from app import db
-from app.dominio.modelos.academico.curso import Curso
 from app.dominio.modelos.ofertas.oferta_academica import OfertaAcademica
 from app.dominio.modelos.ofertas.periodo_academico import PeriodoAcademico
 from app.dominio.modelos.academico.plan_cursos_semestre import PlanCursosSemestre
@@ -36,7 +35,17 @@ def ejecutar():
         print("Ofertas academicas ya existen")
         return
 
-    periodo = _obtener_o_crear_periodo_actual()
+    periodo_actual = _obtener_o_crear_periodo_actual()
+    periodo_anterior = (
+        PeriodoAcademico.query.filter(PeriodoAcademico.id != periodo_actual.id)
+        .filter(PeriodoAcademico.fecha_inicio < periodo_actual.fecha_inicio)
+        .order_by(PeriodoAcademico.fecha_inicio.desc())
+        .first()
+    )
+
+    periodos = [periodo_actual]
+    if periodo_anterior:
+        periodos.append(periodo_anterior)
 
     combinaciones = PlanCursosSemestre.query.with_entities(
         PlanCursosSemestre.curso_id, PlanCursosSemestre.semestre_id
@@ -53,10 +62,11 @@ def ejecutar():
             semestre_id=semestre_id,
             cupos=40,
         )
+        for periodo in periodos
         for curso_id, semestre_id in combinaciones
     ]
 
     db.session.add_all(ofertas)
     db.session.commit()
 
-    print(f"Ofertas academicas creadas: {len(ofertas)} para el periodo {periodo.nombre}")
+    print(f"Ofertas academicas creadas: {len(ofertas)} para {len(periodos)} periodo(s)")

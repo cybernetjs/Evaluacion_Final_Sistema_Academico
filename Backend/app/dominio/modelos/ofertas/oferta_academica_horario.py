@@ -11,5 +11,6 @@ class OfertaAcademicaHorario(db.Model):
     hora_fin = db.Column(db.Time)
     aula = db.Column(db.String(100))
     estado = db.Column(db.String(20), default="Activo")
+    funcion_curso = db.Column(db.String(20))
 
     oferta_academica = db.relationship("OfertaAcademica", backref="horarios")

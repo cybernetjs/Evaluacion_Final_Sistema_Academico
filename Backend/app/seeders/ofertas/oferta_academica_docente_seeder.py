@@ -10,21 +10,24 @@ def ejecutar():
         print("Asignaciones de oferta academica a docentes ya existen")
         return
 
-    ofertas = OfertaAcademica.query.all()
-    docente = Docente.query.first()
+    ofertas = OfertaAcademica.query.order_by(OfertaAcademica.id).all()
+    docentes = Docente.query.order_by(Docente.id).all()
     tipo_docente = TipoDocente.query.filter_by(nombre="Nombrado").first()
 
-    if not ofertas or not docente or not tipo_docente:
+    if not ofertas or not docentes or not tipo_docente:
         print("No hay datos suficientes para asignar docente a oferta academica")
         return
 
     asignaciones = []
-    for oferta in ofertas:
+    for indice, oferta in enumerate(ofertas):
         curso = oferta.curso
+        docente_teoria = docentes[indice % len(docentes)]
+        docente_practica = docentes[(indice + 1) % len(docentes)]
+
         if curso.horas_lectivas:
             asignaciones.append(OfertaAcademicaDocente(
                 oferta_academica_id=oferta.id,
-                docente_id=docente.id,
+                docente_id=docente_teoria.id,
                 tipo_docente_id=tipo_docente.id,
                 funcion_curso="Teorico",
                 horas_asignadas=curso.horas_lectivas,
@@ -32,7 +35,7 @@ def ejecutar():
         if curso.horas_practicas:
             asignaciones.append(OfertaAcademicaDocente(
                 oferta_academica_id=oferta.id,
-                docente_id=docente.id,
+                docente_id=docente_practica.id,
                 tipo_docente_id=tipo_docente.id,
                 funcion_curso="Practico",
                 horas_asignadas=curso.horas_practicas,

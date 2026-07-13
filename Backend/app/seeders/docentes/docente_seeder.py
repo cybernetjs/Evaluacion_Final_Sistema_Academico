@@ -8,21 +8,34 @@ def ejecutar():
         print("Docentes ya existen")
         return
 
-    usuario = Usuario.query.filter_by(username="docente_prueba").first()
-    if not usuario:
-        print("No existe el usuario docente_prueba para crear docentes")
+    datos_docentes = [
+        ("docente_prueba", "Juan Carlos", "Perez", "Lopez", "12345678", "juan.perez@uncp.edu.pe"),
+        ("docente_prueba2", "Rosa Elvira", "Quispe", "Mamani", "23456789", "rosa.quispe@uncp.edu.pe"),
+        ("docente_prueba3", "Luis Alberto", "Huaman", "Rojas", "34567890", "luis.huaman@uncp.edu.pe"),
+        ("docente_prueba4", "Carmen Isabel", "Torres", "Vega", "45678901", "carmen.torres@uncp.edu.pe"),
+    ]
+
+    docentes = []
+    for username, nombres, apellido_paterno, apellido_materno, dni, correo in datos_docentes:
+        usuario = Usuario.query.filter_by(username=username).first()
+        if not usuario:
+            print(f"No existe el usuario {username} para crear el docente")
+            continue
+
+        docentes.append(Docente(
+            usuario_id=usuario.id,
+            nombres=nombres,
+            apellido_paterno=apellido_paterno,
+            apellido_materno=apellido_materno,
+            dni=dni,
+            correo_institucional=correo,
+        ))
+
+    if not docentes:
+        print("No hay usuarios docentes para crear docentes")
         return
 
-    docente = Docente(
-        usuario_id=usuario.id,
-        nombres="Juan Carlos",
-        apellido_paterno="Perez",
-        apellido_materno="Lopez",
-        dni="12345678",
-        correo_institucional="juan.perez@uncp.edu.pe",
-    )
-
-    db.session.add(docente)
+    db.session.add_all(docentes)
     db.session.commit()
 
-    print("Docentes creados")
+    print(f"Docentes creados: {len(docentes)}")

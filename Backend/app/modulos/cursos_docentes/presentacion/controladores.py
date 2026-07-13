@@ -183,12 +183,15 @@ def gestionar_horario(oferta_academica_id):
     if not aula:
         return jsonify({"error": "Debes indicar el aula o el enlace virtual"}), 400
 
+    funcion_curso = data.get("funcion_curso") or None
+
     resultado, error, codigo = CursosDocentesService.gestionar_horario(
         oferta_academica_id=oferta_academica_id,
         dia=dia,
         hora_inicio=hora_inicio,
         hora_fin=hora_fin,
         aula=aula,
+        funcion_curso=funcion_curso,
     )
 
     if error:

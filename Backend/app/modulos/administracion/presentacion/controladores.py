@@ -1,3 +1,4 @@
+import re
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity
 from app import bcrypt
@@ -93,15 +94,22 @@ def listar_usuarios():
 def registrar_docente():
     data = request.get_json()
 
-    campos_requeridos = ["username", "password", "nombres", "apellido_paterno", "apellido_materno", "correo_institucional"]
+    campos_requeridos = ["username", "password", "nombres", "apellido_paterno", "apellido_materno", "dni", "correo_institucional"]
     faltantes = [campo for campo in campos_requeridos if not data.get(campo)]
 
     if faltantes:
         return jsonify({"error": f"Faltan campos requeridos: {faltantes}"}), 400
 
+    dni = data.get("dni")
+    if not re.fullmatch(r"\d{8}", dni):
+        return jsonify({"error": "El DNI debe tener 8 dígitos numéricos"}), 400
+
     username = data.get("username")
     if Usuario.query.filter_by(username=username).first():
         return jsonify({"error": "El nombre de usuario ya está en uso"}), 400
+
+    if Docente.query.filter_by(dni=dni).first():
+        return jsonify({"error": "Ya existe un docente registrado con ese DNI"}), 400
 
     usuario = Usuario(
         username=username,
@@ -116,6 +124,7 @@ def registrar_docente():
         nombres=data.get("nombres"),
         apellido_paterno=data.get("apellido_paterno"),
         apellido_materno=data.get("apellido_materno"),
+        dni=dni,
         correo_institucional=data.get("correo_institucional"),
     )
     db.session.add(docente)

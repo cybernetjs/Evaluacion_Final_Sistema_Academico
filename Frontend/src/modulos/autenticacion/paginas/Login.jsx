@@ -47,7 +47,7 @@ export default function Login() {
           </div>
 
           <div className="campo-login">
-            <label htmlFor="campo-contrasena">Contrasena</label>
+            <label htmlFor="campo-contrasena">Contraseña</label>
             <input
               id="campo-contrasena"
               type="password"

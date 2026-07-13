@@ -5,25 +5,31 @@ from app.dominio.modelos.estudiantes.progreso_estudiante import ProgresoEstudian
 
 
 def ejecutar():
-    if ProgresoEstudiante.query.first():
-        print("Progreso de estudiante ya existe")
+    estado_regular = EstadoPermanenciaEstudiante.query.filter_by(nombre="Regular").first()
+    if not estado_regular:
+        print("No existe el estado de permanencia Regular para crear progreso")
         return
 
-    estudiante = Estudiante.query.first()
-    estado = EstadoPermanenciaEstudiante.query.filter_by(nombre="Regular").first()
-
-    if not estudiante or not estado:
-        print("No hay estudiante o estado de permanencia para crear progreso")
-        return
-
-    progreso = ProgresoEstudiante(
-        estudiante_id=estudiante.id,
-        estado_permanencia_id=estado.id,
-        creditos_aprobados_acumulados=18,
-        promedio_ponderado_acumulado=15.80,
+    estudiantes_sin_progreso = (
+        Estudiante.query.filter(~Estudiante.id.in_(db.session.query(ProgresoEstudiante.estudiante_id)))
+        .all()
     )
 
-    db.session.add(progreso)
+    if not estudiantes_sin_progreso:
+        print("Progreso de estudiante ya existe para todos los estudiantes")
+        return
+
+    nuevos = [
+        ProgresoEstudiante(
+            estudiante_id=estudiante.id,
+            estado_permanencia_id=estado_regular.id,
+            creditos_aprobados_acumulados=0,
+            promedio_ponderado_acumulado=0,
+        )
+        for estudiante in estudiantes_sin_progreso
+    ]
+
+    db.session.add_all(nuevos)
     db.session.commit()
 
-    print("Progreso de estudiante creado")
+    print(f"Progreso de estudiante creado (sin historial previo): {len(nuevos)}")

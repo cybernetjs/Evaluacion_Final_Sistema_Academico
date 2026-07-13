@@ -37,7 +37,12 @@ export default function EstadisticasMatricula() {
       listarPeriodos(),
       listarEspecialidades(),
     ]);
-    if (!resPeriodos.error) setPeriodos(resPeriodos.data);
+    if (!resPeriodos.error) {
+      setPeriodos(resPeriodos.data);
+      if (resPeriodos.data.length > 0) {
+        setFiltros((f) => ({ ...f, periodoId: resPeriodos.data[0].id }));
+      }
+    }
     if (!resEspecialidades.error) setEspecialidades(resEspecialidades.data);
   }
 

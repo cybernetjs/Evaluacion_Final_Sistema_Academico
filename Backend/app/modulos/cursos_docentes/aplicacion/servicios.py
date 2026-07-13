@@ -214,6 +214,7 @@ class CursosDocentesService:
                     "hora_inicio": h.hora_inicio.strftime("%H:%M") if h.hora_inicio else None,
                     "hora_fin": h.hora_fin.strftime("%H:%M") if h.hora_fin else None,
                     "aula": h.aula,
+                    "funcion_curso": h.funcion_curso,
                 }
                 for h in horarios
             ],
@@ -237,9 +238,16 @@ class CursosDocentesService:
             .all()
         )
 
-        resultado = []
+        secciones_por_oferta = {}
         for a in asignaciones:
             oferta = a.oferta_academica
+            if oferta.id not in secciones_por_oferta:
+                secciones_por_oferta[oferta.id] = {"oferta": oferta, "horas_semanales": 0}
+            secciones_por_oferta[oferta.id]["horas_semanales"] += a.horas_asignadas or 0
+
+        resultado = []
+        for oferta_id, info in secciones_por_oferta.items():
+            oferta = info["oferta"]
             curso = oferta.curso
             horarios = OfertaAcademicaHorario.query.filter_by(oferta_academica_id=oferta.id).all()
             silabo = Silabo.query.filter_by(oferta_academica_id=oferta.id).first()
@@ -250,8 +258,7 @@ class CursosDocentesService:
                 "nombre_curso": curso.nombre,
                 "creditos": curso.creditos,
                 "seccion": f"S-{oferta.id}",
-                "funcion_curso": a.funcion_curso,
-                "horas_semanales": a.horas_asignadas,
+                "horas_semanales": info["horas_semanales"],
                 "estado_silabo": "Silabo Cargado" if silabo else "Silabo Pendiente",
                 "horario": [
                     {
@@ -260,11 +267,13 @@ class CursosDocentesService:
                         "hora_inicio": h.hora_inicio.strftime("%H:%M") if h.hora_inicio else None,
                         "hora_fin": h.hora_fin.strftime("%H:%M") if h.hora_fin else None,
                         "aula": h.aula,
+                        "funcion_curso": h.funcion_curso,
                     }
                     for h in horarios
                 ],
             })
 
+        resultado.sort(key=lambda r: r["oferta_academica_id"])
         return resultado, None
 
     @staticmethod
@@ -398,10 +407,13 @@ class CursosDocentesService:
         }, None, 201
 
     @staticmethod
-    def gestionar_horario(oferta_academica_id, dia, hora_inicio, hora_fin, aula):
+    def gestionar_horario(oferta_academica_id, dia, hora_inicio, hora_fin, aula, funcion_curso=None):
         oferta = OfertaAcademica.query.get(oferta_academica_id)
         if not oferta:
             return None, "Oferta académica no encontrada", 404
+
+        if funcion_curso is not None and funcion_curso not in FUNCIONES_VALIDAS:
+            return None, "El tipo de clase debe ser Teorico o Practico", 422
 
         if hora_fin <= hora_inicio:
             return None, "La hora de fin debe ser posterior a la hora de inicio", 400
@@ -445,6 +457,7 @@ class CursosDocentesService:
             hora_fin=hora_fin,
             aula=aula,
             estado="Activo",
+            funcion_curso=funcion_curso,
         )
         db.session.add(horario)
         db.session.commit()

@@ -1,3 +1,4 @@
+import re
 from flask import jsonify, request
 from flask_jwt_extended import create_access_token
 from app import bcrypt
@@ -38,11 +39,15 @@ def logout():
 def registrar():
     datos = request.get_json()
 
-    campos_requeridos = ["username", "password", "nombres", "apellido_paterno", "apellido_materno", "correo_institucional", "especialidad_id"]
+    campos_requeridos = ["username", "password", "nombres", "apellido_paterno", "apellido_materno", "dni", "correo_institucional", "especialidad_id"]
     faltantes = [campo for campo in campos_requeridos if not datos.get(campo)]
 
     if faltantes:
         return jsonify({"error": f"Faltan campos requeridos: {faltantes}"}), 400
+
+    dni = datos.get("dni")
+    if not re.fullmatch(r"\d{8}", dni):
+        return jsonify({"error": "El DNI debe tener 8 dígitos numéricos"}), 400
 
     resultado, error = AuthService.registrar_estudiante(
         username=datos.get("username"),
@@ -50,6 +55,7 @@ def registrar():
         nombres=datos.get("nombres"),
         apellido_paterno=datos.get("apellido_paterno"),
         apellido_materno=datos.get("apellido_materno"),
+        dni=dni,
         correo_institucional=datos.get("correo_institucional"),
         especialidad_id=datos.get("especialidad_id")
     )

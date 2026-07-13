@@ -32,6 +32,7 @@ export default function CursosAsignar() {
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
   const [aula, setAula] = useState("");
+  const [funcionHorario, setFuncionHorario] = useState("");
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
 
@@ -105,6 +106,7 @@ export default function CursosAsignar() {
     const { data, error } = await obtenerAsignacionesOferta(ofertaId);
     if (!error) {
       setAsignaciones(data);
+      // Preselecciona automáticamente la función que todavía falta por cubrir
       if (data.funciones_pendientes?.length === 1) {
         setFuncionCurso(data.funciones_pendientes[0]);
       } else if (data.funciones_pendientes?.length > 1) {
@@ -166,6 +168,7 @@ export default function CursosAsignar() {
       hora_inicio: horaInicio,
       hora_fin: horaFin,
       aula,
+      funcion_curso: funcionHorario || null,
     });
 
     if (error) {
@@ -174,6 +177,7 @@ export default function CursosAsignar() {
     }
 
     setMensaje(`Horario registrado con estado: ${data.estado}`);
+    setFuncionHorario("");
     cargarAsignaciones();
   }
 
@@ -413,7 +417,10 @@ export default function CursosAsignar() {
             </p>
           ) : (
             <p style={{ color: "#f0ad4e" }}>
-              Falta asignar: {funcionesPendientes.map((f) => ETIQUETA_FUNCION[f] ?? f).join(", ")}. 
+              Falta asignar: {funcionesPendientes.map((f) => ETIQUETA_FUNCION[f] ?? f).join(", ")}. Cada
+              sección necesita, como máximo, un docente Teórico y un docente Práctico — un mismo docente
+              puede cubrir ambos roles en distintas secciones, pero no dos veces el mismo rol en la misma
+              sección.
             </p>
           )}
         </div>
@@ -473,6 +480,7 @@ export default function CursosAsignar() {
               <th>Inicio</th>
               <th>Fin</th>
               <th>Aula / enlace</th>
+              <th>Tipo de clase</th>
             </tr>
           </thead>
           <tbody>
@@ -482,6 +490,7 @@ export default function CursosAsignar() {
                 <td>{h.hora_inicio}</td>
                 <td>{h.hora_fin}</td>
                 <td>{h.aula}</td>
+                <td>{ETIQUETA_FUNCION[h.funcion_curso] ?? "General"}</td>
               </tr>
             ))}
           </tbody>
@@ -516,6 +525,15 @@ export default function CursosAsignar() {
         <div>
           <label>Aula o enlace virtual</label>
           <input type="text" value={aula} onChange={(e) => setAula(e.target.value)} />
+        </div>
+
+        <div>
+          <label>Tipo de clase (opcional)</label>
+          <select value={funcionHorario} onChange={(e) => setFuncionHorario(e.target.value)}>
+            <option value="">General (aplica a toda la sección)</option>
+            <option value="Teorico">Teórico</option>
+            <option value="Practico">Práctico</option>
+          </select>
         </div>
 
         <button type="submit">Guardar horario</button>
