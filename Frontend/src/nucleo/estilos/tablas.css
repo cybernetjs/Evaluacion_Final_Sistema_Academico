@@ -23,6 +23,6 @@ th {
   letter-spacing: 0.4px;
 }
 
-tbody tr:nth-child(even) td {
-  background: var(--panel-alterno);
+tbody td {
+  background: var(--panel);
 }

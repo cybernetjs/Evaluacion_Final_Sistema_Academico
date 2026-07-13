@@ -21,6 +21,7 @@ def ejecutar():
         ("estudiante_prueba", "Maria Fernanda", "Gomez", "Vargas", "87654321", "maria.gomez@uncp.edu.pe"),
         ("estudiante_prueba2", "Diego Alonso", "Ramirez", "Castillo", "76543210", "diego.ramirez@uncp.edu.pe"),
         ("estudiante_prueba3", "Valeria Nicole", "Flores", "Cardenas", "65432109", "valeria.flores@uncp.edu.pe"),
+        ("estudiante_prueba4", "Renato Sebastian", "Quispe", "Huaman", "54321098", "renato.quispe@uncp.edu.pe"),
     ]
 
     estudiantes = []

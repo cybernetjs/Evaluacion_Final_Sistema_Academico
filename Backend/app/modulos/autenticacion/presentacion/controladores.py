@@ -57,7 +57,8 @@ def registrar():
         apellido_materno=datos.get("apellido_materno"),
         dni=dni,
         correo_institucional=datos.get("correo_institucional"),
-        especialidad_id=datos.get("especialidad_id")
+        especialidad_id=datos.get("especialidad_id"),
+        plan_estudios_id=datos.get("plan_estudios_id")
     )
 
     if error:

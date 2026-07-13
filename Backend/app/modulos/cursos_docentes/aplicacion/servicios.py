@@ -13,6 +13,7 @@ from app.dominio.modelos.academico.semestre import Semestre
 from app.dominio.modelos.academico.plan_cursos_semestre import PlanCursosSemestre
 from app.dominio.modelos.academico.plan_de_estudios import PlanDeEstudios
 from app.dominio.modelos.academico.especialidad import Especialidad
+from app.compartido.utilidades.seccion_oferta import etiqueta_seccion
 
 CARPETA_SILABOS = os.path.join(os.getcwd(), "uploads", "silabos")
 TAMANO_MAXIMO_SILABO_BYTES = 10 * 1024 * 1024
@@ -257,7 +258,7 @@ class CursosDocentesService:
                 "codigo_curso": curso.codigo,
                 "nombre_curso": curso.nombre,
                 "creditos": curso.creditos,
-                "seccion": f"S-{oferta.id}",
+                "seccion": etiqueta_seccion(oferta),
                 "horas_semanales": info["horas_semanales"],
                 "estado_silabo": "Silabo Cargado" if silabo else "Silabo Pendiente",
                 "horario": [

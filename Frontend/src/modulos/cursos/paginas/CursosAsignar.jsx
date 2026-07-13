@@ -372,7 +372,7 @@ export default function CursosAsignar() {
         <select value={ofertaId} onChange={(e) => setOfertaId(e.target.value)}>
           {ofertas.map((o) => (
             <option key={o.id} value={o.id}>
-              {o.curso_nombre} - Semestre {o.semestre_codigo} (sección S-{o.id})
+              {o.curso_nombre} - Semestre {o.semestre_codigo} (sección {o.seccion})
             </option>
           ))}
         </select>

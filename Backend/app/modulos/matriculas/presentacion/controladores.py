@@ -34,6 +34,8 @@ def periodo_actual():
 
 
 def listar_ofertas():
+    from app.compartido.utilidades.seccion_oferta import etiqueta_seccion
+
     periodo = MatriculaService.periodo_actual()
     ofertas = OfertaAcademica.query.filter_by(periodo_academico_id=periodo.id).all()
 
@@ -46,6 +48,7 @@ def listar_ofertas():
             "curso_id": o.curso_id,
             "semestre_codigo": o.semestre.codigo,
             "semestre_id": o.semestre_id,
+            "seccion": etiqueta_seccion(o),
             "cupos": o.cupos
         }
         for o in ofertas

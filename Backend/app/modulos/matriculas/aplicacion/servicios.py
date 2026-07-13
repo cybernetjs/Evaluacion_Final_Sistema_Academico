@@ -175,6 +175,9 @@ class MatriculaService:
     def generar_pdf_ficha(matricula_id):
         from app.dominio.modelos.matriculas.matricula_detalle import MatriculaDetalle
         from app.dominio.modelos.identidad.usuario import Usuario
+        from app.compartido.utilidades.seccion_oferta import etiqueta_seccion
+        from reportlab.lib.pagesizes import landscape
+        from reportlab.pdfbase.pdfmetrics import stringWidth
 
         matricula = Matricula.query.get(matricula_id)
         if not matricula:
@@ -185,31 +188,70 @@ class MatriculaService:
         detalles = MatriculaDetalle.query.filter_by(matricula_id=matricula.id).all()
         hash_verificacion = MatriculaService._generar_hash_matricula(matricula)
 
-        ancho, alto = letter
+        # Semestre que cursa el estudiante en esta matrícula: se toma el semestre
+        # más alto entre los cursos matriculados (ítem 2 del pedido de corrección).
+        semestres_matriculados = sorted({
+            d.oferta_academica.semestre.codigo
+            for d in detalles
+            if d.oferta_academica and d.oferta_academica.semestre
+        })
+        semestre_actual = semestres_matriculados[-1] if semestres_matriculados else None
+
+        ancho, alto = landscape(letter)
         buffer = io.BytesIO()
-        pdf = canvas.Canvas(buffer, pagesize=letter)
+        pdf = canvas.Canvas(buffer, pagesize=landscape(letter))
 
         pdf.setFont("Helvetica-Bold", 16)
-        pdf.drawString(80, alto - 60, "FICHA DE MATRÍCULA OFICIAL")
+        pdf.drawString(50, alto - 50, "FICHA DE MATRÍCULA OFICIAL")
 
         pdf.setFont("Helvetica", 11)
-        pdf.drawString(80, alto - 90, f"Código: {usuario.username}")
+        pdf.drawString(50, alto - 78, f"Código: {usuario.username}")
         pdf.drawString(
-            80, alto - 108,
+            50, alto - 96,
             f"Estudiante: {estudiante.nombres} {estudiante.apellido_paterno} {estudiante.apellido_materno}"
         )
-        pdf.drawString(80, alto - 126, f"Periodo académico: {matricula.periodo_academico.nombre}")
-        pdf.drawString(80, alto - 144, f"N° de matrícula: {matricula.id}  —  Estado: Matriculado")
+        pdf.drawString(50, alto - 114, f"Periodo académico: {matricula.periodo_academico.nombre}")
+        texto_semestre = f"{semestre_actual}° semestre" if semestre_actual else "No determinado"
+        pdf.drawString(50, alto - 132, f"Semestre: {texto_semestre}")
+        pdf.drawString(50, alto - 150, f"N° de matrícula: {matricula.id}  —  Estado: Matriculado")
 
-        y = alto - 180
+        # Columnas de la tabla (con más espacio horizontal al usar orientación
+        # horizontal, evitando que el horario se salga de la página — ítem 1).
+        col_codigo = 50
+        col_curso = 115
+        col_creditos = 345
+        col_semestre = 400
+        col_seccion = 460
+        col_horario = 520
+        margen_derecho = ancho - 30
+        ancho_horario = margen_derecho - col_horario
+
+        def dividir_texto(texto, ancho_max, fuente="Helvetica", tam=8):
+            """Parte el texto en varias líneas para que quepa en ancho_max."""
+            palabras = texto.split(", ")
+            lineas = []
+            actual = ""
+            for palabra in palabras:
+                candidato = f"{actual}, {palabra}" if actual else palabra
+                if stringWidth(candidato, fuente, tam) <= ancho_max:
+                    actual = candidato
+                else:
+                    if actual:
+                        lineas.append(actual)
+                    actual = palabra
+            if actual:
+                lineas.append(actual)
+            return lineas or [""]
+
+        y = alto - 185
         pdf.setFont("Helvetica-Bold", 10)
-        pdf.drawString(80, y, "Código")
-        pdf.drawString(150, y, "Curso")
-        pdf.drawString(340, y, "Créditos")
-        pdf.drawString(400, y, "Sección")
-        pdf.drawString(460, y, "Horario")
-        y -= 16
-        pdf.setFont("Helvetica", 9)
+        pdf.drawString(col_codigo, y, "Código")
+        pdf.drawString(col_curso, y, "Curso")
+        pdf.drawString(col_creditos, y, "Créditos")
+        pdf.drawString(col_semestre, y, "Semestre")
+        pdf.drawString(col_seccion, y, "Sección")
+        pdf.drawString(col_horario, y, "Horario")
+        y -= 18
 
         for d in detalles:
             oferta = d.oferta_academica
@@ -218,19 +260,26 @@ class MatriculaService:
                 f"{h.dia}° día {h.hora_inicio.strftime('%H:%M')}-{h.hora_fin.strftime('%H:%M')}"
                 for h in oferta.horarios
             ) or "Sin horario"
+            lineas_horario = dividir_texto(horarios, ancho_horario)
 
-            pdf.drawString(80, y, curso.codigo)
-            pdf.drawString(150, y, curso.nombre[:30])
-            pdf.drawString(350, y, str(curso.creditos))
-            pdf.drawString(400, y, str(oferta.id))
-            pdf.drawString(460, y, horarios[:40])
-            y -= 16
+            pdf.setFont("Helvetica", 9)
+            pdf.drawString(col_codigo, y, curso.codigo)
+            pdf.drawString(col_curso, y, curso.nombre[:38])
+            pdf.drawString(col_creditos, y, str(curso.creditos))
+            pdf.drawString(col_semestre, y, oferta.semestre.codigo if oferta.semestre else "-")
+            pdf.drawString(col_seccion, y, etiqueta_seccion(oferta))
+
+            pdf.setFont("Helvetica", 8)
+            for i, linea in enumerate(lineas_horario):
+                pdf.drawString(col_horario, y - (i * 11), linea)
+
+            y -= max(16, len(lineas_horario) * 11 + 5)
 
         imagen_qr = MatriculaService._generar_imagen_qr(hash_verificacion)
-        pdf.drawImage(imagen_qr, 80, 60, width=80, height=80)
+        pdf.drawImage(imagen_qr, 50, 40, width=70, height=70)
         pdf.setFont("Helvetica", 7)
-        pdf.drawString(170, 100, "Código de verificación:")
-        pdf.drawString(170, 88, hash_verificacion)
+        pdf.drawString(130, 75, "Código de verificación:")
+        pdf.drawString(130, 63, hash_verificacion)
 
         pdf.showPage()
         pdf.save()

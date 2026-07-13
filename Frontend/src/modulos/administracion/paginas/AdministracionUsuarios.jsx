@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { cambiarRol, listarUsuarios, listarEspecialidades, registrarDocente, registrarPersonal } from "../servicios/administracionServicio";
+import { cambiarRol, listarUsuarios, listarEspecialidades, listarPlanesEstudio, registrarDocente, registrarPersonal } from "../servicios/administracionServicio";
 import { registrarEstudiante } from "../../autenticacion/servicios/autenticacionServicio";
 
 const ROLES = ["estudiante", "docente", "administrador", "direccion"];
@@ -13,6 +13,7 @@ const VACIO_ESTUDIANTE = {
   dni: "",
   correo_institucional: "",
   especialidad_id: "",
+  plan_estudios_id: "",
 };
 
 const VACIO_DOCENTE = {
@@ -39,6 +40,7 @@ export default function AdministracionUsuarios() {
 
   const [pestana, setPestana] = useState("estudiante");
   const [especialidades, setEspecialidades] = useState([]);
+  const [planesEstudio, setPlanesEstudio] = useState([]);
 
   const [formEstudiante, setFormEstudiante] = useState(VACIO_ESTUDIANTE);
   const [formDocente, setFormDocente] = useState(VACIO_DOCENTE);
@@ -48,6 +50,7 @@ export default function AdministracionUsuarios() {
   useEffect(() => {
     cargarUsuarios();
     cargarEspecialidades();
+    cargarPlanesEstudio();
   }, []);
 
   async function cargarUsuarios() {
@@ -68,6 +71,11 @@ export default function AdministracionUsuarios() {
   async function cargarEspecialidades() {
     const { data } = await listarEspecialidades();
     if (data) setEspecialidades(data);
+  }
+
+  async function cargarPlanesEstudio() {
+    const { data } = await listarPlanesEstudio();
+    if (data) setPlanesEstudio(data);
   }
 
   async function manejarCambio(usuarioId) {
@@ -100,6 +108,7 @@ export default function AdministracionUsuarios() {
     const { data, error } = await registrarEstudiante({
       ...formEstudiante,
       especialidad_id: Number(formEstudiante.especialidad_id),
+      plan_estudios_id: formEstudiante.plan_estudios_id ? Number(formEstudiante.plan_estudios_id) : null,
     });
 
     setEnviando(false);
@@ -109,7 +118,11 @@ export default function AdministracionUsuarios() {
       return;
     }
 
-    setMensaje("Estudiante registrado correctamente");
+    setMensaje(
+      data?.aviso
+        ? `Estudiante registrado correctamente. Aviso: ${data.aviso}`
+        : "Estudiante registrado correctamente, con plan de estudios asignado y listo para matricularse."
+    );
     setFormEstudiante(VACIO_ESTUDIANTE);
     cargarUsuarios();
   }
@@ -231,7 +244,9 @@ export default function AdministracionUsuarios() {
           />
           <select
             value={formEstudiante.especialidad_id}
-            onChange={(e) => setFormEstudiante((f) => ({ ...f, especialidad_id: e.target.value }))}
+            onChange={(e) =>
+              setFormEstudiante((f) => ({ ...f, especialidad_id: e.target.value, plan_estudios_id: "" }))
+            }
             required
           >
             <option value="">Selecciona una especialidad</option>
@@ -240,6 +255,24 @@ export default function AdministracionUsuarios() {
                 {esp.nombre}
               </option>
             ))}
+          </select>
+          <select
+            value={formEstudiante.plan_estudios_id}
+            onChange={(e) => setFormEstudiante((f) => ({ ...f, plan_estudios_id: e.target.value }))}
+            disabled={!formEstudiante.especialidad_id}
+          >
+            <option value="">
+              {formEstudiante.especialidad_id
+                ? "Asignar automáticamente el plan vigente de la especialidad"
+                : "Selecciona primero una especialidad"}
+            </option>
+            {planesEstudio
+              .filter((plan) => String(plan.especialidad_id) === String(formEstudiante.especialidad_id))
+              .map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  Plan {plan.anio_creacion}{plan.vigente ? " (vigente)" : ""}
+                </option>
+              ))}
           </select>
           <button type="submit" disabled={enviando}>
             {enviando ? "Registrando..." : "Registrar estudiante"}

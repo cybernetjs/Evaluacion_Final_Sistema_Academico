@@ -166,6 +166,13 @@ export default function CursosMisCursos() {
           </div>
 
           <h3>Calendario semanal</h3>
+          {cursos.every((c) => c.horario.length === 0) && (
+            <p style={{ color: "#f0c15c" }}>
+              Ninguna de tus secciones tiene un horario registrado todavía. El calendario se llena
+              cuando el área de Cursos y Docentes registra el horario y aula de la sección — esto no
+              depende de que haya alumnos matriculados.
+            </p>
+          )}
           <table>
             <thead>
               <tr>

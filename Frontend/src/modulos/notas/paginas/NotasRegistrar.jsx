@@ -125,7 +125,7 @@ export default function NotasRegistrar() {
           <option value="">Selecciona una sección</option>
           {secciones.map((s) => (
             <option key={s.oferta_academica_id} value={s.oferta_academica_id}>
-              {s.nombre_curso} — S-{s.oferta_academica_id}
+              {s.nombre_curso} — {s.seccion}
             </option>
           ))}
         </select>
@@ -144,6 +144,14 @@ export default function NotasRegistrar() {
 
       {planilla && !cronogramaVigente && (
         <p style={{ color: "#ff6b6b" }}>Periodo de ingreso cerrado por la administración</p>
+      )}
+
+      {planilla && planilla.estudiantes.length === 0 && (
+        <p style={{ color: "#f0c15c" }}>
+          Todavía no hay estudiantes matriculados en esta sección, por eso la planilla aparece vacía.
+          Esto no significa que la matrícula esté cerrada: simplemente ningún estudiante se ha
+          matriculado aún en este curso para el periodo seleccionado.
+        </p>
       )}
 
       {planilla && (
