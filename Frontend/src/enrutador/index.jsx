@@ -1,4 +1,4 @@
-import { Link, Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import { useAuth } from "../nucleo/contexto/AuthContext";
 import { ENLACES_POR_ROL } from "../nucleo/componentes/comunes/Navbar";
 
@@ -24,13 +24,7 @@ function Inicio() {
   const { usuario, estaAutenticado } = useAuth();
 
   if (!estaAutenticado) {
-    return (
-      <main className="inicio-publico">
-        <Link className="boton-login-publico" to="/login">
-          Iniciar Sesion
-        </Link>
-      </main>
-    );
+    return <Navigate to="/login" replace />;
   }
 
   const modulos = (ENLACES_POR_ROL[usuario.rol] || []).filter((enlace) => enlace.to !== "/");

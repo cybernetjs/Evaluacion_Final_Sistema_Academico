@@ -19,30 +19,6 @@ body.nav-abierto .contenedor {
   padding: 0;
 }
 
-.inicio-publico {
-  min-height: 100vh;
-  margin: 0;
-  border: 0;
-  background: var(--fondo);
-  padding: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.boton-login-publico {
-  background: var(--acento);
-  border: 1px solid var(--acento);
-  color: #fff;
-  font-weight: 600;
-  padding: 10px 18px;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.boton-login-publico:hover {
-  background: var(--acento-hover);
-  border-color: var(--acento-claro);
-}
-
 .modulos-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(240px, 1fr));
