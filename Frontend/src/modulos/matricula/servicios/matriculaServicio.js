@@ -47,11 +47,11 @@ export async function obtenerMiSolicitudActual() {
 }
 
 export function urlDescargarFichaPreliminar() {
-  return "http://localhost:5000/api/matriculas/ficha-preliminar/descargar";
+  return "https://sistema-academico-backend-wfcn.onrender.com/api/matriculas/ficha-preliminar/descargar";
 }
 
 export function urlDescargarFichaOficialEstudiante() {
-  return "http://localhost:5000/api/matriculas/ficha-oficial/descargar";
+  return "https://sistema-academico-backend-wfcn.onrender.com/api/matriculas/ficha-oficial/descargar";
 }
 
 export async function listarOfertas() {
@@ -71,7 +71,7 @@ export async function registrarPago(matriculaId, archivo) {
   formData.append("comprobante", archivo);
 
   const token = localStorage.getItem("token");
-  const respuesta = await fetch(`http://localhost:5000/api/matriculas/${matriculaId}/pago`, {
+  const respuesta = await fetch(`https://sistema-academico-backend-wfcn.onrender.com/api/matriculas/${matriculaId}/pago`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
@@ -98,7 +98,7 @@ export async function verificarPago(matriculaId, datosPago) {
 export async function obtenerComprobanteMatriculaBlobUrl(matriculaId) {
   const token = localStorage.getItem("token");
   try {
-    const respuesta = await fetch(`http://localhost:5000/api/matriculas/${matriculaId}/comprobante`, {
+    const respuesta = await fetch(`https://sistema-academico-backend-wfcn.onrender.com/api/matriculas/${matriculaId}/comprobante`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
 
@@ -130,9 +130,9 @@ export function urlExportarReporte(filtros = {}) {
   if (filtros.periodoId) parametros.set("periodo_id", filtros.periodoId);
   if (filtros.especialidadId) parametros.set("especialidad_id", filtros.especialidadId);
   parametros.set("formato", filtros.formato || "csv");
-  return `http://localhost:5000/api/matriculas/dashboard/exportar?${parametros.toString()}`;
+  return `https://sistema-academico-backend-wfcn.onrender.com/api/matriculas/dashboard/exportar?${parametros.toString()}`;
 }
 
 export function urlDescargarFicha(matriculaId) {
-  return `http://localhost:5000/api/matriculas/${matriculaId}/ficha`;
+  return `https://sistema-academico-backend-wfcn.onrender.com/api/matriculas/${matriculaId}/ficha`;
 }

@@ -294,7 +294,7 @@ class CertificadoService:
         especialidad = estudiante.especialidad if estudiante else None
         facultad = especialidad.facultad if especialidad else None
 
-        url_verificacion = f"http://localhost:5000/api/documentos/verificar/{certificado.codigo_verificacion}"
+        url_verificacion = f"https://sistema-academico-backend-wfcn.onrender.com/api/documentos/verificar/{certificado.codigo_verificacion}"
 
         qr = qrcode.QRCode(version=1, box_size=6, border=2)
         qr.add_data(url_verificacion)

@@ -1,6 +1,6 @@
 import { peticion } from "../../../nucleo/servicios/api";
 
-const URL_API = "http://localhost:5000/api/record-academico";
+const URL_API = "https://sistema-academico-backend-wfcn.onrender.com/api/record-academico";
 
 export async function obtenerRecord(estudianteId) {
   return peticion(`/record-academico/${estudianteId}`);

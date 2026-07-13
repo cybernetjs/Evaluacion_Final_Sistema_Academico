@@ -1,6 +1,6 @@
 import { peticion } from "../../../nucleo/servicios/api";
 
-const URL_BASE = "http://localhost:5000/api";
+const URL_BASE = "https://sistema-academico-backend-wfcn.onrender.com/api";
 
 export async function solicitarDocumento(tipo, archivo) {
   const formData = new FormData();
