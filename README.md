@@ -31,14 +31,8 @@ Universidad Nacional del Centro del Perú, Facultad de Ingeniería de Sistemas.
 
 ## Arquitectura del sistema
 
-El sistema sigue una arquitectura cliente-servidor .
+El sistema sigue una arquitectura general de cliente-servidor .
 
-```
-┌─────────────────────┐        JSON + JWT        ┌──────────────────────┐        SQLAlchemy        ┌──────────────┐
-│   Frontend (React)   │  ───────────────────────▶ │   Backend (Flask)     │  ───────────────────────▶ │   MySQL      │
-│   Vite · SPA          │ ◀─────────────────────── │   API REST /api/...   │ ◀─────────────────────── │              │
-└─────────────────────┘                            └──────────────────────┘                            └──────────────┘
-```
 
 - La comunicación entre frontend y backend se hace exclusivamente vía **HTTP + JSON**.
 - La sesión del usuario se maneja con **JWT** (JSON Web Token): el backend lo genera en el login y el frontend lo envía en cada petición dentro del header `Authorization: Bearer <token>`.
