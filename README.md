@@ -35,7 +35,7 @@ El sistema sigue una arquitectura general de cliente-servidor .
 
 
 - La comunicación entre frontend y backend se hace exclusivamente vía **HTTP + JSON**.
-- La sesión del usuario se maneja con **JWT** (JSON Web Token): el backend lo genera en el login y el frontend lo envía en cada petición dentro del header `Authorization: Bearer <token>`.
+- La sesión del usuario se maneja con **JWT** (JSON Web Token).
 - El backend valida cada endpoint protegido según el **rol** del usuario contenido en el token.
 - CORS está configurado en el backend para aceptar peticiones únicamente desde los orígenes del frontend (desarrollo y producción).
 
