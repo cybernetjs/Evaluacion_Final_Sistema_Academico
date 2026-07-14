@@ -27,7 +27,6 @@ Universidad Nacional del Centro del Perú, Facultad de Ingeniería de Sistemas.
 **Base de datos**
 - MySQL (la cadena de conexión se configura en `DATABASE_URL`)
 
----
 
 ## Arquitectura del sistema
 
