@@ -1,6 +1,5 @@
 # Sistema Académico Integral
 
-Sistema Académico
 
 ## Equipo
 
