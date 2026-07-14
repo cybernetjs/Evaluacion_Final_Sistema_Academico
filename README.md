@@ -2,8 +2,6 @@
 
 Sistema Académico
 
-Universidad Nacional del Centro del Perú, Facultad de Ingeniería de Sistemas.
-
 ## Equipo
 
 - Coca Huari Mario
@@ -26,88 +24,6 @@ Universidad Nacional del Centro del Perú, Facultad de Ingeniería de Sistemas.
 
 **Base de datos**
 - MySQL (la cadena de conexión se configura en `DATABASE_URL`)
-
-
-## Arquitectura del sistema
-
-El sistema sigue una arquitectura general de cliente-servidor .
-
-
-- La comunicación entre frontend y backend se hace exclusivamente vía **HTTP + JSON**.
-- La sesión del usuario se maneja con **JWT** (JSON Web Token).
-- El backend valida cada endpoint protegido según el **rol** del usuario contenido en el token.
-- CORS está configurado en el backend para aceptar peticiones únicamente desde los orígenes del frontend (desarrollo y producción).
-
-### Arquitectura interna del backend (por capas)
-
-Usa la aruitectura por capas modular con algunos elementos de la hexagonal
-
-El backend separa responsabilidades en tres capas dentro de cada módulo de negocio.
-
-```
-app/
-├── dominio/modelos/        → Modelos ORM: representan las tablas de la base de datos
-├── modulos/<modulo>/
-│   ├── aplicacion/
-│   │   └── servicios.py    → Lógica de negocio (reglas, validaciones, uso del ORM)
-│   └── presentacion/
-│       ├── controladores.py→ Recibe la petición HTTP y arma la respuesta JSON
-│       └── rutas.py        → Define los endpoints (Blueprint de Flask)
-├── compartido/
-│   └── middlewares/        → Ej: control de acceso por rol (rol_requerido)
-└── seeders/                → Datos de prueba para poblar la base de datos
-```
-
-Recorrido de endpoint : **ruta → controlador → servicio → modelo (ORM) → base de datos**, y 
-la respuesta regresa por el mismo camino en sentido inverso, como JSON.
-
-### Estructura del frontend
-
-```
-Frontend/src/
-├── modulos/
-│   ├── autenticacion/
-│   ├── matricula/
-│   ├── cursos/
-│   ├── notas/
-│   ├── record-academico/
-│   ├── certificados/
-│   └── administracion/
-│       └── <cada módulo tiene>: paginas/  componentes/  servicios/  rutas.jsx
-├── nucleo/
-│   ├── contexto/AuthContext.jsx   → guarda el usuario y el token de sesión
-│   ├── servicios/api.js           → función centralizada para llamar al backend
-│   ├── componentes/comunes/       → Navbar, RutaProtegida, etc.
-│   └── hooks/
-└── enrutador/index.jsx            → une las rutas de todos los módulos
-```
-
-Cada módulo del frontend es independiente y expone sus propias rutas, que luego se combinan en `enrutador/index.jsx`. 
-El acceso a cada ruta está protegido por rol mediante el componente `RutaProtegida`, y el menú de navegación se arma 
-dinámicamente según el rol , y use arquitectura modular basada en funcionalidades. 
-
-### Módulos implementados
-
-| Módulo | Descripción | Roles que interactúan |
-|---|---|---|
-| Autenticación | Login, registro y sesión con JWT | Todos |
-| Matrícula | Solicitud, validación, pagos y ficha oficial | Estudiante, Administrador, Dirección |
-| Cursos y Docentes | Asignación de cursos, horarios y sílabos | Docente, Administrador, Dirección |
-| Notas | Registro y consulta de notas parciales/finales | Docente, Estudiante, Administrador, Dirección |
-| Récord Académico | Historial académico y reportes | Estudiante, Administrador, Dirección |
-| Certificados y Documentos | Solicitud, aprobación y firma digital con QR | Estudiante, Administrador, Dirección |
-| Administración y Seguridad | Usuarios, roles, permisos y auditorías | Administrador, Dirección |
-
-### Seguridad y control de acceso por roles
-
-El sistema define 4 roles: **estudiante**, **docente**, **administrador** y **dirección**. Cada endpoint del backend está protegido con un middleware (`rol_requerido`) que:
-
-1. Verifica que el token JWT sea válido.
-2. Comprueba que el rol del usuario esté autorizado para ese endpoint, ya sea por rol fijo o contra una **matriz de permisos** configurable (tabla de permisos por rol y recurso, editable desde el módulo de Administración).
-
-En el frontend, esto se refuerza con rutas protegidas: un usuario no puede navegar a una pantalla que no le corresponde, y el menú solo muestra las opciones habilitadas para su rol.
-
----
 
 ## Requisitos previos
 
@@ -223,4 +139,85 @@ Al ejecutar `python fresh.py`, el seeder de usuarios (`app/seeders/identidad/usu
 | Docente | `docente_prueba4` | `123456` |
 | Administrador | `admin_prueba` | `123456` |
 | Dirección | `direccion_prueba` | `123456` |
+
+
+## Arquitectura del sistema
+
+El sistema sigue una arquitectura general de cliente-servidor .
+
+
+- La comunicación entre frontend y backend se hace exclusivamente vía **HTTP + JSON**.
+- La sesión del usuario se maneja con **JWT** (JSON Web Token).
+- El backend valida cada endpoint protegido según el **rol** del usuario contenido en el token.
+- CORS está configurado en el backend para aceptar peticiones únicamente desde los orígenes del frontend (desarrollo y producción).
+
+### Arquitectura interna del backend (por capas)
+
+Usa la aruitectura por capas modular con algunos elementos de la hexagonal
+
+El backend separa responsabilidades en tres capas dentro de cada módulo de negocio.
+
+```
+app/
+├── dominio/modelos/        → Modelos ORM: representan las tablas de la base de datos
+├── modulos/<modulo>/
+│   ├── aplicacion/
+│   │   └── servicios.py    → Lógica de negocio (reglas, validaciones, uso del ORM)
+│   └── presentacion/
+│       ├── controladores.py→ Recibe la petición HTTP y arma la respuesta JSON
+│       └── rutas.py        → Define los endpoints (Blueprint de Flask)
+├── compartido/
+│   └── middlewares/        → Ej: control de acceso por rol (rol_requerido)
+└── seeders/                → Datos de prueba para poblar la base de datos
+```
+
+Recorrido de endpoint : **ruta → controlador → servicio → modelo (ORM) → base de datos**, y 
+la respuesta regresa por el mismo camino en sentido inverso, como JSON.
+
+### Estructura del frontend
+
+```
+Frontend/src/
+├── modulos/
+│   ├── autenticacion/
+│   ├── matricula/
+│   ├── cursos/
+│   ├── notas/
+│   ├── record-academico/
+│   ├── certificados/
+│   └── administracion/
+│       └── <cada módulo tiene>: paginas/  componentes/  servicios/  rutas.jsx
+├── nucleo/
+│   ├── contexto/AuthContext.jsx   → guarda el usuario y el token de sesión
+│   ├── servicios/api.js           → función centralizada para llamar al backend
+│   ├── componentes/comunes/       → Navbar, RutaProtegida, etc.
+│   └── hooks/
+└── enrutador/index.jsx            → une las rutas de todos los módulos
+```
+
+Cada módulo del frontend es independiente y expone sus propias rutas, que luego se combinan en `enrutador/index.jsx`. 
+El acceso a cada ruta está protegido por rol mediante el componente `RutaProtegida`, y el menú de navegación se arma 
+dinámicamente según el rol , y use arquitectura modular basada en funcionalidades. 
+
+### Módulos implementados
+
+| Módulo | Descripción | Roles que interactúan |
+|---|---|---|
+| Autenticación | Login, registro y sesión con JWT | Todos |
+| Matrícula | Solicitud, validación, pagos y ficha oficial | Estudiante, Administrador, Dirección |
+| Cursos y Docentes | Asignación de cursos, horarios y sílabos | Docente, Administrador, Dirección |
+| Notas | Registro y consulta de notas parciales/finales | Docente, Estudiante, Administrador, Dirección |
+| Récord Académico | Historial académico y reportes | Estudiante, Administrador, Dirección |
+| Certificados y Documentos | Solicitud, aprobación y firma digital con QR | Estudiante, Administrador, Dirección |
+| Administración y Seguridad | Usuarios, roles, permisos y auditorías | Administrador, Dirección |
+
+### Seguridad y control de acceso por roles
+
+El sistema define 4 roles: **estudiante**, **docente**, **administrador** y **dirección**. Cada endpoint del backend está protegido con un middleware (`rol_requerido`) que:
+
+1. Verifica que el token JWT sea válido.
+2. Comprueba que el rol del usuario esté autorizado para ese endpoint, ya sea por rol fijo o contra una **matriz de permisos** configurable (tabla de permisos por rol y recurso, editable desde el módulo de Administración).
+
+En el frontend, esto se refuerza con rutas protegidas: un usuario no puede navegar a una pantalla que no le corresponde, y el menú solo muestra las opciones habilitadas para su rol.
+
 
