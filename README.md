@@ -17,10 +17,10 @@ Sistema Académico
 
 **Backend**
 - Python + Flask
-- SQLAlchemy (ORM) + Flask-Migrate (migraciones de base de datos)
-- Flask-JWT-Extended (autenticación por token)
-- Flask-Bcrypt (hash de contraseñas)
-- ReportLab + qrcode (generación de fichas y certificados en PDF con código QR)
+- SQLAlchemy (ORM) + Flask-Migrate 
+- Flask-JWT-Extended 
+- Flask-Bcrypt 
+- ReportLab + qrcode 
 
 **Base de datos**
 - MySQL (la cadena de conexión se configura en `DATABASE_URL`)
