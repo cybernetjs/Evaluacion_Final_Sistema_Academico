@@ -688,8 +688,15 @@ class MatriculaService:
 
     @staticmethod
     def listar_bandeja_validacion(periodo_id=None, especialidad_id=None, estado_nombre=None, pagina=1, por_pagina=10):
+        from sqlalchemy.orm import joinedload
+
         consulta = Matricula.query.join(Estudiante, Matricula.estudiante_id == Estudiante.id).join(
             EstadoMatricula, Matricula.estado_id == EstadoMatricula.id
+        ).options(
+            joinedload(Matricula.estudiante).joinedload(Estudiante.especialidad),
+            joinedload(Matricula.periodo_academico),
+            joinedload(Matricula.semestre),
+            joinedload(Matricula.estado),
         )
 
         if periodo_id:
@@ -709,6 +716,13 @@ class MatriculaService:
 
         from app.dominio.modelos.matriculas.pago import Pago
 
+        ids_matriculas = [m.id for m in matriculas]
+        ids_con_comprobante = set(
+            r[0] for r in db.session.query(Pago.matricula_id)
+            .filter(Pago.matricula_id.in_(ids_matriculas))
+            .all()
+        ) if ids_matriculas else set()
+
         filas = []
         for m in matriculas:
             estudiante = m.estudiante
@@ -720,7 +734,7 @@ class MatriculaService:
                 "semestre_codigo": m.semestre.codigo if m.semestre else None,
                 "estado": m.estado.nombre if m.estado else None,
                 "pagado": m.pagado,
-                "tiene_comprobante": db.session.query(Pago.id).filter_by(matricula_id=m.id).first() is not None,
+                "tiene_comprobante": m.id in ids_con_comprobante,
                 "plazo_vencido": MatriculaService._plazo_vencido(m),
                 "puede_cancelar": MatriculaService._plazo_vencido(m)
                 and not m.pagado
