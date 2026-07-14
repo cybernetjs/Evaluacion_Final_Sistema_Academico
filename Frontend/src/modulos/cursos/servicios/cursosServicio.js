@@ -1,6 +1,6 @@
 import { peticion } from "../../../nucleo/servicios/api";
 
-const URL_BASE = "https://sistema-academico-backend-wfcn.onrender.com/api";
+import { API_BASE_URL as URL_BASE } from "../../../nucleo/config/api";
 
 export async function listarCursos() {
   return peticion("/cursos/");

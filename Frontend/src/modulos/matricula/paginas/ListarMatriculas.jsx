@@ -10,6 +10,7 @@ import {
 import { listarEspecialidades } from "../../administracion/servicios/administracionServicio";
 import { listarPeriodos } from "../servicios/matriculaServicio";
 import ModalVerificarPago from "../componentes/ModalVerificarPago";
+import { API_BASE_URL } from "../../../nucleo/config/api";
 
 export default function ListarMatriculas() {
   const [matriculas, setMatriculas] = useState([]);
@@ -126,7 +127,7 @@ export default function ListarMatriculas() {
   async function manejarDescargaFichaOficial(id) {
     setError(null);
     const token = localStorage.getItem("token");
-    const respuesta = await fetch(`https://sistema-academico-backend-wfcn.onrender.com/api/matriculas/${id}/ficha`, {
+    const respuesta = await fetch(`${API_BASE_URL}/matriculas/${id}/ficha`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 

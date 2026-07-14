@@ -1,4 +1,4 @@
-const URL_BASE = "https://sistema-academico-backend-wfcn.onrender.com/api";
+import { API_BASE_URL as URL_BASE } from "../config/api";
 
 export async function peticion(ruta, opciones = {}) {
   const token = localStorage.getItem("token");
