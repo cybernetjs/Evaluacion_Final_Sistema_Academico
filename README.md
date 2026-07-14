@@ -216,7 +216,7 @@ dinámicamente según el rol , y use arquitectura modular basada en funcionalida
 El sistema define 4 roles: **estudiante**, **docente**, **administrador** y **dirección**. Cada endpoint del backend está protegido con un middleware (`rol_requerido`) que:
 
 1. Verifica que el token JWT sea válido.
-2. Comprueba que el rol del usuario esté autorizado para ese endpoint, ya sea por rol fijo o contra una **matriz de permisos** configurable (tabla de permisos por rol y recurso, editable desde el módulo de Administración).
+2. Comprueba que el rol del usuario esté autorizado para ese endpoint, ya sea por rol fijo o contra una **matriz de permisos** configurable .
 
 En el frontend, esto se refuerza con rutas protegidas: un usuario no puede navegar a una pantalla que no le corresponde, y el menú solo muestra las opciones habilitadas para su rol.
 
