@@ -20,8 +20,7 @@ def crear_app():
     CORS(app, resources={
         r"/api/*": {
             "origins": [
-                "http://localhost:5173",
-                "https://evaluacion-final-sistema-academico.vercel.app"
+                "http://localhost:5173"
             ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
