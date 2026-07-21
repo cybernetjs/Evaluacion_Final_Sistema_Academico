@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -17,12 +19,14 @@ def crear_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    origenes_permitidos = [
+        "http://localhost:5173",
+        os.getenv("FRONTEND_URL", "https://evaluacion-final-sistema-academico.vercel.app"),
+    ]
+
     CORS(app, resources={
         r"/api/*": {
-            "origins": [
-                "http://localhost:5173"
-                "https://evaluacion-final-sistema-academico.vercel.app"
-            ],
+            "origins": origenes_permitidos,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
