@@ -21,7 +21,7 @@ def crear_app():
         r"/api/*": {
             "origins": [
                 "http://localhost:5173"
-                "https://tu-proyecto.vercel.app"
+                "https://evaluacion-final-sistema-academico.vercel.app"
             ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
