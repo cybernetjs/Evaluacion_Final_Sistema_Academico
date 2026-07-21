@@ -1,5 +1,6 @@
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity
+from sqlalchemy.orm import joinedload
 from app import db
 from app.dominio.modelos.matriculas.matricula_detalle import MatriculaDetalle
 from app.dominio.modelos.academico.estado_curso import EstadoCurso
@@ -7,7 +8,7 @@ from app.modulos.notas.aplicacion.servicios import NotasService
 
 
 def listar_notas():
-    detalles = MatriculaDetalle.query.all()
+    detalles = MatriculaDetalle.query.options(joinedload(MatriculaDetalle.estado_curso)).all()
     return jsonify([
         {
             "matricula_id": d.matricula_id,
@@ -22,7 +23,9 @@ def listar_notas():
 
 
 def obtener_notas_matricula(matricula_id):
-    detalles = MatriculaDetalle.query.filter_by(matricula_id=matricula_id).all()
+    detalles = MatriculaDetalle.query.options(
+        joinedload(MatriculaDetalle.estado_curso)
+    ).filter_by(matricula_id=matricula_id).all()
     return jsonify([
         {
             "oferta_academica_id": d.oferta_academica_id,

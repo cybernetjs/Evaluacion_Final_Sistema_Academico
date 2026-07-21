@@ -4,6 +4,10 @@ from app import db
 class MatriculaDetalle(db.Model):
     __tablename__ = "matricula_detalle"
 
+    __table_args__ = (
+        db.Index("ix_matricula_detalle_oferta_nota", "oferta_academica_id", "nota_final"),
+    )
+
     matricula_id = db.Column(
         db.Integer, db.ForeignKey("matriculas.id"), primary_key=True
     )

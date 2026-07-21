@@ -1,4 +1,5 @@
 from datetime import datetime
+from sqlalchemy.orm import joinedload
 from app import db
 from app.dominio.modelos.matriculas.matricula_detalle import MatriculaDetalle
 from app.dominio.modelos.matriculas.matricula import Matricula
@@ -52,11 +53,18 @@ class NotasService:
         return detalle, None
 
     @staticmethod
-    def _notas_visibles_para_estudiante(oferta_academica_id):
-        acta = Acta.query.filter_by(oferta_academica_id=oferta_academica_id).first()
-        if not acta:
-            return False
-        return acta.notas_publicadas or acta.estado == "Cerrada"
+    def _mapa_visibilidad_actas(oferta_academica_ids):
+        if not oferta_academica_ids:
+            return {}
+
+        actas = Acta.query.filter(
+            Acta.oferta_academica_id.in_(oferta_academica_ids)
+        ).all()
+
+        return {
+            acta.oferta_academica_id: (acta.notas_publicadas or acta.estado == "Cerrada")
+            for acta in actas
+        }
 
     @staticmethod
     def hoja_de_notas_por_ciclo(usuario_id, periodo_academico_id=None, semestre_id=None):
@@ -65,7 +73,11 @@ class NotasService:
         if not estudiante:
             return None, "No se encontró un estudiante asociado a este usuario"
 
-        query = Matricula.query.filter_by(estudiante_id=estudiante.id)
+        query = Matricula.query.options(
+            joinedload(Matricula.detalle)
+            .joinedload(MatriculaDetalle.oferta_academica)
+            .joinedload(OfertaAcademica.curso)
+        ).filter_by(estudiante_id=estudiante.id)
         if periodo_academico_id:
             query = query.filter_by(periodo_academico_id=periodo_academico_id)
         if semestre_id:
@@ -73,10 +85,13 @@ class NotasService:
 
         matriculas = query.all()
 
+        ids_ofertas = [d.oferta_academica_id for m in matriculas for d in m.detalle]
+        visibilidad = NotasService._mapa_visibilidad_actas(ids_ofertas)
+
         resultado = []
         for m in matriculas:
             for d in m.detalle:
-                visible = NotasService._notas_visibles_para_estudiante(d.oferta_academica_id)
+                visible = visibilidad.get(d.oferta_academica_id, False)
 
                 resultado.append({
                     "periodo_academico_id": m.periodo_academico_id,
@@ -99,7 +114,9 @@ class NotasService:
         if not estudiante:
             return None, "No se encontró un estudiante asociado a este usuario"
 
-        matriculas = Matricula.query.filter_by(estudiante_id=estudiante.id).all()
+        matriculas = Matricula.query.options(
+            joinedload(Matricula.periodo_academico)
+        ).filter_by(estudiante_id=estudiante.id).all()
 
         vistos = {}
         for m in matriculas:
@@ -169,7 +186,9 @@ class NotasService:
         if not oferta:
             return None, "Oferta académica no encontrada"
 
-        detalles = MatriculaDetalle.query.filter_by(oferta_academica_id=oferta_academica_id).all()
+        detalles = MatriculaDetalle.query.options(
+            joinedload(MatriculaDetalle.matricula).joinedload(Matricula.estudiante)
+        ).filter_by(oferta_academica_id=oferta_academica_id).all()
 
         estudiantes = []
         for d in detalles:
@@ -275,27 +294,63 @@ class NotasService:
 
     @staticmethod
     def panel_actas():
-        ofertas = OfertaAcademica.query.all()
+        ofertas = OfertaAcademica.query.options(
+            joinedload(OfertaAcademica.curso)
+        ).all()
+        if not ofertas:
+            return [], None
+
+        ids_ofertas = [o.id for o in ofertas]
+
+        conteos = (
+            db.session.query(
+                MatriculaDetalle.oferta_academica_id,
+                db.func.count(MatriculaDetalle.oferta_academica_id).label("total"),
+                db.func.sum(
+                    db.case((MatriculaDetalle.nota_final.isnot(None), 1), else_=0)
+                ).label("con_nota"),
+            )
+            .filter(MatriculaDetalle.oferta_academica_id.in_(ids_ofertas))
+            .group_by(MatriculaDetalle.oferta_academica_id)
+            .all()
+        )
+        totales_por_oferta = {
+            fila.oferta_academica_id: (int(fila.total), int(fila.con_nota or 0))
+            for fila in conteos
+        }
+
+        actas_por_oferta = {
+            a.oferta_academica_id: a
+            for a in Acta.query.filter(Acta.oferta_academica_id.in_(ids_ofertas)).all()
+        }
+
+        asignaciones = (
+            OfertaAcademicaDocente.query.options(joinedload(OfertaAcademicaDocente.docente))
+            .filter(OfertaAcademicaDocente.oferta_academica_id.in_(ids_ofertas))
+            .all()
+        )
+        docente_por_oferta = {}
+        for asignacion in asignaciones:
+            if asignacion.oferta_academica_id not in docente_por_oferta and asignacion.docente:
+                d = asignacion.docente
+                docente_por_oferta[asignacion.oferta_academica_id] = (
+                    f"{d.nombres} {d.apellido_paterno} {d.apellido_materno}"
+                )
 
         filas = []
         for oferta in ofertas:
-            detalles = MatriculaDetalle.query.filter_by(oferta_academica_id=oferta.id).count()
-            if detalles == 0:
+            total, con_nota = totales_por_oferta.get(oferta.id, (0, 0))
+            if total == 0:
                 continue
 
-            porcentaje, con_nota, total = NotasService._porcentaje_notas_ingresadas(oferta.id)
-            acta = Acta.query.filter_by(oferta_academica_id=oferta.id).first()
-            asignacion = OfertaAcademicaDocente.query.filter_by(oferta_academica_id=oferta.id).first()
-            docente_nombre = None
-            if asignacion and asignacion.docente:
-                d = asignacion.docente
-                docente_nombre = f"{d.nombres} {d.apellido_paterno} {d.apellido_materno}"
+            porcentaje = round((con_nota / total) * 100, 1)
+            acta = actas_por_oferta.get(oferta.id)
 
             filas.append({
                 "oferta_academica_id": oferta.id,
                 "curso_codigo": oferta.curso.codigo,
                 "curso_nombre": oferta.curso.nombre,
-                "docente": docente_nombre,
+                "docente": docente_por_oferta.get(oferta.id),
                 "porcentaje_notas_ingresadas": porcentaje,
                 "estudiantes_con_nota": con_nota,
                 "estudiantes_total": total,
@@ -308,7 +363,10 @@ class NotasService:
     @staticmethod
     def alumnos_omisos(oferta_academica_id):
         detalles = (
-            MatriculaDetalle.query.filter_by(oferta_academica_id=oferta_academica_id)
+            MatriculaDetalle.query.options(
+                joinedload(MatriculaDetalle.matricula).joinedload(Matricula.estudiante)
+            )
+            .filter_by(oferta_academica_id=oferta_academica_id)
             .filter(MatriculaDetalle.nota_final.is_(None))
             .all()
         )
@@ -526,7 +584,12 @@ class NotasService:
         from app.dominio.modelos.estudiantes.plan_estudiante import PlanEstudiante
 
         consulta = (
-            MatriculaDetalle.query.join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+            MatriculaDetalle.query.options(
+                joinedload(MatriculaDetalle.oferta_academica).joinedload(OfertaAcademica.curso),
+                joinedload(MatriculaDetalle.estado_curso),
+                joinedload(MatriculaDetalle.matricula).joinedload(Matricula.estudiante),
+            )
+            .join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
             .join(OfertaAcademica, MatriculaDetalle.oferta_academica_id == OfertaAcademica.id)
             .join(Acta, Acta.oferta_academica_id == OfertaAcademica.id)
             .join(Estudiante, Matricula.estudiante_id == Estudiante.id)
@@ -543,6 +606,21 @@ class NotasService:
 
         detalles = consulta.all()
 
+        ids_ofertas = {d.oferta_academica_id for d in detalles}
+        docente_por_oferta = {}
+        if ids_ofertas:
+            asignaciones = (
+                OfertaAcademicaDocente.query.options(joinedload(OfertaAcademicaDocente.docente))
+                .filter(OfertaAcademicaDocente.oferta_academica_id.in_(ids_ofertas))
+                .all()
+            )
+            for asignacion in asignaciones:
+                if asignacion.oferta_academica_id not in docente_por_oferta and asignacion.docente:
+                    doc = asignacion.docente
+                    docente_por_oferta[asignacion.oferta_academica_id] = (
+                        f"{doc.nombres} {doc.apellido_paterno} {doc.apellido_materno}"
+                    )
+
         por_oferta = {}
         for d in detalles:
             oferta_id = d.oferta_academica_id
@@ -551,16 +629,11 @@ class NotasService:
                     "oferta_academica_id": oferta_id,
                     "curso_codigo": d.oferta_academica.curso.codigo,
                     "curso_nombre": d.oferta_academica.curso.nombre,
-                    "docente": None,
+                    "docente": docente_por_oferta.get(oferta_id),
                     "aprobados": 0,
                     "desaprobados": 0,
                     "total": 0,
                 }
-
-            asignacion = OfertaAcademicaDocente.query.filter_by(oferta_academica_id=oferta_id).first()
-            if asignacion and asignacion.docente:
-                doc = asignacion.docente
-                por_oferta[oferta_id]["docente"] = f"{doc.nombres} {doc.apellido_paterno} {doc.apellido_materno}"
 
             por_oferta[oferta_id]["total"] += 1
             if d.estado_curso and d.estado_curso.nombre == "Aprobado":
@@ -603,7 +676,7 @@ class NotasService:
                 "tasa_desaprobacion_porcentaje": round((desaprobados_especialidad / total_especialidad) * 100, 1),
             })
 
-        matriculas_periodo = Matricula.query
+        matriculas_periodo = Matricula.query.options(joinedload(Matricula.estado))
         if periodo_academico_id:
             matriculas_periodo = matriculas_periodo.filter_by(periodo_academico_id=periodo_academico_id)
         matriculas_periodo = matriculas_periodo.all()

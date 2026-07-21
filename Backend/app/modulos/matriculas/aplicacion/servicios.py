@@ -2,6 +2,7 @@ import io
 import os
 import uuid
 from datetime import datetime
+from sqlalchemy.orm import joinedload
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from app import db
@@ -62,6 +63,8 @@ class MatriculaService:
         from app.dominio.modelos.identidad.usuario import Usuario
         from app.dominio.modelos.administracion.auditoria import Auditoria
 
+        from app.dominio.modelos.ofertas.oferta_academica import OfertaAcademica
+
         estudiante = Estudiante.query.filter_by(usuario_id=usuario_id).first()
         if not estudiante:
             return None, "Estudiante no encontrado"
@@ -79,7 +82,10 @@ class MatriculaService:
         if not matricula:
             return None, "No tienes una solicitud de matrícula pendiente de validación en este periodo"
 
-        detalles = MatriculaDetalle.query.filter_by(matricula_id=matricula.id).all()
+        detalles = MatriculaDetalle.query.options(
+            joinedload(MatriculaDetalle.oferta_academica).joinedload(OfertaAcademica.curso),
+            joinedload(MatriculaDetalle.oferta_academica).joinedload(OfertaAcademica.horarios),
+        ).filter_by(matricula_id=matricula.id).all()
         usuario = Usuario.query.get(usuario_id)
 
         ancho, alto = tamano_letter
@@ -179,13 +185,19 @@ class MatriculaService:
         from reportlab.lib.pagesizes import landscape
         from reportlab.pdfbase.pdfmetrics import stringWidth
 
+        from app.dominio.modelos.ofertas.oferta_academica import OfertaAcademica
+
         matricula = Matricula.query.get(matricula_id)
         if not matricula:
             return None, "Matrícula no encontrada"
 
         estudiante = Estudiante.query.get(matricula.estudiante_id)
         usuario = Usuario.query.get(estudiante.usuario_id)
-        detalles = MatriculaDetalle.query.filter_by(matricula_id=matricula.id).all()
+        detalles = MatriculaDetalle.query.options(
+            joinedload(MatriculaDetalle.oferta_academica).joinedload(OfertaAcademica.curso),
+            joinedload(MatriculaDetalle.oferta_academica).joinedload(OfertaAcademica.semestre),
+            joinedload(MatriculaDetalle.oferta_academica).joinedload(OfertaAcademica.horarios),
+        ).filter_by(matricula_id=matricula.id).all()
         hash_verificacion = MatriculaService._generar_hash_matricula(matricula)
 
         # Semestre que cursa el estudiante en esta matrícula: se toma el semestre
@@ -319,16 +331,22 @@ class MatriculaService:
     @staticmethod
     def _cursos_aprobados_y_desaprobados(estudiante_id):
         from app.dominio.modelos.matriculas.matricula_detalle import MatriculaDetalle
-        from app.dominio.modelos.academico.estado_curso import EstadoCurso
 
-        matriculas_ids = [m.id for m in Matricula.query.filter_by(estudiante_id=estudiante_id).all()]
-        detalles = MatriculaDetalle.query.filter(MatriculaDetalle.matricula_id.in_(matriculas_ids)).all()
+        detalles = (
+            MatriculaDetalle.query.options(
+                joinedload(MatriculaDetalle.estado_curso),
+                joinedload(MatriculaDetalle.oferta_academica),
+            )
+            .join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+            .filter(Matricula.estudiante_id == estudiante_id)
+            .all()
+        )
 
         aprobados = set()
         desaprobados = set()
 
         for d in detalles:
-            estado = EstadoCurso.query.get(d.estado_curso_id)
+            estado = d.estado_curso
             curso_id = d.oferta_academica.curso_id
             if estado and estado.nombre.lower() == "aprobado":
                 aprobados.add(curso_id)
@@ -342,25 +360,41 @@ class MatriculaService:
     @staticmethod
     def _cursos_matriculados_activos(estudiante_id):
         from app.dominio.modelos.matriculas.matricula_detalle import MatriculaDetalle
-        from app.dominio.modelos.academico.estado_curso import EstadoCurso
 
-        matriculas_ids = [m.id for m in Matricula.query.filter_by(estudiante_id=estudiante_id).all()]
-        detalles = MatriculaDetalle.query.filter(MatriculaDetalle.matricula_id.in_(matriculas_ids)).all()
+        detalles = (
+            MatriculaDetalle.query.options(
+                joinedload(MatriculaDetalle.estado_curso),
+                joinedload(MatriculaDetalle.oferta_academica),
+            )
+            .join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+            .filter(Matricula.estudiante_id == estudiante_id)
+            .all()
+        )
 
         activos = set()
         for d in detalles:
-            estado = EstadoCurso.query.get(d.estado_curso_id)
+            estado = d.estado_curso
             if estado and estado.nombre.lower() == "cursando":
                 activos.add(d.oferta_academica.curso_id)
 
         return activos
 
     @staticmethod
-    def _prerequisitos_faltantes(curso_id, aprobados):
+    def _prerequisitos_faltantes_batch(cursos_ids):
         from app.dominio.modelos.academico.pre_requisito import PreRequisito
 
-        requisitos = PreRequisito.query.filter_by(curso_dependiente_id=curso_id).all()
-        return [r.curso_requisito for r in requisitos if r.curso_requisito_id not in aprobados]
+        if not cursos_ids:
+            return {}
+
+        requisitos = (
+            PreRequisito.query.options(joinedload(PreRequisito.curso_requisito))
+            .filter(PreRequisito.curso_dependiente_id.in_(cursos_ids))
+            .all()
+        )
+        por_curso = {}
+        for r in requisitos:
+            por_curso.setdefault(r.curso_dependiente_id, []).append(r)
+        return por_curso
 
     @staticmethod
     def cursos_disponibles(usuario_id, periodo_academico_id):
@@ -399,15 +433,28 @@ class MatriculaService:
         creditos_maximos = 22
         resultado = []
 
+        cursos_ids_todos = [item.curso_id for item in cursos_del_plan]
+        prerequisitos_por_curso = MatriculaService._prerequisitos_faltantes_batch(cursos_ids_todos)
+
+        ofertas = (
+            OfertaAcademica.query.options(joinedload(OfertaAcademica.horarios))
+            .filter(
+                OfertaAcademica.periodo_academico_id == periodo_academico_id,
+                OfertaAcademica.curso_id.in_(cursos_ids_todos),
+            )
+            .all()
+        )
+        oferta_por_curso_semestre = {(o.curso_id, o.semestre_id): o for o in ofertas}
+
         def agregar_curso(item, tipo):
             curso = item.curso
             ya_matriculado = curso.id in matriculados_activos
-            faltantes = [] if ya_matriculado else MatriculaService._prerequisitos_faltantes(curso.id, aprobados)
-            oferta = OfertaAcademica.query.filter_by(
-                periodo_academico_id=periodo_academico_id,
-                curso_id=curso.id,
-                semestre_id=item.semestre_id
-            ).first()
+            if ya_matriculado:
+                faltantes = []
+            else:
+                requisitos = prerequisitos_por_curso.get(curso.id, [])
+                faltantes = [r.curso_requisito for r in requisitos if r.curso_requisito_id not in aprobados]
+            oferta = oferta_por_curso_semestre.get((curso.id, item.semestre_id))
 
             habilitado = len(faltantes) == 0 and oferta is not None and not ya_matriculado
             motivo = None
@@ -688,8 +735,6 @@ class MatriculaService:
 
     @staticmethod
     def listar_bandeja_validacion(periodo_id=None, especialidad_id=None, estado_nombre=None, pagina=1, por_pagina=10):
-        from sqlalchemy.orm import joinedload
-
         consulta = Matricula.query.join(Estudiante, Matricula.estudiante_id == Estudiante.id).join(
             EstadoMatricula, Matricula.estado_id == EstadoMatricula.id
         ).options(
@@ -878,10 +923,23 @@ class MatriculaService:
             .all()
         )
 
+        ids_cursos_top = [f.curso_id for f in filas_cursos]
+        cupos_por_curso = {}
+        if ids_cursos_top:
+            filas_cupos = (
+                db.session.query(
+                    OfertaAcademica.curso_id,
+                    db.func.sum(OfertaAcademica.cupos).label("cupos_totales"),
+                )
+                .filter(OfertaAcademica.curso_id.in_(ids_cursos_top))
+                .group_by(OfertaAcademica.curso_id)
+                .all()
+            )
+            cupos_por_curso = {f.curso_id: int(f.cupos_totales or 0) for f in filas_cupos}
+
         top_cursos = []
         for f in filas_cursos:
-            ofertas_curso = OfertaAcademica.query.filter_by(curso_id=f.curso_id).all()
-            cupos_totales = sum(o.cupos for o in ofertas_curso) or 1
+            cupos_totales = cupos_por_curso.get(f.curso_id) or 1
             ocupacion = round((f.total_matriculados / cupos_totales) * 100, 1)
             top_cursos.append({
                 "curso": f.curso_nombre,
@@ -922,7 +980,11 @@ class MatriculaService:
 
     @staticmethod
     def exportar_reporte(periodo_id=None, especialidad_id=None, formato="csv"):
-        consulta = Matricula.query.join(Estudiante, Matricula.estudiante_id == Estudiante.id).join(
+        consulta = Matricula.query.options(
+            joinedload(Matricula.estudiante).joinedload(Estudiante.especialidad),
+            joinedload(Matricula.periodo_academico),
+            joinedload(Matricula.estado),
+        ).join(Estudiante, Matricula.estudiante_id == Estudiante.id).join(
             EstadoMatricula, Matricula.estado_id == EstadoMatricula.id
         )
         if periodo_id:

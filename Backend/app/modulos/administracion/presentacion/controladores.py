@@ -376,16 +376,22 @@ def actualizar_matriz_permisos():
 
     campos_booleanos = ["puede_crear", "puede_leer", "puede_actualizar", "puede_eliminar", "puede_ejecutar_batch"]
 
-    for cambio in cambios:
+    cambios_validos = [
+        cambio for cambio in cambios
+        if cambio.get("rol") in ROLES_SISTEMA and cambio.get("recurso") in RECURSOS_SISTEMA
+    ]
+
+    permisos_existentes = {(p.rol, p.recurso): p for p in PermisoRol.query.all()}
+
+    for cambio in cambios_validos:
         rol = cambio.get("rol")
         recurso = cambio.get("recurso")
-        if rol not in ROLES_SISTEMA or recurso not in RECURSOS_SISTEMA:
-            continue
 
-        permiso = PermisoRol.query.filter_by(rol=rol, recurso=recurso).first()
+        permiso = permisos_existentes.get((rol, recurso))
         if not permiso:
             permiso = PermisoRol(rol=rol, recurso=recurso)
             db.session.add(permiso)
+            permisos_existentes[(rol, recurso)] = permiso
 
         for campo in campos_booleanos:
             if campo in cambio:
@@ -395,7 +401,7 @@ def actualizar_matriz_permisos():
     registro = Auditoria(
         usuario_id=admin_id,
         accion="actualizar_matriz_permisos",
-        detalle=f"Se actualizaron {len(cambios)} combinaciones rol-recurso",
+        detalle=f"Se actualizaron {len(cambios_validos)} combinaciones rol-recurso",
     )
     db.session.add(registro)
     db.session.commit()

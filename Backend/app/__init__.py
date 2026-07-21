@@ -62,11 +62,12 @@ def crear_app():
     app.register_blueprint(ofertas_academicas_bp, url_prefix='/api/ofertas-academicas')
     app.register_blueprint(periodos_academicos_bp, url_prefix='/api/periodos-academicos')
 
-    with app.app_context():
-        db.create_all()
-        from app.dominio.modelos.identidad.usuario import Usuario
-        if not Usuario.query.first():
-            from app.seeders import ejecutar_todos
-            ejecutar_todos()
+    if os.getenv("SKIP_DB_INIT", "false").lower() not in ("true", "1"):
+        with app.app_context():
+            db.create_all()
+            from app.dominio.modelos.identidad.usuario import Usuario
+            if not Usuario.query.first():
+                from app.seeders import ejecutar_todos
+                ejecutar_todos()
 
     return app

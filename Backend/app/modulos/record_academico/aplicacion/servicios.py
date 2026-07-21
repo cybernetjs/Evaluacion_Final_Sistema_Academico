@@ -1,5 +1,6 @@
 import io
 from collections import defaultdict
+from sqlalchemy.orm import joinedload
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from openpyxl import Workbook
@@ -13,7 +14,6 @@ from app.dominio.modelos.ofertas.periodo_academico import PeriodoAcademico
 from app.dominio.modelos.estudiantes.progreso_estudiante import ProgresoEstudiante
 from app.dominio.modelos.estudiantes.historial_merito import HistorialMerito
 from app.dominio.modelos.academico.especialidad import Especialidad
-from app.dominio.modelos.academico.semestre import Semestre
 
 PROMEDIO_MINIMO_APROBATORIO = 10.5
 UMBRAL_ALERTA_DESERCION = 25
@@ -35,7 +35,15 @@ class RecordAcademicoService:
     @staticmethod
     def _filas_historial(estudiante_id):
         matriculas = (
-            Matricula.query.filter_by(estudiante_id=estudiante_id)
+            Matricula.query.options(
+                joinedload(Matricula.periodo_academico),
+                joinedload(Matricula.semestre),
+                joinedload(Matricula.detalle)
+                .joinedload(MatriculaDetalle.oferta_academica)
+                .joinedload(OfertaAcademica.curso),
+                joinedload(Matricula.detalle).joinedload(MatriculaDetalle.estado_curso),
+            )
+            .filter_by(estudiante_id=estudiante_id)
             .join(PeriodoAcademico, Matricula.periodo_academico_id == PeriodoAcademico.id)
             .order_by(PeriodoAcademico.fecha_inicio.desc())
             .all()
@@ -212,40 +220,65 @@ class RecordAcademicoService:
         anios_por_estudiante = RecordAcademicoService._anio_ingreso_por_estudiante()
         estudiantes = Estudiante.query.filter_by(especialidad_id=especialidad_id).all()
 
-        filas = []
-        for est in estudiantes:
-            if anios_por_estudiante.get(est.id) != int(anio_ingreso):
-                continue
+        ids_estudiantes = [
+            est.id for est in estudiantes
+            if anios_por_estudiante.get(est.id) == int(anio_ingreso)
+        ]
+        if not ids_estudiantes:
+            return [], None
 
-            progreso = ProgresoEstudiante.query.get(est.id)
+        progresos = (
+            ProgresoEstudiante.query.options(joinedload(ProgresoEstudiante.estado_permanencia))
+            .filter(ProgresoEstudiante.estudiante_id.in_(ids_estudiantes))
+            .all()
+        )
+        progreso_por_estudiante = {p.estudiante_id: p for p in progresos}
+
+        registros_merito = (
+            HistorialMerito.query.filter(HistorialMerito.estudiante_id.in_(ids_estudiantes))
+            .join(PeriodoAcademico, HistorialMerito.periodo_academico_id == PeriodoAcademico.id)
+            .order_by(PeriodoAcademico.fecha_inicio.desc())
+            .all()
+        )
+        ultimo_merito_por_estudiante = {}
+        for registro in registros_merito:
+            ultimo_merito_por_estudiante.setdefault(registro.estudiante_id, registro)
+
+        filas_creditos = (
+            db.session.query(
+                Matricula.estudiante_id,
+                db.func.coalesce(db.func.sum(Curso.creditos), 0).label("creditos"),
+            )
+            .select_from(MatriculaDetalle)
+            .join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
+            .join(OfertaAcademica, MatriculaDetalle.oferta_academica_id == OfertaAcademica.id)
+            .join(Curso, OfertaAcademica.curso_id == Curso.id)
+            .filter(Matricula.estudiante_id.in_(ids_estudiantes))
+            .group_by(Matricula.estudiante_id)
+            .all()
+        )
+        creditos_por_estudiante = {f.estudiante_id: int(f.creditos or 0) for f in filas_creditos}
+
+        estudiantes_por_id = {est.id: est for est in estudiantes}
+
+        filas = []
+        for estudiante_id in ids_estudiantes:
+            est = estudiantes_por_id[estudiante_id]
+            progreso = progreso_por_estudiante.get(estudiante_id)
+
             if estado_nombre and (
                 not progreso or not progreso.estado_permanencia
                 or progreso.estado_permanencia.nombre.lower() != estado_nombre.lower()
             ):
                 continue
 
-            ultimo_merito = (
-                HistorialMerito.query.filter_by(estudiante_id=est.id)
-                .join(PeriodoAcademico, HistorialMerito.periodo_academico_id == PeriodoAcademico.id)
-                .order_by(PeriodoAcademico.fecha_inicio.desc())
-                .first()
-            )
-
-            creditos_matriculados = (
-                db.session.query(db.func.coalesce(db.func.sum(Curso.creditos), 0))
-                .select_from(MatriculaDetalle)
-                .join(Matricula, MatriculaDetalle.matricula_id == Matricula.id)
-                .join(OfertaAcademica, MatriculaDetalle.oferta_academica_id == OfertaAcademica.id)
-                .join(Curso, OfertaAcademica.curso_id == Curso.id)
-                .filter(Matricula.estudiante_id == est.id)
-                .scalar()
-            )
+            ultimo_merito = ultimo_merito_por_estudiante.get(estudiante_id)
 
             filas.append({
                 "estudiante_id": est.id,
                 "codigo": est.id,
                 "nombres_completos": f"{est.nombres} {est.apellido_paterno} {est.apellido_materno}",
-                "creditos_matriculados": int(creditos_matriculados or 0),
+                "creditos_matriculados": creditos_por_estudiante.get(estudiante_id, 0),
                 "creditos_aprobados": progreso.creditos_aprobados_acumulados if progreso else 0,
                 "pps_ultimo_ciclo": float(ultimo_merito.promedio_ponderado_periodo) if ultimo_merito else None,
                 "ppa": float(progreso.promedio_ponderado_acumulado) if progreso else None,
@@ -304,8 +337,8 @@ class RecordAcademicoService:
                 continue
 
             registros = (
-                HistorialMerito.query.filter(HistorialMerito.estudiante_id.in_(datos["ids"]))
-                .join(Semestre, HistorialMerito.semestre_id == Semestre.id)
+                HistorialMerito.query.options(joinedload(HistorialMerito.semestre))
+                .filter(HistorialMerito.estudiante_id.in_(datos["ids"]))
                 .all()
             )
 

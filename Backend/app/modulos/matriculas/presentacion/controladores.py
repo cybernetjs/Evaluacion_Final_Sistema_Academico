@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask import jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity
+from sqlalchemy.orm import joinedload
 from app.dominio.modelos.estudiantes.estudiante import Estudiante
 from app.dominio.modelos.ofertas.periodo_academico import PeriodoAcademico
 from app.dominio.modelos.ofertas.oferta_academica import OfertaAcademica
@@ -37,7 +38,11 @@ def listar_ofertas():
     from app.compartido.utilidades.seccion_oferta import etiqueta_seccion
 
     periodo = MatriculaService.periodo_actual()
-    ofertas = OfertaAcademica.query.filter_by(periodo_academico_id=periodo.id).all()
+    ofertas = OfertaAcademica.query.options(
+        joinedload(OfertaAcademica.periodo_academico),
+        joinedload(OfertaAcademica.curso),
+        joinedload(OfertaAcademica.semestre),
+    ).filter_by(periodo_academico_id=periodo.id).all()
 
     return jsonify([
         {

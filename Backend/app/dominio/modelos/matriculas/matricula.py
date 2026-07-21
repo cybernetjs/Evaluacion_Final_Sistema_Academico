@@ -4,6 +4,10 @@ from app import db
 class Matricula(db.Model):
     __tablename__ = "matriculas"
 
+    __table_args__ = (
+        db.Index("ix_matricula_estudiante_periodo", "estudiante_id", "periodo_academico_id"),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     estudiante_id = db.Column(db.Integer, db.ForeignKey("estudiantes.id"))
     periodo_academico_id = db.Column(db.Integer, db.ForeignKey("periodos_academicos.id"))

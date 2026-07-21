@@ -3,6 +3,7 @@ import os
 import uuid
 from datetime import datetime
 from marshmallow import ValidationError
+from sqlalchemy.orm import joinedload
 from app import db
 from app.dominio.modelos.ofertas.oferta_academica import OfertaAcademica
 from app.dominio.modelos.ofertas.periodo_academico import PeriodoAcademico
@@ -14,7 +15,11 @@ from app.modulos.matriculas.aplicacion.servicios import MatriculaService
 class OfertaAcademicaService:
     def listar_ofertas(self):
         periodo = MatriculaService.periodo_actual()
-        ofertas = OfertaAcademica.query.filter_by(periodo_academico_id=periodo.id).all()
+        ofertas = OfertaAcademica.query.options(
+            joinedload(OfertaAcademica.periodo_academico),
+            joinedload(OfertaAcademica.curso),
+            joinedload(OfertaAcademica.semestre),
+        ).filter_by(periodo_academico_id=periodo.id).all()
 
         return ofertas
     

@@ -1,6 +1,7 @@
 import os
 import uuid
 from datetime import datetime
+from sqlalchemy.orm import joinedload
 from app import db
 from app.dominio.modelos.academico.silabo import Silabo
 from app.dominio.modelos.docentes.docente import Docente
@@ -176,7 +177,9 @@ class CursosDocentesService:
         curso = oferta.curso
         horas_requeridas_curso = curso.horas_lectivas + curso.horas_practicas
 
-        asignaciones = OfertaAcademicaDocente.query.filter_by(
+        asignaciones = OfertaAcademicaDocente.query.options(
+            joinedload(OfertaAcademicaDocente.docente)
+        ).filter_by(
             oferta_academica_id=oferta_academica_id
         ).all()
         horarios = OfertaAcademicaHorario.query.filter_by(
@@ -236,6 +239,7 @@ class CursosDocentesService:
             .filter(OfertaAcademicaDocente.funcion_curso.isnot(None))
             .join(OfertaAcademica, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id)
             .filter(OfertaAcademica.periodo_academico_id == periodo_academico_id)
+            .options(joinedload(OfertaAcademicaDocente.oferta_academica).joinedload(OfertaAcademica.curso))
             .all()
         )
 
@@ -246,12 +250,28 @@ class CursosDocentesService:
                 secciones_por_oferta[oferta.id] = {"oferta": oferta, "horas_semanales": 0}
             secciones_por_oferta[oferta.id]["horas_semanales"] += a.horas_asignadas or 0
 
+        oferta_ids = list(secciones_por_oferta.keys())
+
+        horarios_por_oferta = {}
+        if oferta_ids:
+            horarios_todos = OfertaAcademicaHorario.query.filter(
+                OfertaAcademicaHorario.oferta_academica_id.in_(oferta_ids)
+            ).all()
+            for h in horarios_todos:
+                horarios_por_oferta.setdefault(h.oferta_academica_id, []).append(h)
+
+        ofertas_con_silabo = set()
+        if oferta_ids:
+            silabos_todos = Silabo.query.filter(
+                Silabo.oferta_academica_id.in_(oferta_ids)
+            ).all()
+            ofertas_con_silabo = {s.oferta_academica_id for s in silabos_todos}
+
         resultado = []
         for oferta_id, info in secciones_por_oferta.items():
             oferta = info["oferta"]
             curso = oferta.curso
-            horarios = OfertaAcademicaHorario.query.filter_by(oferta_academica_id=oferta.id).all()
-            silabo = Silabo.query.filter_by(oferta_academica_id=oferta.id).first()
+            horarios = horarios_por_oferta.get(oferta_id, [])
 
             resultado.append({
                 "oferta_academica_id": oferta.id,
@@ -260,7 +280,7 @@ class CursosDocentesService:
                 "creditos": curso.creditos,
                 "seccion": etiqueta_seccion(oferta),
                 "horas_semanales": info["horas_semanales"],
-                "estado_silabo": "Silabo Cargado" if silabo else "Silabo Pendiente",
+                "estado_silabo": "Silabo Cargado" if oferta_id in ofertas_con_silabo else "Silabo Pendiente",
                 "horario": [
                     {
                         "dia": DIAS_SEMANA.get(h.dia, h.dia),
@@ -466,61 +486,82 @@ class CursosDocentesService:
         return {"id": horario.id, "estado": horario.estado}, None, 201
 
     @staticmethod
-    def _especialidad_por_docente(docente_id):
-        curso_ids = (
-            db.session.query(OfertaAcademica.curso_id)
-            .join(OfertaAcademicaDocente, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id)
-            .filter(OfertaAcademicaDocente.docente_id == docente_id)
-            .distinct()
-            .all()
-        )
-        curso_ids = [c[0] for c in curso_ids]
-
-        especialidad_ids = (
-            db.session.query(PlanDeEstudios.especialidad_id)
-            .join(PlanCursosSemestre, PlanCursosSemestre.plan_estudios_id == PlanDeEstudios.id)
-            .filter(PlanCursosSemestre.curso_id.in_(curso_ids))
-            .distinct()
-            .all()
-        )
-        ids = [e[0] for e in especialidad_ids if e[0]]
-        if not ids:
-            return None
-
-        especialidad = Especialidad.query.get(ids[0])
-        return especialidad.nombre if especialidad else None
-
-    @staticmethod
     def carga_docente(especialidad_id=None, periodo_academico_id=None):
         docentes = Docente.query.all()
-        resultado = []
+        if not docentes:
+            return []
 
-        for d in docentes:
-            consulta = OfertaAcademicaDocente.query.filter_by(docente_id=d.id).join(
-                OfertaAcademica, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id
+        docente_ids = [d.id for d in docentes]
+
+        consulta = OfertaAcademicaDocente.query.filter(
+            OfertaAcademicaDocente.docente_id.in_(docente_ids)
+        ).join(
+            OfertaAcademica, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id
+        ).options(
+            joinedload(OfertaAcademicaDocente.oferta_academica).joinedload(OfertaAcademica.curso)
+        )
+        if periodo_academico_id:
+            consulta = consulta.filter(OfertaAcademica.periodo_academico_id == periodo_academico_id)
+
+        asignaciones_todas = consulta.all()
+
+        asignaciones_por_docente = {}
+        for a in asignaciones_todas:
+            asignaciones_por_docente.setdefault(a.docente_id, []).append(a)
+
+        curso_ids = {a.oferta_academica.curso_id for a in asignaciones_todas}
+
+        especialidad_por_curso = {}
+        if curso_ids:
+            filas = (
+                db.session.query(PlanCursosSemestre.curso_id, PlanDeEstudios.especialidad_id)
+                .join(PlanDeEstudios, PlanCursosSemestre.plan_estudios_id == PlanDeEstudios.id)
+                .filter(PlanCursosSemestre.curso_id.in_(curso_ids))
+                .distinct()
+                .all()
             )
-            if periodo_academico_id:
-                consulta = consulta.filter(OfertaAcademica.periodo_academico_id == periodo_academico_id)
+            for curso_id, esp_id in filas:
+                if esp_id is not None:
+                    especialidad_por_curso.setdefault(curso_id, esp_id)
 
-            asignaciones = consulta.all()
+        especialidad_ids_usadas = set(especialidad_por_curso.values())
+        especialidades = {}
+        if especialidad_ids_usadas:
+            especialidades = {
+                e.id: e.nombre
+                for e in Especialidad.query.filter(Especialidad.id.in_(especialidad_ids_usadas)).all()
+            }
+
+        docente_ids_para_filtro = None
+        if especialidad_id:
+            filas_filtro = (
+                db.session.query(OfertaAcademicaDocente.docente_id)
+                .join(OfertaAcademica, OfertaAcademica.id == OfertaAcademicaDocente.oferta_academica_id)
+                .join(Curso, Curso.id == OfertaAcademica.curso_id)
+                .join(PlanCursosSemestre, PlanCursosSemestre.curso_id == Curso.id)
+                .join(PlanDeEstudios, PlanDeEstudios.id == PlanCursosSemestre.plan_estudios_id)
+                .filter(PlanDeEstudios.especialidad_id == especialidad_id)
+                .filter(OfertaAcademicaDocente.docente_id.in_(docente_ids))
+                .distinct()
+                .all()
+            )
+            docente_ids_para_filtro = {f[0] for f in filas_filtro}
+
+        resultado = []
+        for d in docentes:
+            asignaciones = asignaciones_por_docente.get(d.id)
             if not asignaciones:
                 continue
 
-            especialidad_nombre = CursosDocentesService._especialidad_por_docente(d.id)
-            if especialidad_id:
-                especialidades_docente = (
-                    db.session.query(PlanDeEstudios.especialidad_id)
-                    .join(PlanCursosSemestre, PlanCursosSemestre.plan_estudios_id == PlanDeEstudios.id)
-                    .join(Curso, Curso.id == PlanCursosSemestre.curso_id)
-                    .join(OfertaAcademica, OfertaAcademica.curso_id == Curso.id)
-                    .join(OfertaAcademicaDocente, OfertaAcademicaDocente.oferta_academica_id == OfertaAcademica.id)
-                    .filter(OfertaAcademicaDocente.docente_id == d.id)
-                    .distinct()
-                    .all()
-                )
-                ids_especialidad_docente = {e[0] for e in especialidades_docente}
-                if int(especialidad_id) not in ids_especialidad_docente:
-                    continue
+            if docente_ids_para_filtro is not None and d.id not in docente_ids_para_filtro:
+                continue
+
+            especialidad_nombre = None
+            for a in asignaciones:
+                esp_id = especialidad_por_curso.get(a.oferta_academica.curso_id)
+                if esp_id:
+                    especialidad_nombre = especialidades.get(esp_id)
+                    break
 
             total_horas = sum(a.horas_asignadas or 0 for a in asignaciones)
 
@@ -557,35 +598,73 @@ class CursosDocentesService:
             periodo = CursosDocentesService.periodo_activo()
             periodo_academico_id = periodo.id if periodo else None
 
-        ofertas = OfertaAcademica.query.filter_by(periodo_academico_id=periodo_academico_id).all()
+        ofertas = OfertaAcademica.query.filter_by(
+            periodo_academico_id=periodo_academico_id
+        ).options(joinedload(OfertaAcademica.curso)).all()
 
         total_cursos = len(ofertas)
         total_cargados = 0
         pendientes = []
         por_especialidad = {}
 
-        for oferta in ofertas:
-            silabo = Silabo.query.filter_by(oferta_academica_id=oferta.id).first()
+        oferta_ids = [o.id for o in ofertas]
+        curso_ids = {o.curso_id for o in ofertas}
 
-            especialidad_ids = (
-                db.session.query(PlanDeEstudios.especialidad_id)
-                .join(PlanCursosSemestre, PlanCursosSemestre.plan_estudios_id == PlanDeEstudios.id)
-                .filter(PlanCursosSemestre.curso_id == oferta.curso_id)
+        ofertas_con_silabo = set()
+        if oferta_ids:
+            silabos_todos = Silabo.query.filter(
+                Silabo.oferta_academica_id.in_(oferta_ids)
+            ).all()
+            ofertas_con_silabo = {s.oferta_academica_id for s in silabos_todos}
+
+        especialidad_por_curso = {}
+        if curso_ids:
+            filas = (
+                db.session.query(PlanCursosSemestre.curso_id, PlanDeEstudios.especialidad_id)
+                .join(PlanDeEstudios, PlanCursosSemestre.plan_estudios_id == PlanDeEstudios.id)
+                .filter(PlanCursosSemestre.curso_id.in_(curso_ids))
                 .distinct()
                 .all()
             )
-            especialidad = Especialidad.query.get(especialidad_ids[0][0]) if especialidad_ids else None
-            nombre_especialidad = especialidad.nombre if especialidad else "Sin especialidad"
+            for curso_id, esp_id in filas:
+                especialidad_por_curso.setdefault(curso_id, esp_id)
+
+        especialidad_ids_usadas = {e for e in especialidad_por_curso.values() if e}
+        especialidades = {}
+        if especialidad_ids_usadas:
+            especialidades = {
+                e.id: e.nombre
+                for e in Especialidad.query.filter(Especialidad.id.in_(especialidad_ids_usadas)).all()
+            }
+
+        oferta_ids_sin_silabo = [o.id for o in ofertas if o.id not in ofertas_con_silabo]
+        docente_por_oferta = {}
+        if oferta_ids_sin_silabo:
+            asignaciones_todas = (
+                OfertaAcademicaDocente.query
+                .options(joinedload(OfertaAcademicaDocente.docente))
+                .filter(OfertaAcademicaDocente.oferta_academica_id.in_(oferta_ids_sin_silabo))
+                .all()
+            )
+            for a in asignaciones_todas:
+                docente_por_oferta.setdefault(a.oferta_academica_id, a.docente)
+
+        for oferta in ofertas:
+            especialidad_id_oferta = especialidad_por_curso.get(oferta.curso_id)
+            nombre_especialidad = (
+                especialidades.get(especialidad_id_oferta, "Sin especialidad")
+                if especialidad_id_oferta
+                else "Sin especialidad"
+            )
 
             por_especialidad.setdefault(nombre_especialidad, {"total": 0, "cargados": 0})
             por_especialidad[nombre_especialidad]["total"] += 1
 
-            if silabo:
+            if oferta.id in ofertas_con_silabo:
                 total_cargados += 1
                 por_especialidad[nombre_especialidad]["cargados"] += 1
             else:
-                docente_asignado = OfertaAcademicaDocente.query.filter_by(oferta_academica_id=oferta.id).first()
-                docente = docente_asignado.docente if docente_asignado else None
+                docente = docente_por_oferta.get(oferta.id)
                 pendientes.append({
                     "oferta_academica_id": oferta.id,
                     "curso_nombre": oferta.curso.nombre,

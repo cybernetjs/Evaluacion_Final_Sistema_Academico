@@ -7,6 +7,7 @@ from datetime import datetime
 import qrcode
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from sqlalchemy.orm import joinedload
 
 from app import db
 from app.dominio.modelos.certificados.certificado import Certificado
@@ -123,7 +124,12 @@ class CertificadoService:
 
         consulta = consulta.order_by(Certificado.id.desc())
         total = consulta.count()
-        certificados = consulta.offset((pagina - 1) * por_pagina).limit(por_pagina).all()
+        certificados = (
+            consulta.options(joinedload(Certificado.estudiante))
+            .offset((pagina - 1) * por_pagina)
+            .limit(por_pagina)
+            .all()
+        )
 
         return {
             "total": total,
@@ -347,9 +353,14 @@ class CertificadoService:
         if not certificado_ids:
             return None, "Debes seleccionar al menos un certificado para firmar", 400
 
+        certificados_por_id = {
+            c.id: c
+            for c in Certificado.query.filter(Certificado.id.in_(certificado_ids)).all()
+        }
+
         resultados = []
         for certificado_id in certificado_ids:
-            certificado = Certificado.query.get(certificado_id)
+            certificado = certificados_por_id.get(certificado_id)
             if not certificado:
                 resultados.append({"id": certificado_id, "estado": "error", "detalle": "No encontrado"})
                 continue
